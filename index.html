@@ -458,13 +458,12 @@
 
         function initApp() {
             window.firebaseModules.onAuthStateChanged(window.auth, (user) => {
-                if (user) checkUserRole(user); // Pass user object
+                if (user) checkUserRole(user); 
                 else document.getElementById('loginScreen').classList.remove('hidden');
             });
         }
 
         async function checkUserRole(user) {
-            // Check hardcoded admins
             if (user.email === 'admin@jt.com' || user.email === 'titir95biplab@gmail.com') {
                 STATE.role = 'admin';
                 showPanel('adminPanel');
@@ -474,10 +473,8 @@
                 return;
             } 
             
-            // Check database role (scalability)
             const { doc, getDoc } = window.firebaseModules;
             try {
-                // Assuming you might store staff roles in a 'users' or 'staff' collection
                 const userDoc = await getDoc(doc(window.db, 'staff', user.uid)); 
                 if (userDoc.exists() && userDoc.data().role === 'admin') {
                     STATE.role = 'admin';
@@ -486,7 +483,6 @@
                     loadMenu();
                     loadAnalytics();
                 } else {
-                    // Default to staff if not admin
                     STATE.role = 'staff';
                     showPanel('outletPanel');
                     loadCategories();
@@ -494,7 +490,6 @@
                     loadOrders(); 
                 }
             } catch (e) {
-                // Fallback to staff if DB check fails
                 STATE.role = 'staff';
                 showPanel('outletPanel');
                 loadCategories();
@@ -572,12 +567,21 @@
         // --- ADMIN FUNCTIONS ---
         function switchAdminTab(tab) {
             ['dashboard', 'menu', 'orders'].forEach(t => {
-                document.getElementById(`btn-adm-${t}`).classList.remove('active');
-                document.getElementById(`adm-view-${t}`).classList.add('hidden');
+                const btn = document.getElementById(`btn-adm-${t}`);
+                const view = document.getElementById(`adm-view-${t}`);
+                if(btn) btn.classList.remove('active');
+                if(view) view.classList.add('hidden');
             });
-            document.getElementById(`btn-adm-${tab}`).classList.add('active');
-            document.getElementById(`adm-view-${tab}`).classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`btn-adm-${tab}`);
+            const activeView = document.getElementById(`adm-view-${tab}`);
+            
+            if(activeBtn) activeBtn.classList.add('active');
+            if(activeView) activeView.classList.remove('hidden');
+
             if(tab === 'orders') loadAdminOrders();
+            if(tab === 'dashboard') loadAnalytics();
+            if(tab === 'menu') updateCategorySelects();
         }
 
         function loadCategories() {
@@ -586,7 +590,6 @@
                 STATE.categories = snap.docs.map(d => ({id: d.id, ...d.data()}));
                 if (STATE.role === 'admin') renderAdminCategories();
                 updateCategorySelects();
-                // If Outlet/Customer, re-render menu to update sidebars
                 if(STATE.role === 'staff') renderOutletMenu();
                 if(STATE.role === 'customer') renderCustomerMenu();
             });
@@ -649,56 +652,116 @@
             `).join('');
         }
 
-        // --- ADMIN ANALYTICS ---
+        // --- ADMIN ANALYTICS & ORDERS ---
         async function loadAnalytics() {
-            const start = new Date(document.getElementById('dashStart').value);
-            const end = new Date(document.getElementById('dashEnd').value);
-            end.setHours(23,59,59);
+            const startInput = document.getElementById('dashStart').value;
+            const endInput = document.getElementById('dashEnd').value;
+            
+            if(!startInput || !endInput) return;
 
-            const { collection, query, where, getDocs, Timestamp } = window.firebaseModules;
-            const q = query(collection(window.db, 'orders'), 
-                where('status', '==', 'completed'),
-                where('timestamp', '>=', Timestamp.fromDate(start)),
-                where('timestamp', '<=', Timestamp.fromDate(end))
-            );
+            const startDate = new Date(startInput);
+            const endDate = new Date(endInput);
+            endDate.setHours(23, 59, 59);
+
+            const { collection, query, where, getDocs } = window.firebaseModules;
+            
+            const q = query(collection(window.db, 'orders'), where('status', '==', 'completed'));
             
             const snap = await getDocs(q);
             let totalSales = 0;
             let count = 0;
+
             snap.forEach(d => {
-                totalSales += d.data().total;
-                count++;
+                const data = d.data();
+                if(data.timestamp) {
+                    const orderDate = data.timestamp.toDate();
+                    if(orderDate >= startDate && orderDate <= endDate) {
+                        totalSales += (data.total || 0);
+                        count++;
+                    }
+                }
             });
 
-            document.getElementById('statTotalSales').innerText = `₹${totalSales}`;
+            document.getElementById('statTotalSales').innerText = '₹' + totalSales;
             document.getElementById('statTotalOrders').innerText = count;
-            document.getElementById('statAvgValue').innerText = count ? `₹${Math.floor(totalSales/count)}` : `₹0`;
+            document.getElementById('statAvgValue').innerText = count ? '₹' + Math.floor(totalSales/count) : '₹0';
         }
 
         function loadAdminOrders() {
-            const { collection, query, where, orderBy, getDocs } = window.firebaseModules;
-            getDocs(query(collection(window.db, 'orders'), where('status', '==', 'completed'), orderBy('timestamp', 'desc')))
-            .then(snap => {
-                const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+            const { collection, query, where, onSnapshot } = window.firebaseModules;
+            
+            const q = query(collection(window.db, 'orders'), where('status', '==', 'completed'));
+            
+            onSnapshot(q, (snap) => {
                 const list = document.getElementById('adminOrdersList');
-                list.innerHTML = orders.map(o => `
-                    <div class="order-card flex justify-between items-center">
+                
+                if(snap.empty) {
+                    list.innerHTML = '<p class="text-muted text-center">No completed orders found.</p>';
+                    return;
+                }
+
+                const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                orders.sort((a, b) => {
+                    const tA = a.timestamp ? a.timestamp.seconds : 0;
+                    const tB = b.timestamp ? b.timestamp.seconds : 0;
+                    return tB - tA;
+                });
+
+                list.innerHTML = orders.map(o => {
+                    const dateStr = o.timestamp ? new Date(o.timestamp.toDate()).toLocaleDateString() : 'N/A';
+                    return `
+                    <div class="order-card" style="display:flex; justify-content:space-between; align-items:center;">
                         <div>
-                            <div><strong>${o.phone}</strong></div>
-                            <div class="text-muted">${new Date(o.timestamp.toDate()).toLocaleDateString()} - ₹${o.total}</div>
+                            <div style="font-weight:bold; font-size:1.1rem;">${o.phone}</div>
+                            <div class="text-muted" style="font-size:0.85rem;">${dateStr} • ₹${o.total}</div>
+                            <div class="text-muted" style="font-size:0.8rem;">${o.items.length} Items</div>
                         </div>
                         <div>
                             <button class="btn btn-danger btn-sm" onclick="adminDeleteOrder('${o.id}')">Delete</button>
                         </div>
                     </div>
-                `).join('');
+                `;}).join('');
             });
         }
         
+        // ** FIXED: Deleting order adjusts points **
         async function adminDeleteOrder(id) {
-            if(!confirm('Delete this record permanently?')) return;
-            await window.firebaseModules.deleteDoc(window.firebaseModules.doc(window.db, 'orders', id));
-            loadAdminOrders();
+            if(!confirm('Delete this record? Warning: 5% Bonus points awarded will be deducted from the customer.')) return;
+            
+            const { doc, runTransaction } = window.firebaseModules;
+            
+            try {
+                await runTransaction(window.db, async (transaction) => {
+                    // 1. Get Order
+                    const orderRef = doc(window.db, 'orders', id);
+                    const orderDoc = await transaction.get(orderRef);
+                    
+                    if (!orderDoc.exists()) throw "Order does not exist!";
+                    
+                    const orderData = orderDoc.data();
+                    
+                    // 2. Adjust Customer Points if order was completed
+                    if (orderData.status === 'completed' && orderData.phone) {
+                        const bonus = Math.floor(orderData.total * 0.05);
+                        const custRef = doc(window.db, 'customers', orderData.phone);
+                        const custDoc = await transaction.get(custRef);
+                        
+                        if (custDoc.exists()) {
+                            const currentPoints = custDoc.data().points || 0;
+                            transaction.update(custRef, { points: currentPoints - bonus });
+                        }
+                    }
+                    
+                    // 3. Delete Order
+                    transaction.delete(orderRef);
+                });
+                
+                showToast('Order deleted & points reversed');
+                loadAdminOrders(); 
+            } catch (e) {
+                console.error(e);
+                showToast('Error: ' + e.message, 'error');
+            }
         }
 
         function filterAdminOrders(val) {
@@ -737,6 +800,7 @@
             } catch(e) { showToast(e.message, 'error'); }
         }
 
+        async function editItem(id) { showAddItemModal(id); }
         async function deleteItem(id) {
             if(!confirm('Delete item?')) return;
             await window.firebaseModules.deleteDoc(window.firebaseModules.doc(window.db, 'menu', id));
@@ -839,7 +903,6 @@
             const phone = document.getElementById('posPhone').value;
             if(phone.length !== 10) return showToast('Enter 10-digit Phone', 'error');
             if(STATE.cart.length === 0) return showToast('Cart is empty', 'error');
-            // Direct orders from POS are pending immediately
             await submitOrder(phone, STATE.cart, 'pending');
             clearCart();
             switchOutletTab('current');
@@ -847,7 +910,6 @@
 
         async function placeCustomerOrder() {
             if(STATE.custCart.length === 0) return showToast('Cart is empty', 'error');
-            // Customer orders are requested
             await submitOrder(STATE.user.phone, STATE.custCart, 'requested');
             STATE.custCart = [];
             renderActiveCart();
@@ -881,7 +943,6 @@
                 const completed = orders.filter(o => o.status === 'completed');
                 renderCompletedOrders(completed);
                 
-                // Badge Logic
                 const badge = document.getElementById('badgeIncoming');
                 if(requested.length > 0) badge.classList.remove('hidden');
                 else badge.classList.add('hidden');
@@ -972,16 +1033,12 @@
             const { doc, runTransaction, serverTimestamp } = window.firebaseModules;
             
             try {
-                // FIXED: Reads must come before writes in Firestore Transactions
                 await runTransaction(window.db, async (transaction) => {
-                    // 1. Create References
                     const orderRef = doc(window.db, 'orders', orderId);
                     const custRef = doc(window.db, 'customers', phone);
 
-                    // 2. Perform READS
                     const custDoc = await transaction.get(custRef);
 
-                    // 3. Perform WRITES
                     transaction.update(orderRef, { status: 'completed' });
                     
                     if(custDoc.exists()) {
@@ -989,10 +1046,10 @@
                         transaction.update(custRef, { points: newPoints });
                     }
                 });
-                showToast(`Order Completed! +${bonus} points added.`);
+                showToast(`Completed! +${bonus} pts`);
             } catch(e) {
                 console.error(e);
-                showToast('Transaction failed: ' + e.message, 'error');
+                showToast('Error: ' + e.message, 'error');
             }
         }
 
@@ -1028,21 +1085,48 @@
         }
 
         function loadCustomerHistory(phone) {
-            const { collection, query, where, orderBy, onSnapshot } = window.firebaseModules;
-            onSnapshot(query(collection(window.db, 'orders'), where('phone', '==', phone), orderBy('timestamp', 'desc')), (snap) => {
+            const { collection, query, where, onSnapshot } = window.firebaseModules;
+            
+            const q = query(collection(window.db, 'orders'), where('phone', '==', phone));
+            
+            onSnapshot(q, (snap) => {
                 const list = document.getElementById('custHistoryList');
-                if(snap.empty) { list.innerHTML = '<p class="text-center text-muted">No orders</p>'; return; }
-                list.innerHTML = snap.docs.map(d => {
+                if(snap.empty) { 
+                    list.innerHTML = '<p class="text-center text-muted" style="padding:20px;">No orders found.</p>'; 
+                    return; 
+                }
+
+                const sortedDocs = snap.docs.sort((a, b) => {
+                    const tA = a.data().timestamp ? a.data().timestamp.seconds : 0;
+                    const tB = b.data().timestamp ? b.data().timestamp.seconds : 0;
+                    return tB - tA;
+                });
+
+                list.innerHTML = sortedDocs.map(d => {
                     const o = d.data();
-                    const stClass = o.status === 'completed' ? 'status-completed' : o.status === 'requested' ? 'status-requested' : 'status-pending';
-                    const date = o.timestamp ? new Date(o.timestamp.toDate()).toLocaleDateString() : '';
+                    let stClass = 'status-pending';
+                    if (o.status === 'completed') stClass = 'status-completed';
+                    else if (o.status === 'requested') stClass = 'status-requested';
+                    else if (o.status === 'cancelled') stClass = 'status-cancelled';
+
+                    let dateStr = 'Processing...';
+                    if(o.timestamp) {
+                        const dateObj = o.timestamp.toDate();
+                        dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    }
+
                     return `
                         <div class="order-card">
-                            <div class="flex justify-between">
-                                <div><span class="order-status ${stClass}">${o.status.toUpperCase()}</span> ${date}</div>
-                                <strong>₹${o.total}</strong>
+                            <div class="flex justify-between" style="margin-bottom:8px;">
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    <span class="order-status ${stClass}" style="width:fit-content;">${o.status.toUpperCase()}</span>
+                                    <span style="font-size:0.75rem; color:#888;">${dateStr}</span>
+                                </div>
+                                <div style="font-weight:bold; font-size:1.1rem;">₹${o.total}</div>
                             </div>
-                            <div class="text-muted text-sm" style="margin-top:5px;">${o.items.map(i => i.name).join(', ')}</div>
+                            <div class="text-muted" style="font-size:0.85rem; border-top:1px solid rgba(255,255,255,0.05); padding-top:8px;">
+                                ${o.items.map(i => `${i.qty} x ${i.name}`).join(', ')}
+                            </div>
                         </div>
                     `;
                 }).join('');
