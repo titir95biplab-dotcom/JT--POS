@@ -2,10 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Juice Therapy - Smart POS System</title>
     <meta name="theme-color" content="#FF6B35">
     <meta name="description" content="Smart POS, CRM & Loyalty System">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="logo.png" type="image/png">
+    <link rel="apple-touch-icon" href="logo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -14,7 +17,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, Timestamp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-messaging.js";
 
         const firebaseConfig = {
@@ -54,7 +57,8 @@
             orderBy,
             onSnapshot,
             serverTimestamp,
-            increment
+            increment,
+            Timestamp
         };
 
         // Set flag that Firebase is ready
@@ -986,6 +990,331 @@
             display: block;
             animation: fadeIn 0.3s ease-out;
         }
+
+        /* Install Button */
+        .install-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--gradient-primary);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-xl);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .install-text {
+            flex: 1;
+        }
+
+        .install-text h3 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .install-text p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .install-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        /* Enhanced Mobile Responsiveness */
+        @media (max-width: 1200px) {
+            .app-container {
+                padding: var(--spacing-md);
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-lg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --spacing-xs: 3px;
+                --spacing-sm: 6px;
+                --spacing-md: 12px;
+                --spacing-lg: 16px;
+                --spacing-xl: 24px;
+                --spacing-2xl: 32px;
+            }
+
+            body {
+                font-size: 14px;
+            }
+
+            .app-container {
+                padding: var(--spacing-sm);
+            }
+
+            .app-header {
+                padding: var(--spacing-md);
+                flex-direction: column;
+                text-align: center;
+                gap: var(--spacing-sm);
+            }
+
+            .header-left h2 {
+                font-size: 1.4rem;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .card {
+                padding: var(--spacing-md);
+            }
+
+            .card-title {
+                font-size: 1.2rem;
+            }
+
+            .menu-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-sm);
+            }
+
+            .menu-item {
+                padding: var(--spacing-sm);
+            }
+
+            .menu-item-name {
+                font-size: 0.85rem;
+            }
+
+            .menu-item-price {
+                font-size: 1rem;
+            }
+
+            .btn {
+                padding: var(--spacing-sm) var(--spacing-md);
+                font-size: 0.9rem;
+            }
+
+            .login-card {
+                padding: var(--spacing-lg);
+                max-width: 100%;
+            }
+
+            .login-logo h1 {
+                font-size: 1.8rem;
+            }
+
+            .modal-content {
+                padding: var(--spacing-lg);
+                max-width: 95%;
+            }
+
+            .payment-options {
+                grid-template-columns: 1fr;
+            }
+
+            .notification {
+                right: var(--spacing-sm);
+                left: var(--spacing-sm);
+                max-width: none;
+            }
+
+            .tab-nav {
+                flex-wrap: wrap;
+                overflow-x: auto;
+            }
+
+            .tab-btn {
+                padding: var(--spacing-sm) var(--spacing-md);
+                font-size: 0.85rem;
+                white-space: nowrap;
+            }
+
+            .order-items {
+                max-height: 250px;
+            }
+
+            .bonus-amount {
+                font-size: 2.5rem;
+            }
+
+            .install-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .install-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .install-actions button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-logo h1 {
+                font-size: 1.5rem;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-sm);
+            }
+        }
+
+        /* POS Layout Styles */
+        .pos-layout {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: var(--spacing-md);
+            min-height: 400px;
+        }
+
+        .category-sidebar {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm);
+            overflow-y: auto;
+        }
+
+        .category-item {
+            padding: var(--spacing-md);
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--spacing-sm);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .category-item:hover,
+        .category-item.active {
+            background: var(--gradient-primary);
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .items-grid-container {
+            overflow-y: auto;
+            max-height: 600px;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-md);
+        }
+
+        @media (max-width: 1024px) {
+            .pos-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .category-sidebar {
+                display: flex;
+                overflow-x: auto;
+                padding: var(--spacing-sm);
+                gap: var(--spacing-sm);
+            }
+
+            .category-item {
+                min-width: 100px;
+                margin-bottom: 0;
+            }
+
+            .items-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .pos-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Top Navigation for Outlet POS */
+        .pos-top-nav {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            background: var(--gradient-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-sm);
+        }
+
+        .pos-nav-btn {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            color: var(--white);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: 0.95rem;
+            font-family: var(--font-body);
+        }
+
+        .pos-nav-btn:hover,
+        .pos-nav-btn.active {
+            background: var(--gradient-primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 640px) {
+            .pos-top-nav {
+                flex-direction: column;
+            }
+
+            .pos-nav-btn {
+                font-size: 0.85rem;
+                padding: var(--spacing-sm);
+            }
+        }
+
+        /* Logo in header */
+        .logo-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        @media (max-width: 768px) {
+            .logo-img {
+                width: 50px;
+                height: 50px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -993,6 +1322,7 @@
     <div id="loginScreen" class="login-screen">
         <div class="login-card">
             <div class="login-logo">
+                <img src="logo.png" alt="Juice Therapy Logo" class="logo-img" onerror="this.style.display='none'">
                 <h1>🍹 Juice Therapy</h1>
                 <p>Smart POS & Loyalty System</p>
             </div>
@@ -1147,6 +1477,7 @@
         <div class="app-container">
             <header class="app-header">
                 <div class="header-left">
+                    <img src="logo.png" alt="Juice Therapy Logo" class="logo-img" onerror="this.style.display='none'">
                     <h2>🍹 Outlet POS</h2>
                     <p>Staff: <span id="currentStaff">-</span></p>
                 </div>
@@ -1159,88 +1490,112 @@
                 </div>
             </header>
 
-            <div class="main-content">
-                <div>
+            <!-- THREE-BUTTON NAVIGATION -->
+            <div class="pos-top-nav">
+                <button class="pos-nav-btn active" onclick="showPOSSection('pos')">
+                    🛒 POS
+                </button>
+                <button class="pos-nav-btn" onclick="showPOSSection('current')">
+                    📋 Current Orders
+                </button>
+                <button class="pos-nav-btn" onclick="showPOSSection('completed')">
+                    ✅ Today's Completed
+                </button>
+            </div>
+
+            <!-- POS SECTION -->
+            <div id="posSection">
+                <div class="main-content">
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">Menu</h3>
                         </div>
                         
-                        <!-- Search Box -->
-                        <div class="form-group" style="margin-bottom: var(--spacing-lg);">
-                            <input type="text" id="menuSearchBox" placeholder="🔍 Search items..." 
-                                   oninput="searchMenuItems(this.value)" 
-                                   style="background: rgba(255, 255, 255, 0.08);">
+                        <!-- NEW LAYOUT: Categories Left, Items Grid Right -->
+                        <div class="pos-layout">
+                            <!-- Categories Sidebar -->
+                            <div class="category-sidebar">
+                                <h4 style="margin-bottom: 12px; font-size: 0.9rem; text-align: center;">Categories</h4>
+                                <div id="outletCategoryList"></div>
+                            </div>
+                            
+                            <!-- Items Grid -->
+                            <div class="items-grid-container">
+                                <div class="items-grid" id="outletMenuGrid"></div>
+                            </div>
                         </div>
-
-                        <div class="menu-categories">
-                            <button class="category-btn active" onclick="filterCategory('all')">All</button>
-                            <button class="category-btn" onclick="filterCategory('juice')">Juices</button>
-                            <button class="category-btn" onclick="filterCategory('smoothie')">Smoothies</button>
-                            <button class="category-btn" onclick="filterCategory('shake')">Shakes</button>
-                        </div>
-                        <div class="menu-grid" id="outletMenuGrid"></div>
                     </div>
 
-                    <div class="card" style="margin-top: var(--spacing-xl);">
-                        <div class="tab-nav" style="margin-bottom: var(--spacing-lg); border: none;">
-                            <button class="tab-btn active" onclick="switchOutletTab('current')">Current Orders</button>
-                            <button class="tab-btn" onclick="switchOutletTab('today')">Today's Completed</button>
-                        </div>
-                        
-                        <div id="currentOrdersTab" class="tab-content active">
-                            <div class="order-queue" id="currentOrdersQueue"></div>
-                        </div>
-                        
-                        <div id="todayOrdersTab" class="tab-content">
-                            <div id="todayCompletedOrders"></div>
+                    <div class="order-panel">
+                        <div class="current-order">
+                            <h3 class="card-title" style="margin-bottom: var(--spacing-lg);">New Order</h3>
+                            
+                            <div class="form-group">
+                                <label>Customer Phone Number</label>
+                                <input type="tel" id="customerPhone" placeholder="10-digit mobile" maxlength="10" style="font-size: 1.1rem; font-weight: 600;">
+                                <small style="color: var(--light-2); margin-top: 4px; display: block;">
+                                    New customer will be created automatically
+                                </small>
+                            </div>
+
+                            <div class="order-items" id="orderItems">
+                                <p style="text-align: center; color: var(--light-2); padding: var(--spacing-lg);">
+                                    Select items from menu
+                                </p>
+                            </div>
+
+                            <div class="order-summary">
+                                <div class="summary-row">
+                                    <span>Subtotal:</span>
+                                    <span id="subtotal">₹0</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Bonus Used:</span>
+                                    <span id="bonusUsed">₹0</span>
+                                </div>
+                                <div class="summary-row total">
+                                    <span>Total:</span>
+                                    <span id="orderTotal">₹0</span>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary btn-block" onclick="placeOrder()" style="margin-top: var(--spacing-lg);">
+                                Place Order
+                            </button>
+                            <button class="btn btn-ghost btn-block" onclick="clearOrder()" style="margin-top: var(--spacing-sm);">
+                                Clear
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="order-panel">
-                    <div class="current-order">
-                        <h3 class="card-title" style="margin-bottom: var(--spacing-lg);">New Order</h3>
-                        
-                        <div class="form-group">
-                            <label>Customer Phone</label>
-                            <input type="tel" id="customerPhone" placeholder="10-digit number" maxlength="10">
-                        </div>
-
-                        <div class="order-items" id="orderItems">
-                            <p style="text-align: center; color: var(--light-2); padding: var(--spacing-lg);">
-                                Select items from menu
-                            </p>
-                        </div>
-
-                        <div class="order-summary">
-                            <div class="summary-row">
-                                <span>Subtotal:</span>
-                                <span id="subtotal">₹0</span>
-                            </div>
-                            <div class="summary-row">
-                                <span>Bonus Used:</span>
-                                <span id="bonusUsed">₹0</span>
-                            </div>
-                            <div class="summary-row total">
-                                <span>Total:</span>
-                                <span id="orderTotal">₹0</span>
-                            </div>
-                        </div>
-
-                        <button class="btn btn-primary btn-block" onclick="placeOrder()" style="margin-top: var(--spacing-lg);">
-                            Place Order
-                        </button>
-                        <button class="btn btn-ghost btn-block" onclick="clearOrder()" style="margin-top: var(--spacing-sm);">
-                            Clear
+            <!-- CURRENT ORDERS SECTION -->
+            <div id="currentOrdersSection" class="hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Current Orders</h3>
+                        <button class="btn btn-ghost btn-small" onclick="loadCurrentOrders()">
+                            🔄 Refresh
                         </button>
                     </div>
+                    <div id="currentOrdersList">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
 
-                    <div class="card hidden" id="approvalQueue">
-                        <div class="card-header">
-                            <h3 class="card-title">Approval Queue</h3>
-                        </div>
-                        <div id="pendingOrders"></div>
+            <!-- COMPLETED ORDERS SECTION -->
+            <div id="completedOrdersSection" class="hidden">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Today's Completed Orders</h3>
+                        <button class="btn btn-ghost btn-small" onclick="loadTodayCompletedOrders()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <div id="completedOrdersList">
+                        <div class="spinner"></div>
                     </div>
                 </div>
             </div>
@@ -3061,7 +3416,332 @@ Payment Mode: ${order.paymentMode.toUpperCase()}
                         .divider { border-top: 2px dashed #000; margin: 10px 0; }
                         .item { margin: 5px 0; }
                         .qty { font-weight: bold; }
-                    </style>
+                
+        /* Install Button */
+        .install-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--gradient-primary);
+            padding: var(--spacing-md);
+            box-shadow: var(--shadow-xl);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: var(--spacing-md);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .install-text {
+            flex: 1;
+        }
+
+        .install-text h3 {
+            font-size: 1rem;
+            margin-bottom: 4px;
+        }
+
+        .install-text p {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .install-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        /* Enhanced Mobile Responsiveness */
+        @media (max-width: 1200px) {
+            .app-container {
+                padding: var(--spacing-md);
+            }
+            
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-lg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --spacing-xs: 3px;
+                --spacing-sm: 6px;
+                --spacing-md: 12px;
+                --spacing-lg: 16px;
+                --spacing-xl: 24px;
+                --spacing-2xl: 32px;
+            }
+
+            body {
+                font-size: 14px;
+            }
+
+            .app-container {
+                padding: var(--spacing-sm);
+            }
+
+            .app-header {
+                padding: var(--spacing-md);
+                flex-direction: column;
+                text-align: center;
+                gap: var(--spacing-sm);
+            }
+
+            .header-left h2 {
+                font-size: 1.4rem;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .card {
+                padding: var(--spacing-md);
+            }
+
+            .card-title {
+                font-size: 1.2rem;
+            }
+
+            .menu-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: var(--spacing-sm);
+            }
+
+            .menu-item {
+                padding: var(--spacing-sm);
+            }
+
+            .menu-item-name {
+                font-size: 0.85rem;
+            }
+
+            .menu-item-price {
+                font-size: 1rem;
+            }
+
+            .btn {
+                padding: var(--spacing-sm) var(--spacing-md);
+                font-size: 0.9rem;
+            }
+
+            .login-card {
+                padding: var(--spacing-lg);
+                max-width: 100%;
+            }
+
+            .login-logo h1 {
+                font-size: 1.8rem;
+            }
+
+            .modal-content {
+                padding: var(--spacing-lg);
+                max-width: 95%;
+            }
+
+            .payment-options {
+                grid-template-columns: 1fr;
+            }
+
+            .notification {
+                right: var(--spacing-sm);
+                left: var(--spacing-sm);
+                max-width: none;
+            }
+
+            .tab-nav {
+                flex-wrap: wrap;
+                overflow-x: auto;
+            }
+
+            .tab-btn {
+                padding: var(--spacing-sm) var(--spacing-md);
+                font-size: 0.85rem;
+                white-space: nowrap;
+            }
+
+            .order-items {
+                max-height: 250px;
+            }
+
+            .bonus-amount {
+                font-size: 2.5rem;
+            }
+
+            .install-banner {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .install-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .install-actions button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-logo h1 {
+                font-size: 1.5rem;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--spacing-sm);
+            }
+        }
+
+        /* POS Layout Styles */
+        .pos-layout {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: var(--spacing-md);
+            min-height: 400px;
+        }
+
+        .category-sidebar {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-sm);
+            overflow-y: auto;
+        }
+
+        .category-item {
+            padding: var(--spacing-md);
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--spacing-sm);
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .category-item:hover,
+        .category-item.active {
+            background: var(--gradient-primary);
+            border-color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .items-grid-container {
+            overflow-y: auto;
+            max-height: 600px;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-md);
+        }
+
+        @media (max-width: 1024px) {
+            .pos-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .category-sidebar {
+                display: flex;
+                overflow-x: auto;
+                padding: var(--spacing-sm);
+                gap: var(--spacing-sm);
+            }
+
+            .category-item {
+                min-width: 100px;
+                margin-bottom: 0;
+            }
+
+            .items-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .items-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .pos-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Top Navigation for Outlet POS */
+        .pos-top-nav {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-lg);
+            background: var(--gradient-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-sm);
+        }
+
+        .pos-nav-btn {
+            flex: 1;
+            padding: var(--spacing-md);
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            color: var(--white);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-base);
+            font-size: 0.95rem;
+            font-family: var(--font-body);
+        }
+
+        .pos-nav-btn:hover,
+        .pos-nav-btn.active {
+            background: var(--gradient-primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 640px) {
+            .pos-top-nav {
+                flex-direction: column;
+            }
+
+            .pos-nav-btn {
+                font-size: 0.85rem;
+                padding: var(--spacing-sm);
+            }
+        }
+
+        /* Logo in header */
+        .logo-img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        @media (max-width: 768px) {
+            .logo-img {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
                 </head>
                 <body>
                     <div class="center">
@@ -3095,7 +3775,20 @@ Payment Mode: ${order.paymentMode.toUpperCase()}
                         <div class="bold">Total Items: ${totalItems}</div>
                         <div style="margin-top: 10px;">Please prepare this order</div>
                     </div>
-                </body>
+                
+    <!-- Install Banner -->
+    <div id="installBanner" class="install-banner hidden">
+        <div class="install-text">
+            <h3>📱 Install Juice Therapy POS</h3>
+            <p>Install our app for faster access and offline capability</p>
+        </div>
+        <div class="install-actions">
+            <button class="btn btn-primary btn-small" onclick="installApp()">Install Now</button>
+            <button class="btn btn-ghost btn-small" onclick="dismissInstall()">Maybe Later</button>
+        </div>
+    </div>
+
+</body>
                 </html>
             `);
 
@@ -3162,6 +3855,433 @@ Please prepare this order`;
             initializeApp();
             handleAccountTypeChange();
         });
-    </script>
+    
+
+        // ============================================
+        // PWA INSTALL FUNCTIONALITY
+        // ============================================
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            const dismissed = localStorage.getItem('installDismissed');
+            if (!dismissed) {
+                document.getElementById('installBanner')?.classList.remove('hidden');
+            }
+        });
+
+        async function installApp() {
+            if (!deferredPrompt) {
+                showNotification('Installation not available on this device', 'error');
+                return;
+            }
+            
+            document.getElementById('installBanner')?.classList.add('hidden');
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            if (outcome === 'accepted') {
+                showNotification('App installed successfully!', 'success');
+                localStorage.setItem('appInstalled', 'true');
+            }
+            deferredPrompt = null;
+        }
+
+        function dismissInstall() {
+            document.getElementById('installBanner')?.classList.add('hidden');
+            localStorage.setItem('installDismissed', 'true');
+        }
+
+        // ============================================
+        // ENHANCED POS FUNCTIONS
+        // ============================================
+        
+        // Initialize POS with category layout
+        APP_STATE.selectedCategory = 'all';
+        APP_STATE.editingItemId = null;
+        APP_STATE.editingOrderId = null;
+        APP_STATE.completedOrders = [];
+
+        function renderOutletMenuWithCategories() {
+            const categoryList = document.getElementById('outletCategoryList');
+            const menuGrid = document.getElementById('outletMenuGrid');
+            
+            if (!categoryList || !menuGrid) return;
+            
+            // Get unique categories
+            const categoriesSet = new Set();
+            APP_STATE.menu.forEach(item => {
+                categoriesSet.add(item.category || 'uncategorized');
+            });
+            const categories = Array.from(categoriesSet);
+            
+            // Render category sidebar
+            let categoryHTML = `
+                <div class="category-item active" data-category="all" onclick="filterMenuByCategory('all')">
+                    📋 All
+                </div>
+            `;
+            
+            APP_STATE.categories.forEach(cat => {
+                if (categories.includes(cat.id)) {
+                    categoryHTML += `
+                        <div class="category-item" data-category="${cat.id}" onclick="filterMenuByCategory('${cat.id}')">
+                            ${cat.icon || '🍽️'} ${cat.name}
+                        </div>
+                    `;
+                }
+            });
+            
+            categoryList.innerHTML = categoryHTML;
+            renderMenuItemsGrid('all');
+        }
+
+        function filterMenuByCategory(category) {
+            APP_STATE.selectedCategory = category;
+            
+            document.querySelectorAll('.category-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.querySelector(`[data-category="${category}"]`)?.classList.add('active');
+            
+            renderMenuItemsGrid(category);
+        }
+
+        function renderMenuItemsGrid(category) {
+            const menuGrid = document.getElementById('outletMenuGrid');
+            if (!menuGrid) return;
+            
+            const items = category === 'all' 
+                ? APP_STATE.menu.filter(item => item.available !== false)
+                : APP_STATE.menu.filter(item => 
+                    item.category === category && item.available !== false
+                );
+            
+            if (items.length === 0) {
+                menuGrid.innerHTML = '<p style="text-align: center; padding: 40px; color: var(--light-2); grid-column: 1/-1;">No items</p>';
+                return;
+            }
+            
+            let html = '';
+            items.forEach(item => {
+                const inOrder = APP_STATE.currentOrder.find(o => o.id === item.id);
+                const quantity = inOrder ? inOrder.quantity : 0;
+                
+                html += `
+                    <div class="menu-item ${quantity > 0 ? 'selected' : ''}" onclick="toggleMenuItem('${item.id}')">
+                        <div class="menu-item-name">${item.name}</div>
+                        <div class="menu-item-price">₹${item.price}</div>
+                        ${quantity > 0 ? `
+                            <div style="margin-top: 8px; padding: 4px 8px; background: var(--accent); color: var(--dark); border-radius: 4px; font-weight: 700; font-size: 0.85rem;">
+                                Qty: ${quantity}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            menuGrid.innerHTML = html;
+        }
+
+        // Three-section navigation
+        function showPOSSection(section) {
+            // Update active button
+            document.querySelectorAll('.pos-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Hide all sections
+            document.getElementById('posSection')?.classList.add('hidden');
+            document.getElementById('currentOrdersSection')?.classList.add('hidden');
+            document.getElementById('completedOrdersSection')?.classList.add('hidden');
+            
+            // Show selected section
+            if (section === 'pos') {
+                document.getElementById('posSection')?.classList.remove('hidden');
+                renderOutletMenuWithCategories();
+            } else if (section === 'current') {
+                document.getElementById('currentOrdersSection')?.classList.remove('hidden');
+                loadCurrentOrders();
+            } else if (section === 'completed') {
+                document.getElementById('completedOrdersSection')?.classList.remove('hidden');
+                loadTodayCompletedOrders();
+            }
+        }
+
+        async function loadCurrentOrders() {
+            try {
+                const { collection, query, where, getDocs, orderBy } = window.firebaseModules;
+                
+                const ordersQuery = query(
+                    collection(window.db, 'orders'),
+                    where('status', 'in', ['pending', 'approved']),
+                    orderBy('createdAt', 'desc')
+                );
+                
+                const snapshot = await getDocs(ordersQuery);
+                const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                renderCurrentOrdersList(orders);
+            } catch (error) {
+                console.error('Load current orders error:', error);
+                document.getElementById('currentOrdersList').innerHTML = '<p style="text-align: center; padding: 20px;">Error loading orders</p>';
+            }
+        }
+
+        async function loadTodayCompletedOrders() {
+            try {
+                const { collection, query, where, getDocs, orderBy, Timestamp } = window.firebaseModules;
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const ordersQuery = query(
+                    collection(window.db, 'orders'),
+                    where('status', '==', 'completed'),
+                    where('createdAt', '>=', Timestamp.fromDate(today)),
+                    orderBy('createdAt', 'desc')
+                );
+                
+                const snapshot = await getDocs(ordersQuery);
+                const orders = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                APP_STATE.completedOrders = orders;
+                renderCompletedOrdersList(orders);
+            } catch (error) {
+                console.error('Load completed orders error:', error);
+                document.getElementById('completedOrdersList').innerHTML = '<p style="text-align: center; padding: 20px;">Error loading orders</p>';
+            }
+        }
+
+        function renderCurrentOrdersList(orders) {
+            const container = document.getElementById('currentOrdersList');
+            if (!container) return;
+            
+            if (orders.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 40px;">No current orders</p>';
+                return;
+            }
+            
+            let html = '';
+            orders.forEach(order => {
+                const orderTime = order.createdAt?.toDate ? order.createdAt.toDate().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) : 'N/A';
+                const totalItems = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                
+                html += `
+                    <div class="order-card">
+                        <div class="order-card-header">
+                            <span class="order-serial">${order.serialNo || 'N/A'}</span>
+                            <span class="order-status ${order.status}">${(order.status || 'pending').toUpperCase()}</span>
+                        </div>
+                        <div class="order-customer">📞 ${order.customerId || 'N/A'}</div>
+                        <div style="font-size: 0.85rem; color: var(--light-2); margin: 4px 0;">
+                            ⏰ ${orderTime} • ${totalItems} items
+                        </div>
+                        <div class="order-total">₹${(order.total || 0).toFixed(2)}</div>
+                        <div style="margin-top: 12px; display: flex; gap: 8px;">
+                            <button class="btn btn-small btn-success" onclick="completeOrderFlow('${order.id}')">
+                                Complete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function renderCompletedOrdersList(orders) {
+            const container = document.getElementById('completedOrdersList');
+            if (!container) return;
+            
+            if (orders.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 40px;">No completed orders today</p>';
+                return;
+            }
+            
+            let html = '';
+            orders.forEach(order => {
+                const orderTime = order.createdAt?.toDate ? order.createdAt.toDate().toLocaleTimeString('en-IN', {hour: '2-digit', minute: '2-digit'}) : 'N/A';
+                const totalItems = order.items?.reduce((sum, item) => sum + (item.quantity || 0), 0) || 0;
+                
+                html += `
+                    <div class="order-card">
+                        <div class="order-card-header">
+                            <span class="order-serial">${order.serialNo || 'N/A'}</span>
+                            <span class="order-status completed">COMPLETED</span>
+                        </div>
+                        <div class="order-customer">📞 ${order.customerId || 'N/A'}</div>
+                        <div style="font-size: 0.85rem; color: var(--light-2); margin: 4px 0;">
+                            ⏰ ${orderTime} • ${totalItems} items • ${order.paymentMode || 'N/A'}
+                        </div>
+                        <div class="order-total">₹${(order.total || 0).toFixed(2)}</div>
+                        <div style="margin-top: 12px;">
+                            <button class="btn btn-small btn-primary btn-block" onclick="sendBillToCustomer('${order.id}', '${order.customerId}')">
+                                📱 Send Bill via WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function sendBillToCustomer(orderId, phone) {
+            const order = APP_STATE.completedOrders?.find(o => o.id === orderId);
+            if (!order) {
+                showNotification('Order not found', 'error');
+                return;
+            }
+            
+            let bill = `🍹 *JUICE THERAPY*\nBirati, Kolkata\n\n`;
+            bill += `📄 Bill: ${order.serialNo || 'N/A'}\n`;
+            bill += `📞 Customer: ${order.customerId || 'N/A'}\n`;
+            bill += `⏰ ${order.createdAt?.toDate ? order.createdAt.toDate().toLocaleString('en-IN') : 'N/A'}\n\n`;
+            bill += `*ITEMS:*\n`;
+            bill += `${'─'.repeat(30)}\n`;
+            
+            (order.items || []).forEach(item => {
+                bill += `${item.quantity}x ${item.name} - ₹${(item.price * item.quantity).toFixed(2)}\n`;
+            });
+            
+            bill += `${'─'.repeat(30)}\n`;
+            bill += `Subtotal: ₹${(order.subtotal || 0).toFixed(2)}\n`;
+            bill += `${'═'.repeat(30)}\n`;
+            bill += `*TOTAL: ₹${(order.total || 0).toFixed(2)}*\n`;
+            bill += `${'═'.repeat(30)}\n`;
+            bill += `Payment: ${order.paymentMode || 'N/A'}\n`;
+            bill += `\nThank you! 🙏`;
+            
+            const whatsappUrl = `https://wa.me/91${phone}?text=${encodeURIComponent(bill)}`;
+            window.open(whatsappUrl, '_blank');
+            showNotification('Opening WhatsApp...', 'success');
+        }
+
+        async function completeOrderFlow(orderId) {
+            if (!confirm('Mark this order as completed?')) return;
+            
+            try {
+                const { doc, updateDoc } = window.firebaseModules;
+                await updateDoc(doc(window.db, 'orders', orderId), {
+                    status: 'completed',
+                    completedAt: new Date().toISOString()
+                });
+                
+                showNotification('Order completed!', 'success');
+                loadCurrentOrders();
+            } catch (error) {
+                console.error('Complete order error:', error);
+                showNotification('Failed to complete order', 'error');
+            }
+        }
+
+        // Enhanced category deletion
+        async function deleteCategory(categoryId) {
+            if (!confirm('Delete this category? Items will become uncategorized.')) return;
+            
+            try {
+                const { doc, deleteDoc, query, collection, where, getDocs, updateDoc } = window.firebaseModules;
+                
+                await deleteDoc(doc(window.db, 'categories', categoryId));
+                
+                const itemsQuery = query(
+                    collection(window.db, 'menu'),
+                    where('category', '==', categoryId)
+                );
+                const itemsSnapshot = await getDocs(itemsQuery);
+                
+                const updatePromises = itemsSnapshot.docs.map(itemDoc => 
+                    updateDoc(itemDoc.ref, { category: null })
+                );
+                await Promise.all(updatePromises);
+                
+                showNotification('Category deleted', 'success');
+                await loadCategories();
+                await loadMenuItems();
+                renderAdminCategories();
+                renderAdminMenu();
+            } catch (error) {
+                console.error('Delete category error:', error);
+                showNotification('Failed to delete category: ' + error.message, 'error');
+            }
+        }
+
+        // Menu item editing
+        function showEditItemModal(itemId) {
+            const item = APP_STATE.menu.find(i => i.id === itemId);
+            if (!item) {
+                showNotification('Item not found', 'error');
+                return;
+            }
+            
+            document.getElementById('itemName').value = item.name;
+            document.getElementById('itemPrice').value = item.price;
+            document.getElementById('itemCategory').value = item.category || '';
+            document.getElementById('itemAvailable').checked = item.available !== false;
+            
+            APP_STATE.editingItemId = itemId;
+            
+            const modal = document.getElementById('addItemModal');
+            const title = modal.querySelector('.modal-title');
+            const submitBtn = modal.querySelector('.btn-primary');
+            
+            if (title) title.textContent = 'Edit Menu Item';
+            if (submitBtn) {
+                submitBtn.textContent = 'Update Item';
+                submitBtn.onclick = () => updateMenuItem(itemId);
+            }
+            
+            modal.classList.add('active');
+        }
+
+        async function updateMenuItem(itemId) {
+            const name = document.getElementById('itemName').value.trim();
+            const price = parseFloat(document.getElementById('itemPrice').value);
+            const category = document.getElementById('itemCategory').value;
+            const available = document.getElementById('itemAvailable').checked;
+            
+            if (!name || !price || price <= 0) {
+                showNotification('Please enter valid name and price', 'error');
+                return;
+            }
+            
+            try {
+                const { doc, updateDoc } = window.firebaseModules;
+                
+                await updateDoc(doc(window.db, 'menu', itemId), {
+                    name,
+                    price,
+                    category: category || null,
+                    available
+                });
+                
+                showNotification('Item updated!', 'success');
+                closeAddItemModal();
+                await loadMenuItems();
+                renderAdminMenu();
+            } catch (error) {
+                console.error('Update item error:', error);
+                showNotification('Failed to update: ' + error.message, 'error');
+            }
+        }
+
+</script>
+
+    <!-- Install Banner -->
+    <div id="installBanner" class="install-banner hidden">
+        <div class="install-text">
+            <h3>📱 Install Juice Therapy POS</h3>
+            <p>Install our app for faster access and offline capability</p>
+        </div>
+        <div class="install-actions">
+            <button class="btn btn-primary btn-small" onclick="installApp()">Install Now</button>
+            <button class="btn btn-ghost btn-small" onclick="dismissInstall()">Maybe Later</button>
+        </div>
+    </div>
+
 </body>
 </html>
