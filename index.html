@@ -212,8 +212,9 @@
         <div class="app-layout">
             <div class="tabs">
                 <button class="btn btn-secondary tab-btn active" onclick="switchAdminTab('dashboard')" id="btn-adm-dash">📊 Analytics</button>
-                <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('menu')" id="btn-adm-menu">🍔 Menu Manager</button>
-                <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('orders')" id="btn-adm-orders">📜 Order Manager</button>
+                <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('menu')" id="btn-adm-menu">🍔 Menu</button>
+                <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('orders')" id="btn-adm-orders">📜 Orders</button>
+                <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('settings')" id="btn-adm-settings">⚙️ Settings</button>
             </div>
 
             <!-- Dashboard -->
@@ -267,6 +268,28 @@
                 <input type="text" class="input" placeholder="Search by Phone Number..." onkeyup="filterAdminOrders(this.value)" style="margin: 10px 0;">
                 <div id="adminOrdersList"></div>
             </div>
+
+            <!-- Settings Manager -->
+            <div id="adm-view-settings" class="hidden">
+                <div class="card">
+                    <h3>Store Profile (For Bills)</h3>
+                    <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+                        <label class="text-muted">Outlet Name</label>
+                        <input type="text" id="storeName" class="input" placeholder="e.g. Juice Therapy">
+                        
+                        <label class="text-muted">Address & Phone</label>
+                        <textarea id="storeAddress" class="input" placeholder="Full Address\nPhone Number" rows="3"></textarea>
+                        
+                        <label class="text-muted">Bill Footer Note</label>
+                        <input type="text" id="storeFooter" class="input" placeholder="e.g. Thank you for visiting!">
+                        
+                        <label class="text-muted">Website / Promo Link</label>
+                        <input type="text" id="storeLink" class="input" placeholder="e.g. www.juicetherapy.com">
+                        
+                        <button class="btn btn-primary w-full" onclick="saveStoreSettings()">💾 Save Settings</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -283,11 +306,16 @@
         </header>
         <div class="app-layout">
             <div class="tabs">
-                <button class="btn btn-secondary tab-btn active" onclick="switchOutletTab('pos')" id="tab-pos">🛒 New Order</button>
-                <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('incoming')" id="tab-incoming">🔔 Incoming <span id="badgeIncoming" class="hidden" style="background:red;border-radius:50%;width:8px;height:8px;display:inline-block;"></span></button>
-                <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('current')" id="tab-current">⏳ Current</button>
-                <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('completed')" id="tab-completed">✅ Completed</button>
-            </div>
+    <button class="btn btn-secondary tab-btn active" onclick="switchOutletTab('pos')" id="tab-pos" title="New Order">🛒</button>
+    
+    <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('incoming')" id="tab-incoming" title="Incoming" style="position: relative;">
+        🔔 
+        <span id="badgeIncoming" class="hidden" style="background:red; border-radius:50%; width:10px; height:10px; display:inline-block; position:absolute; top:5px; right:5px; border:1px solid white;"></span>
+    </button>
+    
+    <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('current')" id="tab-current" title="Current">⏳</button>
+    <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('completed')" id="tab-completed" title="Completed">✅</button>
+</div>
 
             <!-- POS -->
             <div id="view-pos" class="pos-container">
@@ -383,16 +411,99 @@
         </div>
     </div>
 
-    <!-- Modals -->
-    <!-- Add Item -->
+    <!-- Payment & Redemption Modal -->
+    <div id="paymentModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 400; display: flex; align-items: center; justify-content: center;">
+        <div class="card" style="width: 90%; max-width: 400px;">
+            
+            <!-- INPUT SECTION -->
+            <div id="paymentInputSection">
+                <h3 style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Final Billing</h3>
+                
+                <div class="flex justify-between" style="margin-bottom: 10px;">
+                    <span class="text-muted">Customer:</span>
+                    <span id="payCustPhone" class="font-bold">...</span>
+                </div>
+                
+                <div class="flex justify-between" style="margin-bottom: 10px;">
+                    <span class="text-muted">Bill Total:</span>
+                    <span id="payBillTotal" class="font-bold" style="font-size: 1.2rem;">₹0</span>
+                </div>
+
+                <!-- Redemption Section -->
+                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                    <div class="flex justify-between items-center">
+                        <span>Available Bonus:</span>
+                        <span id="payAvailPoints" style="color: var(--primary); font-weight: bold;">0 pts</span>
+                    </div>
+                    <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
+                        <input type="number" id="redeemInput" class="input" placeholder="0" style="margin:0; text-align: right;" oninput="updatePaymentCalc()">
+                        <button class="btn btn-sm btn-secondary" onclick="useMaxPoints()">Max</button>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.8rem; margin-top: 5px;">1 Point = ₹1 | New bonus will add to balance.</div>
+                </div>
+
+                <!-- Payment Mode Selector -->
+                <div style="margin-bottom: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <label class="text-muted" style="font-size: 0.9rem; display: block; margin-bottom: 8px;">Payment Mode</label>
+                    <div class="flex gap-2">
+                        <button id="btnModeCash" class="btn btn-sm btn-primary w-full" onclick="setPaymentMode('Cash')">💵 Cash</button>
+                        <button id="btnModeOnline" class="btn btn-sm btn-secondary w-full" onclick="setPaymentMode('Online')">📱 Online / UPI</button>
+                    </div>
+                    <input type="hidden" id="paymentModeInput" value="Cash">
+                </div>
+
+                <div class="flex justify-between" style="margin-bottom: 20px; font-size: 1.3rem; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+                    <span>Net Payable:</span>
+                    <span id="payNetTotal" style="color: var(--success);">₹0</span>
+                </div>
+
+                <!-- Cash Calculator Section -->
+                <div id="cashCalcSection" style="margin-bottom: 20px; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+                    <div class="flex justify-between items-center" style="margin-bottom: 8px;">
+                        <span class="text-muted">💵 Customer Gave:</span>
+                        <input type="number" id="cashGiven" class="input" placeholder="₹" style="width: 120px; margin:0; text-align: right; font-size: 1.1rem; font-weight: bold;" oninput="calculateChange()">
+                    </div>
+                    <div class="flex justify-between items-center" style="font-size: 1.1rem; font-weight: bold; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 8px;">
+                        <span>🔄 Return Change:</span>
+                        <span id="cashReturn" style="color: var(--warning);">₹0</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button class="btn btn-secondary w-full" onclick="closePaymentModal()">Cancel</button>
+                    <button class="btn btn-success w-full" onclick="processPayment()">Confirm & Pay</button>
+                </div>
+            </div>
+
+            <!-- SUCCESS & SEND BILL SECTION -->
+            <div id="paymentSuccessSection" class="hidden text-center" style="padding: 10px;">
+                <div style="font-size: 4rem; margin-bottom: 10px;">✅</div>
+                <h3 style="margin-bottom: 5px;">Payment Successful!</h3>
+                <p class="text-muted" style="margin-bottom: 20px;">Order #<span id="billSerial"></span> completed.</p>
+                
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                    <button class="btn btn-success w-full" style="background:#25D366; border:none;" onclick="sendBill('whatsapp')">
+                        📱 Send via WhatsApp
+                    </button>
+                    <button class="btn btn-primary w-full" onclick="sendBill('sms')">
+                        💬 Send via SMS
+                    </button>
+                    <button class="btn btn-secondary w-full" onclick="closePaymentModal()">
+                        ❌ Close
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modals (Item, Category, Customer Name) -->
     <div id="addItemModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; display: flex; align-items: center; justify-content: center;">
         <div class="card" style="width: 90%; max-width: 400px;">
             <h3>Add/Edit Item</h3>
             <input type="text" id="newItemName" class="input" placeholder="Item Name">
             <input type="number" id="newItemPrice" class="input" placeholder="Price">
-            <select id="newItemCat" class="input">
-                <option value="">Select Category</option>
-            </select>
+            <select id="newItemCat" class="input"><option value="">Select Category</option></select>
             <div class="flex gap-2" style="margin-top: 10px;">
                 <button class="btn btn-secondary w-full" onclick="document.getElementById('addItemModal').classList.add('hidden')">Cancel</button>
                 <button class="btn btn-primary w-full" onclick="saveMenuItem()">Save</button>
@@ -400,7 +511,6 @@
         </div>
     </div>
 
-    <!-- Add Category -->
     <div id="addCategoryModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 210; display: flex; align-items: center; justify-content: center;">
         <div class="card" style="width: 90%; max-width: 350px;">
             <h3>New Category</h3>
@@ -412,7 +522,6 @@
         </div>
     </div>
 
-    <!-- Customer Name Modal -->
     <div id="customerNameModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 300; display: flex; align-items: center; justify-content: center;">
         <div class="card" style="width: 90%; max-width: 400px; text-align: center;">
             <h3 style="margin-bottom: 10px;">Welcome!</h3>
@@ -433,7 +542,8 @@
             orders: [],
             editingOrderId: null,
             activeCategory: 'All',
-            tempPhone: null
+            tempPhone: null,
+            storeSettings: { name: 'Juice Therapy', address: '', footer: 'Thank you!', link: '' }
         };
 
         window.onload = () => {
@@ -449,7 +559,6 @@
                 }
             }, 100);
             
-            // Set Default Dates for dashboard
             const d = new Date();
             document.getElementById('dashEnd').valueAsDate = d;
             d.setMonth(d.getMonth() - 1);
@@ -464,6 +573,9 @@
         }
 
         async function checkUserRole(user) {
+            // Load Store Settings for everyone (needed for bills)
+            loadStoreSettings();
+
             if (user.email === 'admin@jt.com' || user.email === 'titir95biplab@gmail.com') {
                 STATE.role = 'admin';
                 showPanel('adminPanel');
@@ -564,9 +676,9 @@
             location.reload();
         }
 
-        // --- ADMIN FUNCTIONS ---
+        // --- ADMIN SETTINGS & TABS ---
         function switchAdminTab(tab) {
-            ['dashboard', 'menu', 'orders'].forEach(t => {
+            ['dashboard', 'menu', 'orders', 'settings'].forEach(t => {
                 const btn = document.getElementById(`btn-adm-${t}`);
                 const view = document.getElementById(`adm-view-${t}`);
                 if(btn) btn.classList.remove('active');
@@ -582,6 +694,33 @@
             if(tab === 'orders') loadAdminOrders();
             if(tab === 'dashboard') loadAnalytics();
             if(tab === 'menu') updateCategorySelects();
+        }
+
+        function loadStoreSettings() {
+            const { doc, onSnapshot } = window.firebaseModules;
+            onSnapshot(doc(window.db, 'settings', 'store'), (snap) => {
+                if (snap.exists()) {
+                    STATE.storeSettings = snap.data();
+                    // Update Inputs if Admin Panel
+                    if(document.getElementById('storeName')) {
+                        document.getElementById('storeName').value = STATE.storeSettings.name || '';
+                        document.getElementById('storeAddress').value = STATE.storeSettings.address || '';
+                        document.getElementById('storeFooter').value = STATE.storeSettings.footer || '';
+                        document.getElementById('storeLink').value = STATE.storeSettings.link || '';
+                    }
+                }
+            });
+        }
+
+        async function saveStoreSettings() {
+            const settings = {
+                name: document.getElementById('storeName').value,
+                address: document.getElementById('storeAddress').value,
+                footer: document.getElementById('storeFooter').value,
+                link: document.getElementById('storeLink').value
+            };
+            await window.firebaseModules.setDoc(window.firebaseModules.doc(window.db, 'settings', 'store'), settings);
+            showToast('Settings Saved!');
         }
 
         function loadCategories() {
@@ -724,7 +863,6 @@
             });
         }
         
-        // ** FIXED: Deleting order adjusts points **
         async function adminDeleteOrder(id) {
             if(!confirm('Delete this record? Warning: 5% Bonus points awarded will be deducted from the customer.')) return;
             
@@ -835,14 +973,9 @@
                 grid.innerHTML = '<div class="text-muted" style="grid-column: 1/-1; text-align:center; padding:20px;">No items found in ' + STATE.activeCategory + '</div>';
             } else {
                 grid.innerHTML = items.map(item => {
-                    // 1. Find Qty in Cart
                     const cartItem = STATE.cart.find(c => c.id === item.id);
                     const qty = cartItem ? cartItem.qty : 0;
-                    
-                    // 2. Create Badge HTML
                     const qtyBadge = qty > 0 ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3); font-size:0.8rem;">${qty}</div>` : '';
-                    
-                    // 3. Highlight Border if selected
                     const borderStyle = qty > 0 ? 'border: 1px solid var(--primary); background: rgba(255, 107, 53, 0.1);' : '';
 
                     return `
@@ -894,11 +1027,9 @@
         function renderActiveCart() {
             if(STATE.role === 'customer') {
                 renderCartGeneric(document.getElementById('custCartItems'), document.getElementById('custCartTotal'), STATE.custCart);
-                // Refresh Menu to update badges
                 renderCustomerMenu();
             } else {
                 renderCartGeneric(document.getElementById('cartItemsList'), document.getElementById('cartTotal'), STATE.cart);
-                // Refresh Menu to update badges
                 renderOutletMenu();
             }
         }
@@ -1005,7 +1136,6 @@
                     <div class="text-muted">${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</div>
                     <div class="flex gap-2" style="margin-top:10px;">
                         <button class="btn btn-secondary w-full" onclick="editOrder('${o.id}')">✏️ Edit</button>
-                        <!-- CHANGED: Calls openPaymentModal instead of completeOrder -->
                         <button class="btn btn-success w-full" onclick="openPaymentModal('${o.id}', ${o.total}, '${o.phone}')">✅ Bill & Pay</button>
                     </div>
                 </div>
@@ -1020,9 +1150,39 @@
                         <strong>₹${o.total}</strong>
                     </div>
                     <div class="text-muted">${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</div>
-                    <button class="btn btn-primary w-full" style="margin-top:10px;" onclick="sendBill('${o.phone}', '${o.total}')">📱 Send Bill</button>
+                    
+                    <!-- Updated Buttons for WA and SMS -->
+                    <div class="flex gap-2" style="margin-top:10px;">
+                        <button class="btn btn-success w-full btn-sm" onclick="sendBillFromHistory('${o.phone}', '${o.id}', 'whatsapp')">
+                            📱 WA
+                        </button>
+                        <button class="btn btn-primary w-full btn-sm" onclick="sendBillFromHistory('${o.phone}', '${o.id}', 'sms')">
+                            💬 SMS
+                        </button>
+                    </div>
                 </div>
             `).join('');
+        }
+
+        // Added 'type' parameter to handle both sms and whatsapp
+        function sendBillFromHistory(phone, orderId, type) {
+            const { doc, getDoc } = window.firebaseModules;
+            getDoc(doc(window.db, 'orders', orderId)).then(snap => {
+                if(snap.exists()) {
+                    const data = snap.data();
+                    // Load data into global state so sendBill() can read it
+                    PAYMENT_DATA = { 
+                        ...data, 
+                        serial: data.timestamp ? data.timestamp.toMillis().toString().slice(-4) : '0000', 
+                        bonusEarned: data.bonusEarned || 0, 
+                        finalPaid: data.finalPaid || data.total, 
+                        change: data.changeReturn || 0, 
+                        mode: data.paymentMode || 'Cash' 
+                    };
+                    // Call the main send function with the specific type
+                    sendBill(type);
+                }
+            });
         }
 
         async function updateOrderStatus(id, status) {
@@ -1057,36 +1217,208 @@
             switchOutletTab('current');
         }
 
-        async function completeOrder(orderId, total, phone) {
-            if(!confirm('Mark as Completed? 5% Bonus will be added.')) return;
-            
-            const bonus = Math.floor(total * 0.05);
-            const { doc, runTransaction, serverTimestamp } = window.firebaseModules;
-            
-            try {
-                await runTransaction(window.db, async (transaction) => {
-                    const orderRef = doc(window.db, 'orders', orderId);
-                    const custRef = doc(window.db, 'customers', phone);
+        // --- PAYMENT & BILLING ---
+        let PAYMENT_DATA = { orderId: null, total: 0, phone: null, maxPoints: 0 };
 
-                    const custDoc = await transaction.get(custRef);
-
-                    transaction.update(orderRef, { status: 'completed' });
-                    
-                    if(custDoc.exists()) {
-                        const newPoints = (custDoc.data().points || 0) + bonus;
-                        transaction.update(custRef, { points: newPoints });
-                    }
-                });
-                showToast(`Completed! +${bonus} pts`);
-            } catch(e) {
-                console.error(e);
-                showToast('Error: ' + e.message, 'error');
+        function setPaymentMode(mode) {
+            document.getElementById('paymentModeInput').value = mode;
+            const btnCash = document.getElementById('btnModeCash');
+            const btnOnline = document.getElementById('btnModeOnline');
+            const cashSection = document.getElementById('cashCalcSection');
+            
+            if(mode === 'Cash') {
+                btnCash.classList.add('btn-primary');
+                btnCash.classList.remove('btn-secondary');
+                btnOnline.classList.add('btn-secondary');
+                btnOnline.classList.remove('btn-primary');
+                cashSection.classList.remove('hidden');
+            } else {
+                btnOnline.classList.add('btn-primary');
+                btnOnline.classList.remove('btn-secondary');
+                btnCash.classList.add('btn-secondary');
+                btnCash.classList.remove('btn-primary');
+                cashSection.classList.add('hidden');
             }
         }
 
-        function sendBill(phone, total) {
-            const msg = `Juice Therapy Invoice\nTotal: ₹${total}\nThank you for visiting!`;
-            window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`);
+        function calculateChange() {
+            const given = parseInt(document.getElementById('cashGiven').value) || 0;
+            const redeem = parseInt(document.getElementById('redeemInput').value) || 0;
+            const netPayable = PAYMENT_DATA.total - redeem;
+            const change = given - netPayable;
+            const returnEl = document.getElementById('cashReturn');
+            
+            if(change >= 0) {
+                returnEl.innerText = '₹' + change;
+                returnEl.style.color = 'var(--success)';
+            } else {
+                returnEl.innerText = 'Short by ₹' + Math.abs(change);
+                returnEl.style.color = 'var(--danger)';
+            }
+        }
+
+        async function openPaymentModal(orderId, total, phone) {
+            PAYMENT_DATA = { orderId, total, phone, maxPoints: 0 };
+            
+            // UI Reset
+            document.getElementById('payCustPhone').innerText = phone;
+            document.getElementById('payBillTotal').innerText = '₹' + total;
+            document.getElementById('redeemInput').value = '';
+            document.getElementById('payNetTotal').innerText = '₹' + total;
+            document.getElementById('payAvailPoints').innerText = 'Loading...';
+            document.getElementById('cashGiven').value = '';
+            document.getElementById('cashReturn').innerText = '₹0';
+            
+            // SHOW Input Section, HIDE Success Section
+            document.getElementById('paymentModal').classList.remove('hidden');
+            document.getElementById('paymentInputSection').classList.remove('hidden');
+            document.getElementById('paymentSuccessSection').classList.add('hidden');
+
+            setPaymentMode('Cash');
+
+            // Fetch Customer Points
+            const { doc, getDoc } = window.firebaseModules;
+            const custRef = doc(window.db, 'customers', phone);
+            const snap = await getDoc(custRef);
+            
+            if(snap.exists()) {
+                const pts = snap.data().points || 0;
+                PAYMENT_DATA.maxPoints = pts;
+                document.getElementById('payAvailPoints').innerText = pts + ' pts';
+            } else {
+                document.getElementById('payAvailPoints').innerText = '0 pts';
+            }
+        }
+
+        function updatePaymentCalc() {
+            let redeem = parseInt(document.getElementById('redeemInput').value) || 0;
+            const bill = PAYMENT_DATA.total;
+            const max = PAYMENT_DATA.maxPoints;
+
+            if (redeem > max) redeem = max;
+            if (redeem > bill) redeem = bill;
+
+            document.getElementById('redeemInput').value = redeem > 0 ? redeem : '';
+            document.getElementById('payNetTotal').innerText = '₹' + (bill - redeem);
+            calculateChange();
+        }
+
+        function useMaxPoints() {
+            let maxUsable = Math.min(PAYMENT_DATA.maxPoints, PAYMENT_DATA.total);
+            document.getElementById('redeemInput').value = maxUsable;
+            updatePaymentCalc();
+        }
+
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.add('hidden');
+        }
+
+        async function processPayment() {
+            const redeem = parseInt(document.getElementById('redeemInput').value) || 0;
+            const netPayable = PAYMENT_DATA.total - redeem;
+            const payMode = document.getElementById('paymentModeInput').value;
+            const cashGiven = parseInt(document.getElementById('cashGiven').value) || 0;
+            const changeReturn = cashGiven - netPayable;
+
+            if(!confirm(`Confirm Payment?\nMode: ${payMode}\nAmount: ₹${netPayable}`)) return;
+
+            const { doc, runTransaction } = window.firebaseModules;
+
+            try {
+                await runTransaction(window.db, async (transaction) => {
+                    const orderRef = doc(window.db, 'orders', PAYMENT_DATA.orderId);
+                    const custRef = doc(window.db, 'customers', PAYMENT_DATA.phone);
+
+                    const orderDoc = await transaction.get(orderRef);
+                    const custDoc = await transaction.get(custRef);
+                    if (!orderDoc.exists()) throw "Order not found!";
+                    
+                    // Save items for bill
+                    PAYMENT_DATA.items = orderDoc.data().items;
+                    PAYMENT_DATA.serial = orderDoc.data().timestamp ? orderDoc.data().timestamp.toMillis().toString().slice(-4) : '0000';
+                    
+                    const currentPoints = custDoc.exists() ? (custDoc.data().points || 0) : 0;
+                    if (redeem > currentPoints) throw "Insufficient points!";
+
+                    const newBonus = Math.floor(netPayable * 0.05);
+                    
+                    // Update Customer
+                    if(custDoc.exists()) {
+                        transaction.update(custRef, { points: (currentPoints - redeem) + newBonus });
+                    }
+
+                    // Update Order
+                    transaction.update(orderRef, { 
+                        status: 'completed',
+                        redeemed: redeem,
+                        finalPaid: netPayable,
+                        bonusEarned: newBonus,
+                        paymentMode: payMode,
+                        cashGiven: (payMode === 'Cash' ? cashGiven : 0),
+                        changeReturn: (payMode === 'Cash' ? changeReturn : 0)
+                    });
+
+                    // Store Data for Bill
+                    PAYMENT_DATA.finalPaid = netPayable;
+                    PAYMENT_DATA.redeemed = redeem;
+                    PAYMENT_DATA.bonusEarned = newBonus;
+                    PAYMENT_DATA.cashGiven = cashGiven;
+                    PAYMENT_DATA.change = changeReturn;
+                    PAYMENT_DATA.mode = payMode;
+                });
+
+                // Show Success Screen
+                document.getElementById('paymentInputSection').classList.add('hidden');
+                document.getElementById('paymentSuccessSection').classList.remove('hidden');
+                document.getElementById('billSerial').innerText = PAYMENT_DATA.serial;
+                showToast(`Paid! Earned ${PAYMENT_DATA.bonusEarned} pts`);
+            } catch (e) {
+                console.error(e);
+                showToast('Payment Failed: ' + e, 'error');
+            }
+        }
+
+        function sendBill(type) {
+            const s = STATE.storeSettings || { name: 'Juice Therapy', address: '', footer: 'Thank you!', link: '' };
+            const d = PAYMENT_DATA;
+            const date = new Date().toLocaleString('en-IN');
+            
+            let text = `🧾 *${s.name}*\n${s.address}\n\n`;
+            text += `--------------------------------\n`;
+            text += `*BILL RECEIPT* #${d.serial}\nDate: ${date}\nCustomer: ${d.phone}\n`;
+            text += `--------------------------------\n`;
+            
+            if(d.items) {
+                d.items.forEach(i => {
+                    text += `${i.name} x ${i.qty} = ₹${i.price * i.qty}\n`;
+                });
+            }
+            
+            text += `--------------------------------\n`;
+            text += `Total Amount:   ₹${d.total}\n`;
+            if(d.redeemed > 0) text += `Bonus Used:    -₹${d.redeemed}\n`;
+            text += `--------------------------------\n`;
+            text += `*NET PAYABLE:   ₹${d.finalPaid}*\n`;
+            text += `Paid via:       ${d.mode}\n`;
+            
+            if(d.mode === 'Cash') {
+                text += `Cash Given:     ₹${d.cashGiven}\n`;
+                text += `Return Change:  ₹${d.change}\n`;
+            }
+            
+            text += `--------------------------------\n`;
+            text += `Points Earned:  +${d.bonusEarned}\n`;
+            text += `--------------------------------\n`;
+            text += `${s.footer}\n${s.link}`;
+
+            const encoded = encodeURIComponent(text);
+            
+            if (type === 'whatsapp') {
+                window.open(`https://wa.me/91${d.phone}?text=${encoded}`, '_blank');
+            } else {
+                const shortText = `Bill for ${s.name}: ₹${d.finalPaid} paid. Points earned: ${d.bonusEarned}. Thanks!`;
+                window.open(`sms:${d.phone}?body=${encodeURIComponent(shortText)}`, '_blank');
+            }
         }
 
         // --- CUSTOMER PANEL ---
@@ -1118,13 +1450,9 @@
                 grid.innerHTML = '<div class="text-muted" style="grid-column: 1/-1; text-align:center; padding:20px;">No items found</div>';
             } else {
                 grid.innerHTML = items.map(item => {
-                    // 1. Find Qty in Customer Cart
                     const cartItem = STATE.custCart.find(c => c.id === item.id);
                     const qty = cartItem ? cartItem.qty : 0;
-                    
-                    // 2. Badge HTML
                     const qtyBadge = qty > 0 ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3); font-size:0.8rem;">${qty}</div>` : '';
-                    
                     const borderStyle = qty > 0 ? 'border: 1px solid var(--primary); background: rgba(255, 107, 53, 0.1);' : '';
 
                     return `
@@ -1202,223 +1530,6 @@
                 window.deferredPrompt = null;
             }
         };
-// --- PAYMENT & REDEMPTION LOGIC ---
-        let PAYMENT_DATA = { orderId: null, total: 0, phone: null, maxPoints: 0 };
-
-function setPaymentMode(mode) {
-            document.getElementById('paymentModeInput').value = mode;
-            
-            const btnCash = document.getElementById('btnModeCash');
-            const btnOnline = document.getElementById('btnModeOnline');
-            const cashSection = document.getElementById('cashCalcSection'); // Get the calculator div
-            
-            if(mode === 'Cash') {
-                btnCash.classList.add('btn-primary');
-                btnCash.classList.remove('btn-secondary');
-                btnOnline.classList.add('btn-secondary');
-                btnOnline.classList.remove('btn-primary');
-                
-                // Show Calculator
-                cashSection.classList.remove('hidden');
-            } else {
-                btnOnline.classList.add('btn-primary');
-                btnOnline.classList.remove('btn-secondary');
-                btnCash.classList.add('btn-secondary');
-                btnCash.classList.remove('btn-primary');
-                
-                // Hide Calculator
-                cashSection.classList.add('hidden');
-            }
-        }
-
-function calculateChange() {
-            // 1. Get Cash Given
-            const given = parseInt(document.getElementById('cashGiven').value) || 0;
-            
-            // 2. Calculate Net Payable (Total - Redeemed Points)
-            const redeem = parseInt(document.getElementById('redeemInput').value) || 0;
-            const netPayable = PAYMENT_DATA.total - redeem;
-
-            // 3. Calculate Difference
-            const change = given - netPayable;
-            const returnEl = document.getElementById('cashReturn');
-            
-            // 4. Update Display
-            if(change >= 0) {
-                returnEl.innerText = '₹' + change;
-                returnEl.style.color = 'var(--success)'; // Green (Good to go)
-            } else {
-                returnEl.innerText = 'Short by ₹' + Math.abs(change);
-                returnEl.style.color = 'var(--danger)'; // Red (Not enough cash)
-            }
-        }
-
-        async function openPaymentModal(orderId, total, phone) {
-            PAYMENT_DATA = { orderId, total, phone, maxPoints: 0 };
-            
-            // UI Reset
-            document.getElementById('payCustPhone').innerText = phone;
-            document.getElementById('payBillTotal').innerText = '₹' + total;
-            document.getElementById('redeemInput').value = '';
-            document.getElementById('payNetTotal').innerText = '₹' + total;
-            document.getElementById('payAvailPoints').innerText = 'Loading...';
-            document.getElementById('paymentModal').classList.remove('hidden');
-
-setPaymentMode('Cash');
-
-document.getElementById('cashGiven').value = '';
-            document.getElementById('cashReturn').innerText = '₹0';
-            
-            setPaymentMode('Cash'); // This ensures calculator is visible by default
-            // Fetch Customer Points
-            const { doc, getDoc } = window.firebaseModules;
-            const custRef = doc(window.db, 'customers', phone);
-            const snap = await getDoc(custRef);
-            
-            if(snap.exists()) {
-                const pts = snap.data().points || 0;
-                PAYMENT_DATA.maxPoints = pts;
-                document.getElementById('payAvailPoints').innerText = pts + ' pts';
-            } else {
-                document.getElementById('payAvailPoints').innerText = '0 pts';
-            }
-        }
-
-        function updatePaymentCalc() {
-            let redeem = parseInt(document.getElementById('redeemInput').value) || 0;
-            const bill = PAYMENT_DATA.total;
-            const max = PAYMENT_DATA.maxPoints;
-
-            // Validation: Cannot redeem more than bill or more than available
-            if (redeem > max) redeem = max;
-            if (redeem > bill) redeem = bill;
-
-            // Update Input if changed
-            document.getElementById('redeemInput').value = redeem > 0 ? redeem : '';
-            
-            // Update Net Payable
-            document.getElementById('payNetTotal').innerText = '₹' + (bill - redeem);
-calculateChange();
-        }
-
-        function useMaxPoints() {
-            // Auto fill max possible points
-            let maxUsable = Math.min(PAYMENT_DATA.maxPoints, PAYMENT_DATA.total);
-            document.getElementById('redeemInput').value = maxUsable;
-            updatePaymentCalc();
-        }
-
-        function closePaymentModal() {
-            document.getElementById('paymentModal').classList.add('hidden');
-        }
-
-        async function processPayment() {
-            const redeem = parseInt(document.getElementById('redeemInput').value) || 0;
-            const netPayable = PAYMENT_DATA.total - redeem;
-            
-            // 1. Get Selected Payment Mode
-            const payMode = document.getElementById('paymentModeInput').value;
-
-            // New Bonus Logic: 5% of the Net Payable
-            const newBonus = Math.floor(netPayable * 0.05);
-
-            // Updated Confirm Message
-            if(!confirm(`Confirm Payment?\n\nMode: ${payMode}\nRedeem: ${redeem}\nPay: ₹${netPayable}\nNew Bonus: +${newBonus}`)) return;
-
-            const { doc, runTransaction } = window.firebaseModules;
-
-            try {
-                await runTransaction(window.db, async (transaction) => {
-                    const orderRef = doc(window.db, 'orders', PAYMENT_DATA.orderId);
-                    const custRef = doc(window.db, 'customers', PAYMENT_DATA.phone);
-
-                    // Read Customer Data
-                    const custDoc = await transaction.get(custRef);
-                    if (!custDoc.exists()) throw "Customer not found!";
-                    
-                    const currentPoints = custDoc.data().points || 0;
-                    if (redeem > currentPoints) throw "Insufficient points!";
-
-                    // Update Points
-                    const finalPoints = (currentPoints - redeem) + newBonus;
-                    transaction.update(custRef, { points: finalPoints });
-
-                    // Update Order with Payment Mode
-                    transaction.update(orderRef, { 
-                        status: 'completed',
-                        redeemed: redeem,
-                        finalPaid: netPayable,
-                        bonusEarned: newBonus,
-                        paymentMode: payMode // Saving the mode here
-                    });
-                });
-
-                showToast(`Paid via ${payMode}! Earned ${newBonus} pts`);
-                closePaymentModal();
-            } catch (e) {
-                console.error(e);
-                showToast('Payment Failed: ' + e, 'error');
-            }
-        }
     </script>
-<!-- Payment & Redemption Modal -->
-<div id="paymentModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 400; display: flex; align-items: center; justify-content: center;">
-    <div class="card" style="width: 90%; max-width: 400px;">
-        <h3 style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">Final Billing</h3>
-        
-        <div class="flex justify-between" style="margin-bottom: 10px;">
-            <span class="text-muted">Customer:</span>
-            <span id="payCustPhone" class="font-bold">...</span>
-        </div>
-        
-        <div class="flex justify-between" style="margin-bottom: 10px;">
-            <span class="text-muted">Bill Total:</span>
-            <span id="payBillTotal" class="font-bold" style="font-size: 1.2rem;">₹0</span>
-        </div>
-
-        <!-- Redemption Section -->
-        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
-            <div class="flex justify-between items-center">
-                <span>Available Bonus:</span>
-                <span id="payAvailPoints" style="color: var(--primary); font-weight: bold;">0 pts</span>
-            </div>
-            <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center;">
-                <input type="number" id="redeemInput" class="input" placeholder="0" style="margin:0; text-align: right;" oninput="updatePaymentCalc()">
-                <button class="btn btn-sm btn-secondary" onclick="useMaxPoints()">Max</button>
-            </div>
-            <div class="text-muted" style="font-size: 0.8rem; margin-top: 5px;">1 Point = ₹1 | New bonus will add to balance.</div>
-        </div>
-
-<!-- Payment Mode Selector -->
-        <div style="margin-bottom: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <label class="text-muted" style="font-size: 0.9rem; display: block; margin-bottom: 8px;">Payment Mode</label>
-            <div class="flex gap-2">
-                <button id="btnModeCash" class="btn btn-sm btn-primary w-full" onclick="setPaymentMode('Cash')">💵 Cash</button>
-                <button id="btnModeOnline" class="btn btn-sm btn-secondary w-full" onclick="setPaymentMode('Online')">📱 Online / UPI</button>
-            </div>
-            <input type="hidden" id="paymentModeInput" value="Cash">
-        </div>
-
-        <div class="flex justify-between" style="margin-bottom: 20px; font-size: 1.3rem; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
-            <span>Net Payable:</span>
-            <span id="payNetTotal" style="color: var(--success);">₹0</span>
-        </div>
-<!-- Cash Calculator Section -->
-        <div id="cashCalcSection" style="margin-bottom: 20px; padding: 10px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
-            <div class="flex justify-between items-center" style="margin-bottom: 8px;">
-                <span class="text-muted">💵 Customer Gave:</span>
-                <input type="number" id="cashGiven" class="input" placeholder="₹" style="width: 120px; margin:0; text-align: right; font-size: 1.1rem; font-weight: bold;" oninput="calculateChange()">
-            </div>
-            <div class="flex justify-between items-center" style="font-size: 1.1rem; font-weight: bold; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 8px;">
-                <span>🔄 Return Change:</span>
-                <span id="cashReturn" style="color: var(--warning);">₹0</span>
-            </div>
-        </div>
-        <div class="flex gap-2">
-            <button class="btn btn-secondary w-full" onclick="closePaymentModal()">Cancel</button>
-            <button class="btn btn-success w-full" onclick="processPayment()">Confirm & Pay</button>
-        </div>
-    </div>
-</div>
 </body>
 </html>
