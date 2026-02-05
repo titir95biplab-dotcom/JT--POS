@@ -17,7 +17,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, addDoc, runTransaction, Timestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCbHeWurSgxdE1cYFvTGsoyzpK7PQ_1Z0o", 
@@ -34,7 +34,7 @@
         window.firebaseModules = { 
             signInWithEmailAndPassword, signOut, onAuthStateChanged, 
             collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, runTransaction,
-            query, where, orderBy, onSnapshot, serverTimestamp, increment 
+            query, where, orderBy, onSnapshot, serverTimestamp, increment, Timestamp 
         };
         window.firebaseReady = true;
     </script>
@@ -50,6 +50,7 @@
             --success: #4CAF50;
             --danger: #FF5252;
             --warning: #FFC107;
+            --info: #2196F3;
             --radius: 12px;
             --spacing: 16px;
         }
@@ -69,7 +70,9 @@
         .w-full { width: 100%; }
         .text-center { text-align: center; }
         .font-bold { font-weight: bold; }
-        
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+
         /* Components */
         .btn {
             padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
@@ -82,6 +85,7 @@
         .btn-danger { background: rgba(255, 82, 82, 0.2); color: var(--danger); }
         .btn-success { background: var(--success); color: white; }
         .btn-warning { background: var(--warning); color: black; }
+        .btn-info { background: var(--info); color: white; }
         
         .input {
             width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
@@ -107,7 +111,6 @@
         .pos-container { display: grid; grid-template-columns: 1fr 350px; gap: 20px; height: calc(100vh - 140px); }
         .pos-left { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
         
-        /* New Menu Layout: Sidebar + Grid */
         .menu-area { display: grid; grid-template-columns: 110px 1fr; gap: 15px; flex: 1; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; background: rgba(255,255,255,0.02); }
         
         .cat-sidebar { overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 8px; }
@@ -140,8 +143,15 @@
         /* Order Cards */
         .order-card { padding: 15px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; border-radius: 8px; }
         .order-status { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
+        .status-requested { background: var(--info); color: white; }
         .status-pending { background: var(--warning); color: black; }
         .status-completed { background: var(--success); color: white; }
+        .status-cancelled { background: var(--danger); color: white; }
+
+        /* Admin Dashboard Cards */
+        .stat-card { background: var(--surface); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-value { font-size: 2rem; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        .stat-label { font-size: 0.9rem; color: var(--text-muted); }
 
         /* Install Button */
         #installBtn { position: fixed; bottom: 20px; right: 20px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: none; }
@@ -157,15 +167,13 @@
             .cart-panel { height: auto; }
             .header-content h2 { font-size: 1.2rem; }
             .item-grid { grid-template-columns: repeat(2, 1fr); }
+            .grid-4 { grid-template-columns: 1fr 1fr; }
         }
     </style>
 </head>
 <body>
 
-    <!-- Notification Toast -->
     <div id="notification"></div>
-
-    <!-- Install Button -->
     <button id="installBtn" class="btn btn-primary" onclick="installPWA()">📲 Install App</button>
 
     <!-- Login Screen -->
@@ -178,14 +186,10 @@
                 <button class="btn btn-secondary" onclick="setLoginMode('customer')" id="btnRoleCust">Customer</button>
                 <button class="btn btn-secondary" onclick="setLoginMode('staff')" id="btnRoleStaff">Staff/Admin</button>
             </div>
-
-            <!-- Customer Login -->
             <div id="customerLogin" class="hidden">
                 <input type="tel" id="custPhoneLogin" class="input" placeholder="Enter Phone Number" maxlength="10">
                 <button class="btn btn-primary w-full" onclick="loginCustomer()">Enter</button>
             </div>
-
-            <!-- Staff Login -->
             <div id="staffLogin" class="hidden">
                 <input type="email" id="staffEmail" class="input" placeholder="Email">
                 <input type="password" id="staffPass" class="input" placeholder="Password">
@@ -206,13 +210,62 @@
             </div>
         </header>
         <div class="app-layout">
-            <div class="flex justify-between items-center" style="margin-bottom: 15px;">
-                <h3>Menu Management</h3>
-                <button class="btn btn-primary" onclick="showAddItemModal()">+ Add New Item</button>
+            <div class="tabs">
+                <button class="btn btn-secondary tab-btn active" onclick="switchAdminTab('dashboard')" id="btn-adm-dash">📊 Analytics</button>
+                <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('menu')" id="btn-adm-menu">🍔 Menu Manager</button>
+                <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('orders')" id="btn-adm-orders">📜 Order Manager</button>
             </div>
 
-            <div id="adminMenuGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px;">
-                <!-- Admin Items Rendered Here -->
+            <!-- Dashboard -->
+            <div id="adm-view-dashboard">
+                <div class="card">
+                    <h3>Sales Analytics</h3>
+                    <div class="flex gap-2" style="margin: 15px 0;">
+                        <input type="date" id="dashStart" class="input" style="margin:0;">
+                        <input type="date" id="dashEnd" class="input" style="margin:0;">
+                        <button class="btn btn-primary" onclick="loadAnalytics()">Go</button>
+                    </div>
+                    <div class="grid-4">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Sales</div>
+                            <div class="stat-value" id="statTotalSales">₹0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Total Orders</div>
+                            <div class="stat-value" id="statTotalOrders">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Avg Order Value</div>
+                            <div class="stat-value" id="statAvgValue">₹0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menu Manager -->
+            <div id="adm-view-menu" class="hidden">
+                <div class="flex justify-between items-center" style="margin-bottom: 15px;">
+                    <h3>Manage Categories & Items</h3>
+                    <div class="flex gap-2">
+                        <button class="btn btn-secondary" onclick="showCategoryModal()">+ Category</button>
+                        <button class="btn btn-primary" onclick="showAddItemModal()">+ Add Item</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <h4>Categories</h4>
+                    <div id="adminCategoryList" class="flex gap-2" style="flex-wrap: wrap; margin-top: 10px;"></div>
+                </div>
+
+                <h4>Menu Items</h4>
+                <div id="adminMenuGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 10px;"></div>
+            </div>
+
+            <!-- Order Manager -->
+            <div id="adm-view-orders" class="hidden">
+                <h3>Completed Orders History</h3>
+                <input type="text" class="input" placeholder="Search by Phone Number..." onkeyup="filterAdminOrders(this.value)" style="margin: 10px 0;">
+                <div id="adminOrdersList"></div>
             </div>
         </div>
     </div>
@@ -229,44 +282,31 @@
             </div>
         </header>
         <div class="app-layout">
-            <!-- 3 Top Buttons -->
             <div class="tabs">
-                <button class="btn btn-secondary tab-btn active" onclick="switchOutletTab('pos')" id="tab-pos">🛒 New Order (POS)</button>
-                <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('current')" id="tab-current">⏳ Current Orders</button>
+                <button class="btn btn-secondary tab-btn active" onclick="switchOutletTab('pos')" id="tab-pos">🛒 New Order</button>
+                <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('incoming')" id="tab-incoming">🔔 Incoming <span id="badgeIncoming" class="hidden" style="background:red;border-radius:50%;width:8px;height:8px;display:inline-block;"></span></button>
+                <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('current')" id="tab-current">⏳ Current</button>
                 <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('completed')" id="tab-completed">✅ Completed</button>
             </div>
 
-            <!-- TAB 1: POS Interface -->
+            <!-- POS -->
             <div id="view-pos" class="pos-container">
                 <div class="pos-left">
                     <input type="text" class="input" placeholder="🔍 Search items..." onkeyup="filterMenu(this.value)">
                     <div class="menu-area">
-                        <!-- Left Sidebar Categories -->
-                        <div class="cat-sidebar" id="posSidebar">
-                            <!-- JS Generated -->
-                        </div>
-                        <!-- Right Grid Items -->
-                        <div class="item-grid" id="posGrid">
-                            <!-- JS Generated -->
-                        </div>
+                        <div class="cat-sidebar" id="posSidebar"></div>
+                        <div class="item-grid" id="posGrid"></div>
                     </div>
                 </div>
-                
-                <!-- Cart Section -->
                 <div class="cart-panel">
                     <div class="flex justify-between items-center">
-                        <h3>Current Order</h3>
+                        <h3>Cart</h3>
                         <span class="btn-danger" style="padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; cursor: pointer;" onclick="clearCart()">Clear</span>
                     </div>
-                    
                     <div style="margin-top: 10px;">
                         <input type="tel" id="posPhone" class="input" placeholder="Customer Phone (Auto-create)" maxlength="10">
                     </div>
-
-                    <div class="cart-items" id="cartItemsList">
-                        <div class="text-center text-muted" style="margin-top: 20px;">Cart is empty</div>
-                    </div>
-
+                    <div class="cart-items" id="cartItemsList"></div>
                     <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
                         <div class="flex justify-between font-bold" style="font-size: 1.2rem; margin-bottom: 10px;">
                             <span>Total</span>
@@ -278,12 +318,17 @@
                 </div>
             </div>
 
-            <!-- TAB 2: Current Orders -->
+            <!-- Incoming Requests -->
+            <div id="view-incoming" class="hidden">
+                <div id="incomingOrdersList"></div>
+            </div>
+
+            <!-- Current -->
             <div id="view-current" class="hidden">
                 <div id="currentOrdersList"></div>
             </div>
 
-            <!-- TAB 3: Completed Orders -->
+            <!-- Completed -->
             <div id="view-completed" class="hidden">
                 <div id="completedOrdersList"></div>
             </div>
@@ -307,14 +352,10 @@
                 <h1 style="font-size: 3rem; margin: 10px 0;" id="custPoints">0</h1>
                 <p>Bonus Points Available</p>
             </div>
-
-            <!-- Customer Tabs -->
             <div class="tabs">
                 <button class="btn btn-secondary tab-btn active" onclick="switchCustTab('menu')" id="btn-cust-menu">🍔 Order Now</button>
                 <button class="btn btn-secondary tab-btn" onclick="switchCustTab('history')" id="btn-cust-history">📜 My History</button>
             </div>
-
-            <!-- Customer Menu Tab -->
             <div id="cust-view-menu">
                 <div class="pos-container" style="height: 60vh;">
                     <div class="pos-left">
@@ -331,13 +372,11 @@
                                 <span>Total</span>
                                 <span id="custCartTotal">₹0</span>
                             </div>
-                            <button class="btn btn-primary w-full" onclick="placeCustomerOrder()">Place Order</button>
+                            <button class="btn btn-primary w-full" onclick="placeCustomerOrder()">Request Order</button>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Customer History Tab -->
             <div id="cust-view-history" class="hidden">
                 <div id="custHistoryList"></div>
             </div>
@@ -345,18 +384,30 @@
     </div>
 
     <!-- Modals -->
-    <!-- Add Item Modal -->
+    <!-- Add Item -->
     <div id="addItemModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; display: flex; align-items: center; justify-content: center;">
         <div class="card" style="width: 90%; max-width: 400px;">
             <h3>Add/Edit Item</h3>
             <input type="text" id="newItemName" class="input" placeholder="Item Name">
             <input type="number" id="newItemPrice" class="input" placeholder="Price">
-            <input list="categoryOptions" id="newItemCat" class="input" placeholder="Category (Select or Type New)">
-            <datalist id="categoryOptions"></datalist>
-            
+            <select id="newItemCat" class="input">
+                <option value="">Select Category</option>
+            </select>
             <div class="flex gap-2" style="margin-top: 10px;">
                 <button class="btn btn-secondary w-full" onclick="document.getElementById('addItemModal').classList.add('hidden')">Cancel</button>
                 <button class="btn btn-primary w-full" onclick="saveMenuItem()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Category -->
+    <div id="addCategoryModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 210; display: flex; align-items: center; justify-content: center;">
+        <div class="card" style="width: 90%; max-width: 350px;">
+            <h3>New Category</h3>
+            <input type="text" id="newCatName" class="input" placeholder="Category Name">
+            <div class="flex gap-2" style="margin-top: 10px;">
+                <button class="btn btn-secondary w-full" onclick="document.getElementById('addCategoryModal').classList.add('hidden')">Cancel</button>
+                <button class="btn btn-primary w-full" onclick="saveCategory()">Save</button>
             </div>
         </div>
     </div>
@@ -372,43 +423,43 @@
     </div>
 
     <script>
-        // --- APP STATE ---
         const STATE = {
             user: null,
             role: null, 
             menu: [],
             categories: [],
             cart: [],
-            custCart: [], // Separate cart for customer view
+            custCart: [], 
             orders: [],
             editingOrderId: null,
             activeCategory: 'All',
             tempPhone: null
         };
 
-        // --- INIT ---
         window.onload = () => {
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 window.deferredPrompt = e;
                 document.getElementById('installBtn').style.display = 'flex';
             });
-
             const checkFirebase = setInterval(() => {
                 if (window.firebaseReady) {
                     clearInterval(checkFirebase);
                     initApp();
                 }
             }, 100);
+            
+            // Set Default Dates for dashboard
+            const d = new Date();
+            document.getElementById('dashEnd').valueAsDate = d;
+            d.setMonth(d.getMonth() - 1);
+            document.getElementById('dashStart').valueAsDate = d;
         };
 
         function initApp() {
             window.firebaseModules.onAuthStateChanged(window.auth, (user) => {
-                if (user) {
-                    checkUserRole(user.uid);
-                } else {
-                    document.getElementById('loginScreen').classList.remove('hidden');
-                }
+                if (user) checkUserRole(user.uid);
+                else document.getElementById('loginScreen').classList.remove('hidden');
             });
         }
 
@@ -416,10 +467,13 @@
             if (window.auth.currentUser.email === 'admin@jt.com') {
                 STATE.role = 'admin';
                 showPanel('adminPanel');
+                loadCategories();
                 loadMenu();
+                loadAnalytics();
             } else {
                 STATE.role = 'staff';
                 showPanel('outletPanel');
+                loadCategories();
                 loadMenu();
                 loadOrders(); 
             }
@@ -435,7 +489,6 @@
             document.getElementById('staffLogin').classList.add('hidden');
             document.getElementById('btnRoleCust').classList.remove('btn-primary');
             document.getElementById('btnRoleStaff').classList.remove('btn-primary');
-            
             if(mode === 'customer') {
                 document.getElementById('customerLogin').classList.remove('hidden');
                 document.getElementById('btnRoleCust').classList.add('btn-primary');
@@ -445,62 +498,44 @@
             }
         }
 
-        // --- AUTH ---
         async function loginStaff() {
             const email = document.getElementById('staffEmail').value;
             const pass = document.getElementById('staffPass').value;
-            try {
-                await window.firebaseModules.signInWithEmailAndPassword(window.auth, email, pass);
-            } catch (e) {
-                showToast(e.message, 'error');
-            }
+            try { await window.firebaseModules.signInWithEmailAndPassword(window.auth, email, pass); } 
+            catch (e) { showToast(e.message, 'error'); }
         }
 
         async function loginCustomer() {
             const phone = document.getElementById('custPhoneLogin').value;
             if (phone.length !== 10) return showToast('Invalid phone', 'error');
-
             const { doc, getDoc } = window.firebaseModules;
-            const custRef = doc(window.db, 'customers', phone);
-            const snap = await getDoc(custRef);
-            
-            // If new user or name missing, force name input
+            const snap = await getDoc(doc(window.db, 'customers', phone));
             if (!snap.exists() || !snap.data().name) {
                 STATE.tempPhone = phone;
                 document.getElementById('customerNameModal').classList.remove('hidden');
                 return;
             }
-
             finalizeCustomerLogin(phone, snap.data());
         }
 
         async function saveCustomerName() {
             const name = document.getElementById('newCustName').value;
             if(!name) return showToast('Name is required', 'error');
-
             const { doc, setDoc, serverTimestamp } = window.firebaseModules;
-            const phone = STATE.tempPhone;
-            
-            // Create/Update customer
-            await setDoc(doc(window.db, 'customers', phone), {
-                phone: phone,
-                name: name,
-                points: 0,
-                joined: serverTimestamp()
+            await setDoc(doc(window.db, 'customers', STATE.tempPhone), {
+                phone: STATE.tempPhone, name: name, points: 0, joined: serverTimestamp()
             }, { merge: true });
-
             document.getElementById('customerNameModal').classList.add('hidden');
-            finalizeCustomerLogin(phone, { name, points: 0 });
+            finalizeCustomerLogin(STATE.tempPhone, { name, points: 0 });
         }
 
         function finalizeCustomerLogin(phone, data) {
             STATE.user = { uid: phone, phone: phone, name: data.name };
             STATE.role = 'customer';
-            
             document.getElementById('custNameDisplay').innerText = data.name;
             document.getElementById('custPoints').innerText = data.points || 0;
-            
-            loadMenu(); // For customer menu
+            loadCategories();
+            loadMenu();
             loadCustomerHistory(phone);
             showPanel('customerPanel');
         }
@@ -510,24 +545,69 @@
             location.reload();
         }
 
-        // --- DATA LOADING ---
-        function loadMenu() {
+        // --- ADMIN FUNCTIONS ---
+        function switchAdminTab(tab) {
+            ['dashboard', 'menu', 'orders'].forEach(t => {
+                document.getElementById(`btn-adm-${t}`).classList.remove('active');
+                document.getElementById(`adm-view-${t}`).classList.add('hidden');
+            });
+            document.getElementById(`btn-adm-${tab}`).classList.add('active');
+            document.getElementById(`adm-view-${tab}`).classList.remove('hidden');
+            if(tab === 'orders') loadAdminOrders();
+        }
+
+        function loadCategories() {
             const { collection, onSnapshot, query, orderBy } = window.firebaseModules;
-            const q = query(collection(window.db, 'menu'), orderBy('name'));
-            
-            onSnapshot(q, (snap) => {
-                STATE.menu = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                const cats = new Set(STATE.menu.map(m => m.category).filter(Boolean));
-                STATE.categories = ['All', ...Array.from(cats).sort()];
-                
-                if (STATE.role === 'admin') renderAdminMenu();
-                if (STATE.role === 'staff') renderOutletMenu();
-                if (STATE.role === 'customer') renderCustomerMenu();
-                updateCategoryDatalist();
+            onSnapshot(query(collection(window.db, 'categories'), orderBy('name')), (snap) => {
+                STATE.categories = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                if (STATE.role === 'admin') renderAdminCategories();
+                updateCategorySelects();
+                // If Outlet/Customer, re-render menu to update sidebars
+                if(STATE.role === 'staff') renderOutletMenu();
+                if(STATE.role === 'customer') renderCustomerMenu();
             });
         }
 
-        // --- ADMIN FUNCTIONS ---
+        function renderAdminCategories() {
+            const list = document.getElementById('adminCategoryList');
+            list.innerHTML = STATE.categories.map(c => `
+                <div class="btn btn-secondary btn-sm" style="display:inline-flex; gap:5px;">
+                    ${c.name} 
+                    <span style="cursor:pointer; color:var(--danger);" onclick="deleteCategory('${c.id}')">&times;</span>
+                </div>
+            `).join('');
+        }
+
+        function updateCategorySelects() {
+            const opts = `<option value="">Select Category</option>` + STATE.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            document.getElementById('newItemCat').innerHTML = opts;
+        }
+
+        async function saveCategory() {
+            const name = document.getElementById('newCatName').value;
+            if(!name) return;
+            await window.firebaseModules.addDoc(window.firebaseModules.collection(window.db, 'categories'), { name });
+            document.getElementById('addCategoryModal').classList.add('hidden');
+            document.getElementById('newCatName').value = '';
+        }
+
+        async function deleteCategory(id) {
+            if(!confirm('Delete Category?')) return;
+            await window.firebaseModules.deleteDoc(window.firebaseModules.doc(window.db, 'categories', id));
+        }
+
+        function showCategoryModal() { document.getElementById('addCategoryModal').classList.remove('hidden'); }
+
+        function loadMenu() {
+            const { collection, onSnapshot, query, orderBy } = window.firebaseModules;
+            onSnapshot(query(collection(window.db, 'menu'), orderBy('name')), (snap) => {
+                STATE.menu = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                if (STATE.role === 'admin') renderAdminMenu();
+                if (STATE.role === 'staff') renderOutletMenu();
+                if (STATE.role === 'customer') renderCustomerMenu();
+            });
+        }
+
         function renderAdminMenu() {
             const grid = document.getElementById('adminMenuGrid');
             grid.innerHTML = STATE.menu.map(item => `
@@ -536,7 +616,7 @@
                         <h4>${item.name}</h4>
                         <span class="text-muted">₹${item.price}</span>
                     </div>
-                    <div class="text-muted" style="font-size:0.8rem;">${item.category}</div>
+                    <div class="text-muted" style="font-size:0.8rem;">${item.category || 'Uncategorized'}</div>
                     <div class="flex gap-2" style="margin-top:10px;">
                         <button class="btn btn-secondary w-full" onclick="editItem('${item.id}')">Edit</button>
                         <button class="btn btn-danger w-full" onclick="deleteItem('${item.id}')">Delete</button>
@@ -545,6 +625,64 @@
             `).join('');
         }
 
+        // --- ADMIN ANALYTICS ---
+        async function loadAnalytics() {
+            const start = new Date(document.getElementById('dashStart').value);
+            const end = new Date(document.getElementById('dashEnd').value);
+            end.setHours(23,59,59);
+
+            const { collection, query, where, getDocs, Timestamp } = window.firebaseModules;
+            const q = query(collection(window.db, 'orders'), 
+                where('status', '==', 'completed'),
+                where('timestamp', '>=', Timestamp.fromDate(start)),
+                where('timestamp', '<=', Timestamp.fromDate(end))
+            );
+            
+            const snap = await getDocs(q);
+            let totalSales = 0;
+            let count = 0;
+            snap.forEach(d => {
+                totalSales += d.data().total;
+                count++;
+            });
+
+            document.getElementById('statTotalSales').innerText = `₹${totalSales}`;
+            document.getElementById('statTotalOrders').innerText = count;
+            document.getElementById('statAvgValue').innerText = count ? `₹${Math.floor(totalSales/count)}` : `₹0`;
+        }
+
+        function loadAdminOrders() {
+            const { collection, query, where, orderBy, getDocs } = window.firebaseModules;
+            getDocs(query(collection(window.db, 'orders'), where('status', '==', 'completed'), orderBy('timestamp', 'desc')))
+            .then(snap => {
+                const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                const list = document.getElementById('adminOrdersList');
+                list.innerHTML = orders.map(o => `
+                    <div class="order-card flex justify-between items-center">
+                        <div>
+                            <div><strong>${o.phone}</strong></div>
+                            <div class="text-muted">${new Date(o.timestamp.toDate()).toLocaleDateString()} - ₹${o.total}</div>
+                        </div>
+                        <div>
+                            <button class="btn btn-danger btn-sm" onclick="adminDeleteOrder('${o.id}')">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            });
+        }
+        
+        async function adminDeleteOrder(id) {
+            if(!confirm('Delete this record permanently?')) return;
+            await window.firebaseModules.deleteDoc(window.firebaseModules.doc(window.db, 'orders', id));
+            loadAdminOrders();
+        }
+
+        function filterAdminOrders(val) {
+            const cards = document.querySelectorAll('#adminOrdersList .order-card');
+            cards.forEach(c => c.style.display = c.innerText.includes(val) ? 'flex' : 'none');
+        }
+
+        // --- MENU ITEM LOGIC ---
         function showAddItemModal(id = null) {
             document.getElementById('addItemModal').classList.remove('hidden');
             if(id) {
@@ -561,50 +699,41 @@
             }
         }
 
-        function updateCategoryDatalist() {
-            const dl = document.getElementById('categoryOptions');
-            dl.innerHTML = STATE.categories.filter(c => c !== 'All').map(c => `<option value="${c}">`).join('');
-        }
-
         async function saveMenuItem() {
             const name = document.getElementById('newItemName').value;
             const price = Number(document.getElementById('newItemPrice').value);
-            const category = document.getElementById('newItemCat').value || 'Uncategorized';
+            const category = document.getElementById('newItemCat').value;
             const id = document.getElementById('addItemModal').dataset.id;
             const { collection, addDoc, doc, updateDoc } = window.firebaseModules;
             try {
-                if(id) {
-                    await updateDoc(doc(window.db, 'menu', id), { name, price, category });
-                    showToast('Item updated');
-                } else {
-                    await addDoc(collection(window.db, 'menu'), { name, price, category });
-                    showToast('Item added');
-                }
+                if(id) { await updateDoc(doc(window.db, 'menu', id), { name, price, category }); } 
+                else { await addDoc(collection(window.db, 'menu'), { name, price, category }); }
                 document.getElementById('addItemModal').classList.add('hidden');
+                showToast('Saved');
             } catch(e) { showToast(e.message, 'error'); }
         }
 
         async function deleteItem(id) {
-            if(!confirm('Delete this item?')) return;
+            if(!confirm('Delete item?')) return;
             await window.firebaseModules.deleteDoc(window.firebaseModules.doc(window.db, 'menu', id));
-            showToast('Item deleted');
         }
 
-        // --- OUTLET POS FUNCTIONS ---
+        // --- OUTLET POS ---
         function switchOutletTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
-            ['view-pos', 'view-current', 'view-completed'].forEach(v => document.getElementById(v).classList.add('hidden'));
+            ['view-pos', 'view-incoming', 'view-current', 'view-completed'].forEach(v => document.getElementById(v).classList.add('hidden'));
             document.getElementById(`view-${tab}`).classList.remove('hidden');
         }
 
         function renderOutletMenu() {
             const sidebar = document.getElementById('posSidebar');
-            sidebar.innerHTML = STATE.categories.map(cat => `
+            const cats = ['All', ...STATE.categories.map(c => c.name)];
+            sidebar.innerHTML = cats.map(cat => `
                 <div class="cat-btn ${cat === STATE.activeCategory ? 'active' : ''}" 
                      onclick="filterCategory('${cat}')">${cat}</div>
             `).join('');
-
+            
             const grid = document.getElementById('posGrid');
             const items = STATE.activeCategory === 'All' ? STATE.menu : STATE.menu.filter(m => m.category === STATE.activeCategory);
             grid.innerHTML = items.map(item => `
@@ -621,29 +750,13 @@
             if(STATE.role === 'customer') renderCustomerMenu();
         }
 
-        function filterMenu(query) {
-            if(!query) return renderOutletMenu();
-            const lower = query.toLowerCase();
-            const filtered = STATE.menu.filter(m => m.name.toLowerCase().includes(lower));
-            document.getElementById('posGrid').innerHTML = filtered.map(item => `
-                <div class="menu-item" onclick="addToCart('${item.id}')">
-                    <div style="font-weight:600; font-size: 0.9rem;">${item.name}</div>
-                    <div style="color: var(--primary);">₹${item.price}</div>
-                </div>
-            `).join('');
-        }
-
-        // --- CART LOGIC (SHARED BUT SEPARATE ARRAYS) ---
         function addToCart(itemId) {
             const item = STATE.menu.find(i => i.id === itemId);
             const targetCart = STATE.role === 'customer' ? STATE.custCart : STATE.cart;
-            
             const existing = targetCart.find(c => c.id === itemId);
             if(existing) existing.qty++;
             else targetCart.push({ ...item, qty: 1 });
-            
-            if(STATE.role === 'customer') renderCustCart();
-            else renderCart();
+            renderActiveCart();
         }
 
         function updateQty(itemId, delta) {
@@ -655,8 +768,7 @@
                 if(STATE.role === 'customer') STATE.custCart = STATE.custCart.filter(c => c.id !== itemId);
                 else STATE.cart = STATE.cart.filter(c => c.id !== itemId);
             }
-            if(STATE.role === 'customer') renderCustCart();
-            else renderCart();
+            renderActiveCart();
         }
 
         function clearCart() {
@@ -665,19 +777,12 @@
             document.getElementById('posPhone').value = '';
             document.getElementById('btnPlaceOrder').classList.remove('hidden');
             document.getElementById('btnUpdateOrder').classList.add('hidden');
-            renderCart();
+            renderActiveCart();
         }
 
-        function renderCart() {
-            const list = document.getElementById('cartItemsList');
-            const totalEl = document.getElementById('cartTotal');
-            renderCartGeneric(list, totalEl, STATE.cart);
-        }
-
-        function renderCustCart() {
-            const list = document.getElementById('custCartItems');
-            const totalEl = document.getElementById('custCartTotal');
-            renderCartGeneric(list, totalEl, STATE.custCart);
+        function renderActiveCart() {
+            if(STATE.role === 'customer') renderCartGeneric(document.getElementById('custCartItems'), document.getElementById('custCartTotal'), STATE.custCart);
+            else renderCartGeneric(document.getElementById('cartItemsList'), document.getElementById('cartTotal'), STATE.cart);
         }
 
         function renderCartGeneric(container, totalEl, cartArray) {
@@ -688,8 +793,7 @@
             }
             let total = 0;
             container.innerHTML = cartArray.map(item => {
-                const sub = item.price * item.qty;
-                total += sub;
+                total += item.price * item.qty;
                 return `
                     <div class="cart-item">
                         <div>
@@ -711,94 +815,80 @@
             const phone = document.getElementById('posPhone').value;
             if(phone.length !== 10) return showToast('Enter 10-digit Phone', 'error');
             if(STATE.cart.length === 0) return showToast('Cart is empty', 'error');
-
-            await submitOrder(phone, STATE.cart);
+            // Direct orders from POS are pending immediately
+            await submitOrder(phone, STATE.cart, 'pending');
             clearCart();
             switchOutletTab('current');
         }
 
         async function placeCustomerOrder() {
             if(STATE.custCart.length === 0) return showToast('Cart is empty', 'error');
-            await submitOrder(STATE.user.phone, STATE.custCart);
+            // Customer orders are requested
+            await submitOrder(STATE.user.phone, STATE.custCart, 'requested');
             STATE.custCart = [];
-            renderCustCart();
-            showToast('Order Sent to Outlet');
+            renderActiveCart();
+            showToast('Order Request Sent');
             switchCustTab('history');
         }
 
-        async function submitOrder(phone, items) {
+        async function submitOrder(phone, items, status) {
             const { addDoc, collection, serverTimestamp, doc, setDoc, getDoc } = window.firebaseModules;
-            
-            // Ensure customer exists
             const custRef = doc(window.db, 'customers', phone);
             const custSnap = await getDoc(custRef);
-            if (!custSnap.exists()) {
-                await setDoc(custRef, { phone, points: 0, joined: serverTimestamp() });
-            }
-
+            if (!custSnap.exists()) await setDoc(custRef, { phone, points: 0, joined: serverTimestamp() });
+            
             const total = items.reduce((s, i) => s + (i.price * i.qty), 0);
-            const order = {
-                items: items,
-                phone: phone,
-                total: total,
-                status: 'pending',
-                timestamp: serverTimestamp()
-            };
-
-            await addDoc(collection(window.db, 'orders'), order);
+            await addDoc(collection(window.db, 'orders'), {
+                items: items, phone: phone, total: total, status: status, timestamp: serverTimestamp()
+            });
         }
 
-        // --- CUSTOMER PANEL LOGIC ---
-        function switchCustTab(tab) {
-            document.getElementById('btn-cust-menu').classList.toggle('active', tab === 'menu');
-            document.getElementById('btn-cust-history').classList.toggle('active', tab === 'history');
-            document.getElementById('cust-view-menu').classList.toggle('hidden', tab !== 'menu');
-            document.getElementById('cust-view-history').classList.toggle('hidden', tab !== 'history');
+        function loadOrders() {
+            const { collection, query, orderBy, onSnapshot } = window.firebaseModules;
+            onSnapshot(query(collection(window.db, 'orders'), orderBy('timestamp', 'desc')), (snap) => {
+                const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                
+                const requested = orders.filter(o => o.status === 'requested');
+                renderIncoming(requested);
+                
+                const pending = orders.filter(o => o.status === 'pending');
+                renderCurrentOrders(pending);
+                
+                const completed = orders.filter(o => o.status === 'completed');
+                renderCompletedOrders(completed);
+                
+                // Badge Logic
+                const badge = document.getElementById('badgeIncoming');
+                if(requested.length > 0) badge.classList.remove('hidden');
+                else badge.classList.add('hidden');
+            });
         }
 
-        function renderCustomerMenu() {
-            const sidebar = document.getElementById('custSidebar');
-            sidebar.innerHTML = STATE.categories.map(cat => `
-                <div class="cat-btn ${cat === STATE.activeCategory ? 'active' : ''}" 
-                     onclick="filterCategory('${cat}')">${cat}</div>
-            `).join('');
-
-            const grid = document.getElementById('custGrid');
-            const items = STATE.activeCategory === 'All' ? STATE.menu : STATE.menu.filter(m => m.category === STATE.activeCategory);
-            grid.innerHTML = items.map(item => `
-                <div class="menu-item" onclick="addToCart('${item.id}')">
-                    <div style="font-weight:600; font-size: 0.9rem;">${item.name}</div>
-                    <div style="color: var(--primary);">₹${item.price}</div>
+        function renderIncoming(orders) {
+            document.getElementById('incomingOrdersList').innerHTML = orders.map(o => `
+                <div class="order-card">
+                    <div class="flex justify-between">
+                        <div><span class="order-status status-requested">REQUESTED</span> <strong>${o.phone}</strong></div>
+                        <strong>₹${o.total}</strong>
+                    </div>
+                    <div class="text-muted">${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</div>
+                    <div class="flex gap-2" style="margin-top:10px;">
+                        <button class="btn btn-success w-full" onclick="updateOrderStatus('${o.id}', 'pending')">Accept</button>
+                        <button class="btn btn-danger w-full" onclick="updateOrderStatus('${o.id}', 'cancelled')">Reject</button>
+                    </div>
                 </div>
             `).join('');
         }
 
-        // --- ORDER MANAGEMENT (OUTLET) ---
-        function loadOrders() {
-            const { collection, query, orderBy, onSnapshot } = window.firebaseModules;
-            const q = query(collection(window.db, 'orders'), orderBy('timestamp', 'desc'));
-            onSnapshot(q, (snap) => {
-                const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                renderCurrentOrders(orders.filter(o => o.status === 'pending'));
-                renderCompletedOrders(orders.filter(o => o.status === 'completed'));
-            });
-        }
-
         function renderCurrentOrders(orders) {
-            const container = document.getElementById('currentOrdersList');
-            container.innerHTML = orders.map(o => `
+            document.getElementById('currentOrdersList').innerHTML = orders.map(o => `
                 <div class="order-card">
                     <div class="flex justify-between">
-                        <div>
-                            <span class="order-status status-pending">PENDING</span>
-                            <span style="font-weight:bold; margin-left:10px;">${o.phone}</span>
-                        </div>
-                        <div style="font-weight:bold;">₹${o.total}</div>
+                        <div><span class="order-status status-pending">PENDING</span> <strong>${o.phone}</strong></div>
+                        <strong>₹${o.total}</strong>
                     </div>
-                    <div style="margin: 10px 0; font-size: 0.9rem; color: #ccc;">
-                        ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
-                    </div>
-                    <div class="flex gap-2">
+                    <div class="text-muted">${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</div>
+                    <div class="flex gap-2" style="margin-top:10px;">
                         <button class="btn btn-secondary w-full" onclick="editOrder('${o.id}')">✏️ Edit</button>
                         <button class="btn btn-success w-full" onclick="completeOrder('${o.id}', ${o.total}, '${o.phone}')">✅ Complete</button>
                     </div>
@@ -807,25 +897,22 @@
         }
 
         function renderCompletedOrders(orders) {
-            const container = document.getElementById('completedOrdersList');
-            container.innerHTML = orders.map(o => `
+            document.getElementById('completedOrdersList').innerHTML = orders.map(o => `
                 <div class="order-card">
                     <div class="flex justify-between">
-                        <div>
-                            <span class="order-status status-completed">COMPLETED</span>
-                            <span style="font-weight:bold; margin-left:10px;">${o.phone}</span>
-                        </div>
-                        <div style="font-weight:bold;">₹${o.total}</div>
+                        <div><span class="order-status status-completed">COMPLETED</span> <strong>${o.phone}</strong></div>
+                        <strong>₹${o.total}</strong>
                     </div>
-                    <div style="margin: 10px 0; font-size: 0.9rem; color: #ccc;">
-                        ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
-                    </div>
-                    <button class="btn btn-primary w-full" onclick="sendBill('${o.phone}', '${o.total}')">📱 Send Bill</button>
+                    <div class="text-muted">${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</div>
+                    <button class="btn btn-primary w-full" style="margin-top:10px;" onclick="sendBill('${o.phone}', '${o.total}')">📱 Send Bill</button>
                 </div>
             `).join('');
         }
 
-        // --- EDITING & COMPLETING ---
+        async function updateOrderStatus(id, status) {
+            await window.firebaseModules.updateDoc(window.firebaseModules.doc(window.db, 'orders', id), { status });
+        }
+
         function editOrder(orderId) {
             const { doc, getDoc } = window.firebaseModules;
             getDoc(doc(window.db, 'orders', orderId)).then(snap => {
@@ -837,7 +924,7 @@
                     document.getElementById('posPhone').value = data.phone;
                     document.getElementById('btnPlaceOrder').classList.add('hidden');
                     document.getElementById('btnUpdateOrder').classList.remove('hidden');
-                    renderCart();
+                    renderActiveCart();
                     showToast('Order Loaded for Editing');
                 }
             });
@@ -846,10 +933,8 @@
         async function updateExistingOrder() {
             if(!STATE.editingOrderId) return;
             const total = STATE.cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            const { doc, updateDoc } = window.firebaseModules;
-            await updateDoc(doc(window.db, 'orders', STATE.editingOrderId), {
-                items: STATE.cart,
-                total: total
+            await window.firebaseModules.updateDoc(window.firebaseModules.doc(window.db, 'orders', STATE.editingOrderId), {
+                items: STATE.cart, total: total
             });
             showToast('Order Updated');
             clearCart();
@@ -858,30 +943,19 @@
 
         async function completeOrder(orderId, total, phone) {
             if(!confirm('Mark as Completed? 5% Bonus will be added.')) return;
-            
             const bonus = Math.floor(total * 0.05);
-            const { doc, runTransaction, serverTimestamp } = window.firebaseModules;
-            
             try {
-                await runTransaction(window.db, async (transaction) => {
-                    // Update Order Status
-                    const orderRef = doc(window.db, 'orders', orderId);
+                await window.firebaseModules.runTransaction(window.db, async (transaction) => {
+                    const orderRef = window.firebaseModules.doc(window.db, 'orders', orderId);
                     transaction.update(orderRef, { status: 'completed' });
-
-                    // Update Customer Bonus
-                    const custRef = doc(window.db, 'customers', phone);
+                    const custRef = window.firebaseModules.doc(window.db, 'customers', phone);
                     const custDoc = await transaction.get(custRef);
-                    
                     if(custDoc.exists()) {
-                        const newPoints = (custDoc.data().points || 0) + bonus;
-                        transaction.update(custRef, { points: newPoints });
+                        transaction.update(custRef, { points: (custDoc.data().points || 0) + bonus });
                     }
                 });
-                showToast(`Order Completed! +${bonus} points added.`);
-            } catch(e) {
-                console.error(e);
-                showToast('Transaction failed', 'error');
-            }
+                showToast(`Completed! +${bonus} pts`);
+            } catch(e) { showToast('Error', 'error'); }
         }
 
         function sendBill(phone, total) {
@@ -889,33 +963,51 @@
             window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`);
         }
 
-        // --- CUSTOMER HISTORY ---
+        // --- CUSTOMER PANEL ---
+        function switchCustTab(tab) {
+            document.getElementById('btn-cust-menu').classList.toggle('active', tab === 'menu');
+            document.getElementById('btn-cust-history').classList.toggle('active', tab === 'history');
+            document.getElementById('cust-view-menu').classList.toggle('hidden', tab !== 'menu');
+            document.getElementById('cust-view-history').classList.toggle('hidden', tab !== 'history');
+        }
+
+        function renderCustomerMenu() {
+            const sidebar = document.getElementById('custSidebar');
+            const cats = ['All', ...STATE.categories.map(c => c.name)];
+            sidebar.innerHTML = cats.map(cat => `
+                <div class="cat-btn ${cat === STATE.activeCategory ? 'active' : ''}" 
+                     onclick="filterCategory('${cat}')">${cat}</div>
+            `).join('');
+            
+            const grid = document.getElementById('custGrid');
+            const items = STATE.activeCategory === 'All' ? STATE.menu : STATE.menu.filter(m => m.category === STATE.activeCategory);
+            grid.innerHTML = items.map(item => `
+                <div class="menu-item" onclick="addToCart('${item.id}')">
+                    <div style="font-weight:600; font-size: 0.9rem;">${item.name}</div>
+                    <div style="color: var(--primary);">₹${item.price}</div>
+                </div>
+            `).join('');
+        }
+
         function loadCustomerHistory(phone) {
             const { collection, query, where, orderBy, onSnapshot } = window.firebaseModules;
-            const q = query(collection(window.db, 'orders'), where('phone', '==', phone), orderBy('timestamp', 'desc'));
-            onSnapshot(q, (snap) => {
+            onSnapshot(query(collection(window.db, 'orders'), where('phone', '==', phone), orderBy('timestamp', 'desc')), (snap) => {
                 const list = document.getElementById('custHistoryList');
-                if(snap.empty) {
-                    list.innerHTML = '<p class="text-muted text-center">No orders yet.</p>';
-                } else {
-                    list.innerHTML = snap.docs.map(d => {
-                        const o = d.data();
-                        const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : '';
-                        const statusClass = o.status === 'completed' ? 'status-completed' : 'status-pending';
-                        return `
-                            <div class="order-card">
-                                <div class="flex justify-between">
-                                    <div>
-                                        <span class="order-status ${statusClass}">${o.status.toUpperCase()}</span>
-                                        <span style="margin-left: 10px;">${date}</span>
-                                    </div>
-                                    <span class="font-bold">₹${o.total}</span>
-                                </div>
-                                <div class="text-muted" style="font-size:0.8rem; margin-top:5px;">${o.items.map(i => i.name).join(', ')}</div>
+                if(snap.empty) { list.innerHTML = '<p class="text-center text-muted">No orders</p>'; return; }
+                list.innerHTML = snap.docs.map(d => {
+                    const o = d.data();
+                    const stClass = o.status === 'completed' ? 'status-completed' : o.status === 'requested' ? 'status-requested' : 'status-pending';
+                    const date = o.timestamp ? new Date(o.timestamp.toDate()).toLocaleDateString() : '';
+                    return `
+                        <div class="order-card">
+                            <div class="flex justify-between">
+                                <div><span class="order-status ${stClass}">${o.status.toUpperCase()}</span> ${date}</div>
+                                <strong>₹${o.total}</strong>
                             </div>
-                        `;
-                    }).join('');
-                }
+                            <div class="text-muted text-sm" style="margin-top:5px;">${o.items.map(i => i.name).join(', ')}</div>
+                        </div>
+                    `;
+                }).join('');
             });
         }
 
