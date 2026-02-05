@@ -3464,7 +3464,7 @@ Please prepare this order`;
             if (!catList || !grid) return;
             
             const cats = [...new Set(APP_STATE.menu.map(i => i.category || 'other'))];
-            let catHTML = '<div class="category-item active" onclick="filterOutletCategory('all')">All</div>';
+            let catHTML = `<div class="category-item active" onclick="filterOutletCategory('all')">All</div>`;
             APP_STATE.categories.forEach(cat => {
                 if (cats.includes(cat.id)) {
                     catHTML += `<div class="category-item" onclick="filterOutletCategory('${cat.id}')">${cat.icon || ''} ${cat.name}</div>`;
