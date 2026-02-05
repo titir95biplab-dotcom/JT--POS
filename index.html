@@ -543,6 +543,7 @@
             editingOrderId: null,
             activeCategory: 'All',
             tempPhone: null,
+	    searchQuery: '',
             storeSettings: { name: 'Juice Therapy', address: '', footer: 'Thank you!', link: '' }
         };
 
@@ -952,6 +953,11 @@
             document.getElementById(`view-${tab}`).classList.remove('hidden');
         }
 
+function filterMenu(text) {
+            STATE.searchQuery = text.trim().toLowerCase();
+            renderOutletMenu();
+        }
+
         function renderOutletMenu() {
             const sidebar = document.getElementById('posSidebar');
             const cats = ['All', ...STATE.categories.map(c => c.name)];
@@ -965,12 +971,21 @@
             }).join('');
             
             const grid = document.getElementById('posGrid');
-            const items = STATE.activeCategory === 'All' 
-                ? STATE.menu 
-                : STATE.menu.filter(m => (m.category || '').trim() === STATE.activeCategory);
+            
+            let items = [];
+
+            // SEARCH LOGIC: If typing, search ALL items. Else, use Category.
+            if (STATE.searchQuery) {
+                items = STATE.menu.filter(item => item.name.toLowerCase().includes(STATE.searchQuery));
+            } else {
+                items = STATE.activeCategory === 'All' 
+                    ? STATE.menu 
+                    : STATE.menu.filter(m => (m.category || '').trim() === STATE.activeCategory);
+            }
             
             if (items.length === 0) {
-                grid.innerHTML = '<div class="text-muted" style="grid-column: 1/-1; text-align:center; padding:20px;">No items found in ' + STATE.activeCategory + '</div>';
+                const msg = STATE.searchQuery ? `No items match "${STATE.searchQuery}"` : `No items in ${STATE.activeCategory}`;
+                grid.innerHTML = `<div class="text-muted" style="grid-column: 1/-1; text-align:center; padding:20px;">${msg}</div>`;
             } else {
                 grid.innerHTML = items.map(item => {
                     const cartItem = STATE.cart.find(c => c.id === item.id);
@@ -990,6 +1005,12 @@
 
         function filterCategory(cat) {
             STATE.activeCategory = cat;
+            
+            // Clear Search when switching categories
+            STATE.searchQuery = ''; 
+            const searchInput = document.querySelector('#view-pos input[type="text"]');
+            if(searchInput) searchInput.value = '';
+
             if(STATE.role === 'staff') renderOutletMenu();
             if(STATE.role === 'customer') renderCustomerMenu();
         }
@@ -1080,13 +1101,31 @@
 
         async function submitOrder(phone, items, status) {
             const { addDoc, collection, serverTimestamp, doc, setDoc, getDoc } = window.firebaseModules;
+            
+            // 1. Fetch Customer Details
             const custRef = doc(window.db, 'customers', phone);
             const custSnap = await getDoc(custRef);
-            if (!custSnap.exists()) await setDoc(custRef, { phone, points: 0, joined: serverTimestamp() });
+            
+            let custName = ''; // Default if name not found
+
+            if (!custSnap.exists()) {
+                // Create new customer if they don't exist
+                await setDoc(custRef, { phone, points: 0, joined: serverTimestamp() });
+            } else {
+                // Get existing name
+                custName = custSnap.data().name || '';
+            }
             
             const total = items.reduce((s, i) => s + (i.price * i.qty), 0);
+            
+            // 2. Save Order WITH Name
             await addDoc(collection(window.db, 'orders'), {
-                items: items, phone: phone, total: total, status: status, timestamp: serverTimestamp()
+                items: items, 
+                phone: phone, 
+                customerName: custName, // <--- Name restored here
+                total: total, 
+                status: status, 
+                timestamp: serverTimestamp()
             });
         }
 
@@ -1111,47 +1150,109 @@
         }
 
         function renderIncoming(orders) {
-            document.getElementById('incomingOrdersList').innerHTML = orders.map(o => `
+            document.getElementById('incomingOrdersList').innerHTML = orders.map(o => {
+                let timeStr = o.timestamp ? o.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+                
+                const customerDisplay = o.customerName 
+                    ? `<strong>${o.customerName}</strong> <span style="font-weight:normal; font-size:0.8rem">(${o.phone})</span>`
+                    : `<strong>${o.phone}</strong>`;
+
+                return `
                 <div class="order-card">
-                    <div class="flex justify-between">
-                        <div><span class="order-status status-requested">REQUESTED</span> <strong>${o.phone}</strong></div>
-                        <strong>₹${o.total}</strong>
+                    <div class="flex justify-between" style="align-items:center; margin-bottom:8px;">
+                        <div>
+                            <span class="order-status status-requested">REQUESTED</span>
+                            <span class="text-muted" style="font-size:0.75rem;">${timeStr}</span>
+                        </div>
+                        <strong style="font-size:1.1rem;">₹${o.total}</strong>
                     </div>
-                    <div class="text-muted">${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</div>
+                    
+                    <div style="margin-bottom:8px;">${customerDisplay}</div>
+                    
+                    <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
+                        ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                    </div>
+                    
                     <div class="flex gap-2" style="margin-top:10px;">
                         <button class="btn btn-success w-full" onclick="updateOrderStatus('${o.id}', 'pending')">Accept</button>
                         <button class="btn btn-danger w-full" onclick="updateOrderStatus('${o.id}', 'cancelled')">Reject</button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
-        function renderCurrentOrders(orders) {
-            document.getElementById('currentOrdersList').innerHTML = orders.map(o => `
+       function renderCurrentOrders(orders) {
+            document.getElementById('currentOrdersList').innerHTML = orders.map(o => {
+                // 1. Format Date & Time
+                let timeStr = 'Just now';
+                if(o.timestamp) {
+                    const d = o.timestamp.toDate();
+                    timeStr = `${d.getDate()}/${d.getMonth()+1} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                }
+
+                // 2. Format Name & Phone Display
+                const customerDisplay = o.customerName 
+                    ? `<div style="font-weight:bold; font-size:1rem; line-height:1.2;">${o.customerName}</div><div style="font-size:0.85rem; color:#aaa;">${o.phone}</div>`
+                    : `<div style="font-weight:bold; font-size:1rem;">${o.phone}</div>`;
+
+                return `
                 <div class="order-card">
-                    <div class="flex justify-between">
-                        <div><span class="order-status status-pending">PENDING</span> <strong>${o.phone}</strong></div>
-                        <strong>₹${o.total}</strong>
+                    <div class="flex justify-between" style="align-items:flex-start; margin-bottom:8px;">
+                        <div>
+                            <div style="margin-bottom:5px;">${customerDisplay}</div>
+                            <span class="order-status status-pending" style="font-size:0.65rem;">PENDING</span>
+                            <span class="text-muted" style="font-size:0.75rem; margin-left:5px;">📅 ${timeStr}</span>
+                        </div>
+                        <div style="text-align:right;">
+                            <strong style="font-size:1.2rem; display:block;">₹${o.total}</strong>
+                            <button class="btn btn-danger btn-sm" style="padding: 2px 8px; margin-top:5px; font-size:0.7rem;" onclick="deletePendingOrder('${o.id}')">🗑️ Cancel</button>
+                        </div>
                     </div>
-                    <div class="text-muted">${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</div>
-                    <div class="flex gap-2" style="margin-top:10px;">
+                    
+                    <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px; margin-top:5px;">
+                        ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                    </div>
+                    
+                    <div class="flex gap-2" style="margin-top:12px;">
                         <button class="btn btn-secondary w-full" onclick="editOrder('${o.id}')">✏️ Edit</button>
                         <button class="btn btn-success w-full" onclick="openPaymentModal('${o.id}', ${o.total}, '${o.phone}')">✅ Bill & Pay</button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         function renderCompletedOrders(orders) {
-            document.getElementById('completedOrdersList').innerHTML = orders.map(o => `
+            document.getElementById('completedOrdersList').innerHTML = orders.map(o => {
+                // 1. Format Date & Time
+                let timeStr = '';
+                if(o.timestamp) {
+                    const d = o.timestamp.toDate();
+                    timeStr = `${d.getDate()}/${d.getMonth()+1} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                }
+
+                // 2. Format Name & Phone
+                const customerDisplay = o.customerName 
+                    ? `<div style="font-weight:bold; font-size:1rem; line-height:1.2;">${o.customerName}</div><div style="font-size:0.85rem; color:#aaa;">${o.phone}</div>`
+                    : `<div style="font-weight:bold; font-size:1rem;">${o.phone}</div>`;
+
+                return `
                 <div class="order-card">
-                    <div class="flex justify-between">
-                        <div><span class="order-status status-completed">COMPLETED</span> <strong>${o.phone}</strong></div>
-                        <strong>₹${o.total}</strong>
+                    <div class="flex justify-between" style="align-items:flex-start;">
+                        <div>
+                            <div style="margin-bottom:5px;">${customerDisplay}</div>
+                            <span class="order-status status-completed" style="font-size:0.65rem;">COMPLETED</span>
+                            <span class="text-muted" style="font-size:0.75rem; margin-left:5px;">📅 ${timeStr}</span>
+                        </div>
+                        <div style="text-align:right;">
+                            <strong style="font-size:1.2rem; display:block;">₹${o.total}</strong>
+                            <span class="text-muted" style="font-size:0.7rem;">${o.paymentMode || 'Cash'}</span>
+                        </div>
                     </div>
-                    <div class="text-muted">${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}</div>
                     
-                    <!-- Updated Buttons for WA and SMS -->
+                    <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px; margin-top:8px;">
+                        ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                    </div>
+                    
                     <div class="flex gap-2" style="margin-top:10px;">
                         <button class="btn btn-success w-full btn-sm" onclick="sendBillFromHistory('${o.phone}', '${o.id}', 'whatsapp')">
                             📱 WA
@@ -1161,7 +1262,7 @@
                         </button>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // Added 'type' parameter to handle both sms and whatsapp
@@ -1205,16 +1306,68 @@
                 }
             });
         }
+async function deletePendingOrder(orderId) {
+            if(!confirm('Are you sure you want to cancel this order?')) return;
+            
+            try {
+                // FIX: Use updateDoc instead of deleteDoc to avoid Permission Errors.
+                // Marking as 'cancelled' removes it from the Pending list essentially "deleting" it from view.
+                const { doc, updateDoc } = window.firebaseModules;
+                
+                await updateDoc(doc(window.db, 'orders', orderId), {
+                    status: 'cancelled'
+                });
+                
+                showToast('Order Cancelled Successfully');
+            } catch (e) {
+                console.error(e);
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
 
         async function updateExistingOrder() {
             if(!STATE.editingOrderId) return;
+            
+            // 1. Capture the (potentially edited) Phone Number
+            const newPhone = document.getElementById('posPhone').value;
+            
+            if(!newPhone || newPhone.length !== 10) {
+                return showToast('Please enter a valid 10-digit phone number', 'error');
+            }
+
             const total = STATE.cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            await window.firebaseModules.updateDoc(window.firebaseModules.doc(window.db, 'orders', STATE.editingOrderId), {
-                items: STATE.cart, total: total
-            });
-            showToast('Order Updated');
-            clearCart();
-            switchOutletTab('current');
+            
+            const { doc, updateDoc, getDoc, setDoc, serverTimestamp } = window.firebaseModules;
+
+            try {
+                // 2. Ensure Customer Exists (in case the number was changed to a new customer)
+                const custRef = doc(window.db, 'customers', newPhone);
+                const custSnap = await getDoc(custRef);
+                
+                let custName = '';
+                if (!custSnap.exists()) {
+                    // Create new customer profile for the new number
+                    await setDoc(custRef, { phone: newPhone, points: 0, joined: serverTimestamp() });
+                } else {
+                    custName = custSnap.data().name || '';
+                }
+
+                // 3. Update the Order with New Items AND New Phone/Name
+                await updateDoc(doc(window.db, 'orders', STATE.editingOrderId), {
+                    items: STATE.cart, 
+                    total: total,
+                    phone: newPhone,       // Update Phone
+                    customerName: custName // Update Name associated with that phone
+                });
+                
+                showToast('Order & Phone Updated');
+                clearCart();
+                switchOutletTab('current');
+
+            } catch (e) {
+                console.error(e);
+                showToast('Update failed: ' + e.message, 'error');
+            }
         }
 
         // --- PAYMENT & BILLING ---
