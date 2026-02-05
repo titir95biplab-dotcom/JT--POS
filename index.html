@@ -458,19 +458,43 @@
 
         function initApp() {
             window.firebaseModules.onAuthStateChanged(window.auth, (user) => {
-                if (user) checkUserRole(user.uid);
+                if (user) checkUserRole(user); // Pass user object
                 else document.getElementById('loginScreen').classList.remove('hidden');
             });
         }
 
-        async function checkUserRole(uid) {
-            if (window.auth.currentUser.email === 'admin@jt.com') {
+        async function checkUserRole(user) {
+            // Check hardcoded admins
+            if (user.email === 'admin@jt.com' || user.email === 'titir95biplab@gmail.com') {
                 STATE.role = 'admin';
                 showPanel('adminPanel');
                 loadCategories();
                 loadMenu();
                 loadAnalytics();
-            } else {
+                return;
+            } 
+            
+            // Check database role (scalability)
+            const { doc, getDoc } = window.firebaseModules;
+            try {
+                // Assuming you might store staff roles in a 'users' or 'staff' collection
+                const userDoc = await getDoc(doc(window.db, 'staff', user.uid)); 
+                if (userDoc.exists() && userDoc.data().role === 'admin') {
+                    STATE.role = 'admin';
+                    showPanel('adminPanel');
+                    loadCategories();
+                    loadMenu();
+                    loadAnalytics();
+                } else {
+                    // Default to staff if not admin
+                    STATE.role = 'staff';
+                    showPanel('outletPanel');
+                    loadCategories();
+                    loadMenu();
+                    loadOrders(); 
+                }
+            } catch (e) {
+                // Fallback to staff if DB check fails
                 STATE.role = 'staff';
                 showPanel('outletPanel');
                 loadCategories();
@@ -943,19 +967,33 @@
 
         async function completeOrder(orderId, total, phone) {
             if(!confirm('Mark as Completed? 5% Bonus will be added.')) return;
+            
             const bonus = Math.floor(total * 0.05);
+            const { doc, runTransaction, serverTimestamp } = window.firebaseModules;
+            
             try {
-                await window.firebaseModules.runTransaction(window.db, async (transaction) => {
-                    const orderRef = window.firebaseModules.doc(window.db, 'orders', orderId);
-                    transaction.update(orderRef, { status: 'completed' });
-                    const custRef = window.firebaseModules.doc(window.db, 'customers', phone);
+                // FIXED: Reads must come before writes in Firestore Transactions
+                await runTransaction(window.db, async (transaction) => {
+                    // 1. Create References
+                    const orderRef = doc(window.db, 'orders', orderId);
+                    const custRef = doc(window.db, 'customers', phone);
+
+                    // 2. Perform READS
                     const custDoc = await transaction.get(custRef);
+
+                    // 3. Perform WRITES
+                    transaction.update(orderRef, { status: 'completed' });
+                    
                     if(custDoc.exists()) {
-                        transaction.update(custRef, { points: (custDoc.data().points || 0) + bonus });
+                        const newPoints = (custDoc.data().points || 0) + bonus;
+                        transaction.update(custRef, { points: newPoints });
                     }
                 });
-                showToast(`Completed! +${bonus} pts`);
-            } catch(e) { showToast('Error', 'error'); }
+                showToast(`Order Completed! +${bonus} points added.`);
+            } catch(e) {
+                console.error(e);
+                showToast('Transaction failed: ' + e.message, 'error');
+            }
         }
 
         function sendBill(phone, total) {
