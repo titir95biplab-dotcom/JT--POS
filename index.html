@@ -1035,9 +1035,6 @@
                     <label>Select Staff</label>
                     <select id="staffSelect">
                         <option value="">Choose staff member</option>
-                        <option value="staff1">Rahul Kumar</option>
-                        <option value="staff2">Priya Sharma</option>
-                        <option value="staff3">Amit Singh</option>
                     </select>
                 </div>
             </div>
@@ -1119,9 +1116,10 @@
             <div id="staffTab" class="tab-content">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Staff Performance</h3>
+                        <h3 class="card-title">Staff Management</h3>
+                        <button class="btn btn-primary btn-small" onclick="showAddStaffModal()">+ Add Staff</button>
                     </div>
-                    <div id="staffPerformance"></div>
+                    <div id="staffList"></div>
                 </div>
             </div>
 
@@ -1584,11 +1582,36 @@
                 
                 if (accountType === 'outlet') {
                     outletStaffGroup.classList.remove('hidden');
+                    loadStaffList(); // Load staff from Firestore
                     helpText.textContent = 'Outlet staff: Login with email & select your name';
                 } else {
                     outletStaffGroup.classList.add('hidden');
                     helpText.textContent = 'Admin: Login with your credentials';
                 }
+            }
+        }
+
+        // Load Staff List from Firestore
+        async function loadStaffList() {
+            try {
+                if (!window.firebaseReady) return;
+                
+                const { collection, getDocs } = window.firebaseModules;
+                const staffRef = collection(window.db, 'staff');
+                const snapshot = await getDocs(staffRef);
+                
+                const staffSelect = document.getElementById('staffSelect');
+                staffSelect.innerHTML = '<option value="">Choose staff member</option>';
+                
+                snapshot.forEach(doc => {
+                    const staff = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = staff.name;
+                    staffSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading staff:', error);
             }
         }
 
@@ -1756,7 +1779,7 @@
             renderCategoriesList();
             renderAdminMenu();
             renderCustomersList();
-            renderStaffPerformance();
+            renderStaffList();
         }
 
         function showOutletPanel() {
@@ -1815,8 +1838,8 @@
             }
 
             grid.innerHTML = filteredMenu.map(item => `
-                <div class="menu-item ${APP_STATE.currentOrder.find(o => o.id === item.id) ? 'selected' : ''} ${!item.available ? 'unavailable' : ''}" 
-                     onclick="${item.available ? `addToOrder(${item.id})` : ''}" 
+                <div class="menu-item ${APP_STATE.currentOrder.find(o => o.id === '${item.id}') ? 'selected' : ''} ${!item.available ? 'unavailable' : ''}" 
+                     onclick="${item.available ? `addToOrder('${item.id}')` : ''}" 
                      data-category="${item.category}"
                      style="${!item.available ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
                     <div class="menu-item-name">${item.name}</div>
@@ -1854,6 +1877,11 @@
         // Add to Order
         function addToOrder(itemId) {
             const item = APP_STATE.menu.find(i => i.id === itemId);
+            if (!item) {
+                console.error('Item not found:', itemId);
+                return;
+            }
+            
             const existingItem = APP_STATE.currentOrder.find(o => o.id === itemId);
 
             if (existingItem) {
@@ -2372,8 +2400,8 @@ Payment Mode: ${order.paymentMode.toUpperCase()}
         function renderCustomerMenu() {
             const grid = document.getElementById('customerMenuGrid');
             grid.innerHTML = APP_STATE.menu.filter(item => item.available).map(item => `
-                <div class="menu-item ${APP_STATE.customerCart.find(o => o.id === item.id) ? 'selected' : ''}" 
-                     onclick="addToCustomerCart(${item.id})" data-category="${item.category}">
+                <div class="menu-item ${APP_STATE.customerCart.find(o => o.id === '${item.id}') ? 'selected' : ''}" 
+                     onclick="addToCustomerCart('${item.id}')" data-category="${item.category}">
                     <div class="menu-item-name">${item.name}</div>
                     <div class="menu-item-price">₹${item.price}</div>
                 </div>
@@ -2384,6 +2412,11 @@ Payment Mode: ${order.paymentMode.toUpperCase()}
 
         function addToCustomerCart(itemId) {
             const item = APP_STATE.menu.find(i => i.id === itemId);
+            if (!item) {
+                console.error('Item not found:', itemId);
+                return;
+            }
+            
             const existingItem = APP_STATE.customerCart.find(o => o.id === itemId);
 
             if (existingItem) {
@@ -2637,13 +2670,120 @@ Payment Mode: ${order.paymentMode.toUpperCase()}
             `;
         }
 
-        function renderStaffPerformance() {
-            const container = document.getElementById('staffPerformance');
-            container.innerHTML = `
-                <p style="text-align: center; color: var(--light-2); padding: var(--spacing-lg);">
-                    Staff performance tracking will be displayed here
-                </p>
-            `;
+        function renderStaffList() {
+            const container = document.getElementById('staffList');
+            
+            // Load staff from Firestore
+            if (window.firebaseReady) {
+                const { collection, getDocs } = window.firebaseModules;
+                getDocs(collection(window.db, 'staff')).then(snapshot => {
+                    if (snapshot.empty) {
+                        container.innerHTML = '<p style="text-align: center; color: var(--light-2); padding: var(--spacing-lg);">No staff members yet. Add your first staff member!</p>';
+                        return;
+                    }
+
+                    container.innerHTML = `
+                        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--spacing-md);">
+                            ${snapshot.docs.map(doc => {
+                                const staff = doc.data();
+                                return `
+                                    <div class="order-card">
+                                        <h4 style="margin-bottom: var(--spacing-sm);">${staff.name}</h4>
+                                        <div style="color: var(--light-2); font-size: 0.9rem; margin-bottom: var(--spacing-sm);">
+                                            ${staff.role || 'Staff Member'}
+                                        </div>
+                                        <div style="color: var(--accent); font-size: 0.85rem; margin-bottom: var(--spacing-md);">
+                                            ID: ${doc.id}
+                                        </div>
+                                        <div style="display: flex; gap: var(--spacing-sm);">
+                                            <button class="btn btn-ghost btn-small" onclick="editStaff('${doc.id}', '${staff.name}', '${staff.role || ''}')">Edit</button>
+                                            <button class="btn btn-danger btn-small" onclick="deleteStaff('${doc.id}', '${staff.name}')">Delete</button>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }).catch(error => {
+                    console.error('Error loading staff:', error);
+                    container.innerHTML = '<p style="text-align: center; color: var(--danger); padding: var(--spacing-lg);">Error loading staff list</p>';
+                });
+            } else {
+                container.innerHTML = '<p style="text-align: center; color: var(--light-2); padding: var(--spacing-lg);">Loading staff...</p>';
+            }
+        }
+
+        // Add Staff Modal
+        async function showAddStaffModal() {
+            const name = prompt('Enter staff name:');
+            if (!name) return;
+
+            const role = prompt('Enter role (e.g., Cashier, Manager):') || 'Staff Member';
+
+            try {
+                const { collection, doc, setDoc } = window.firebaseModules;
+                const staffId = 'staff_' + Date.now();
+                const staffRef = doc(window.db, 'staff', staffId);
+
+                await setDoc(staffRef, {
+                    name: name,
+                    role: role,
+                    active: true,
+                    createdAt: new Date().toISOString()
+                });
+
+                showNotification(`Staff member "${name}" added successfully!`, 'success');
+                renderStaffList();
+                loadStaffList(); // Refresh dropdown
+            } catch (error) {
+                console.error('Error adding staff:', error);
+                showNotification('Error adding staff: ' + error.message, 'error');
+            }
+        }
+
+        // Edit Staff
+        async function editStaff(staffId, currentName, currentRole) {
+            const newName = prompt('Enter new name:', currentName);
+            if (!newName) return;
+
+            const newRole = prompt('Enter new role:', currentRole) || 'Staff Member';
+
+            try {
+                const { doc, updateDoc } = window.firebaseModules;
+                const staffRef = doc(window.db, 'staff', staffId);
+
+                await updateDoc(staffRef, {
+                    name: newName,
+                    role: newRole
+                });
+
+                showNotification('Staff updated successfully!', 'success');
+                renderStaffList();
+                loadStaffList();
+            } catch (error) {
+                console.error('Error updating staff:', error);
+                showNotification('Error updating staff: ' + error.message, 'error');
+            }
+        }
+
+        // Delete Staff
+        async function deleteStaff(staffId, staffName) {
+            const confirm = window.confirm(`Delete staff member "${staffName}"?`);
+            if (!confirm) return;
+
+            try {
+                const { doc, deleteDoc } = window.firebaseModules;
+                const staffRef = doc(window.db, 'staff', staffId);
+
+                await deleteDoc(staffRef);
+
+                showNotification('Staff deleted successfully!', 'success');
+                renderStaffList();
+                loadStaffList();
+            } catch (error) {
+                console.error('Error deleting staff:', error);
+                showNotification('Error deleting staff: ' + error.message, 'error');
+            }
         }
 
         function sendNotification() {
