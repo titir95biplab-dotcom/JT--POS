@@ -817,19 +817,42 @@
         function renderOutletMenu() {
             const sidebar = document.getElementById('posSidebar');
             const cats = ['All', ...STATE.categories.map(c => c.name)];
-            sidebar.innerHTML = cats.map(cat => `
+            
+            sidebar.innerHTML = cats.map(cat => {
+                const safeCat = cat.replace(/'/g, "\\'");
+                return `
                 <div class="cat-btn ${cat === STATE.activeCategory ? 'active' : ''}" 
-                     onclick="filterCategory('${cat}')">${cat}</div>
-            `).join('');
+                     onclick="filterCategory('${safeCat}')">${cat}</div>
+                `;
+            }).join('');
             
             const grid = document.getElementById('posGrid');
-            const items = STATE.activeCategory === 'All' ? STATE.menu : STATE.menu.filter(m => m.category === STATE.activeCategory);
-            grid.innerHTML = items.map(item => `
-                <div class="menu-item" onclick="addToCart('${item.id}')">
-                    <div style="font-weight:600; font-size: 0.9rem;">${item.name}</div>
-                    <div style="color: var(--primary);">₹${item.price}</div>
-                </div>
-            `).join('');
+            const items = STATE.activeCategory === 'All' 
+                ? STATE.menu 
+                : STATE.menu.filter(m => (m.category || '').trim() === STATE.activeCategory);
+            
+            if (items.length === 0) {
+                grid.innerHTML = '<div class="text-muted" style="grid-column: 1/-1; text-align:center; padding:20px;">No items found in ' + STATE.activeCategory + '</div>';
+            } else {
+                grid.innerHTML = items.map(item => {
+                    // 1. Find Qty in Cart
+                    const cartItem = STATE.cart.find(c => c.id === item.id);
+                    const qty = cartItem ? cartItem.qty : 0;
+                    
+                    // 2. Create Badge HTML
+                    const qtyBadge = qty > 0 ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3); font-size:0.8rem;">${qty}</div>` : '';
+                    
+                    // 3. Highlight Border if selected
+                    const borderStyle = qty > 0 ? 'border: 1px solid var(--primary); background: rgba(255, 107, 53, 0.1);' : '';
+
+                    return `
+                    <div class="menu-item" onclick="addToCart('${item.id}')" style="position:relative; ${borderStyle}">
+                        ${qtyBadge}
+                        <div style="font-weight:600; font-size: 0.9rem; padding-right:15px;">${item.name}</div>
+                        <div style="color: var(--primary); margin-top:5px;">₹${item.price}</div>
+                    </div>
+                `}).join('');
+            }
         }
 
         function filterCategory(cat) {
@@ -869,8 +892,15 @@
         }
 
         function renderActiveCart() {
-            if(STATE.role === 'customer') renderCartGeneric(document.getElementById('custCartItems'), document.getElementById('custCartTotal'), STATE.custCart);
-            else renderCartGeneric(document.getElementById('cartItemsList'), document.getElementById('cartTotal'), STATE.cart);
+            if(STATE.role === 'customer') {
+                renderCartGeneric(document.getElementById('custCartItems'), document.getElementById('custCartTotal'), STATE.custCart);
+                // Refresh Menu to update badges
+                renderCustomerMenu();
+            } else {
+                renderCartGeneric(document.getElementById('cartItemsList'), document.getElementById('cartTotal'), STATE.cart);
+                // Refresh Menu to update badges
+                renderOutletMenu();
+            }
         }
 
         function renderCartGeneric(container, totalEl, cartArray) {
@@ -1069,19 +1099,41 @@
         function renderCustomerMenu() {
             const sidebar = document.getElementById('custSidebar');
             const cats = ['All', ...STATE.categories.map(c => c.name)];
-            sidebar.innerHTML = cats.map(cat => `
+            
+            sidebar.innerHTML = cats.map(cat => {
+                const safeCat = cat.replace(/'/g, "\\'");
+                return `
                 <div class="cat-btn ${cat === STATE.activeCategory ? 'active' : ''}" 
-                     onclick="filterCategory('${cat}')">${cat}</div>
-            `).join('');
+                     onclick="filterCategory('${safeCat}')">${cat}</div>
+                `;
+            }).join('');
             
             const grid = document.getElementById('custGrid');
-            const items = STATE.activeCategory === 'All' ? STATE.menu : STATE.menu.filter(m => m.category === STATE.activeCategory);
-            grid.innerHTML = items.map(item => `
-                <div class="menu-item" onclick="addToCart('${item.id}')">
-                    <div style="font-weight:600; font-size: 0.9rem;">${item.name}</div>
-                    <div style="color: var(--primary);">₹${item.price}</div>
-                </div>
-            `).join('');
+            const items = STATE.activeCategory === 'All' 
+                ? STATE.menu 
+                : STATE.menu.filter(m => (m.category || '').trim() === STATE.activeCategory);
+            
+            if (items.length === 0) {
+                grid.innerHTML = '<div class="text-muted" style="grid-column: 1/-1; text-align:center; padding:20px;">No items found</div>';
+            } else {
+                grid.innerHTML = items.map(item => {
+                    // 1. Find Qty in Customer Cart
+                    const cartItem = STATE.custCart.find(c => c.id === item.id);
+                    const qty = cartItem ? cartItem.qty : 0;
+                    
+                    // 2. Badge HTML
+                    const qtyBadge = qty > 0 ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3); font-size:0.8rem;">${qty}</div>` : '';
+                    
+                    const borderStyle = qty > 0 ? 'border: 1px solid var(--primary); background: rgba(255, 107, 53, 0.1);' : '';
+
+                    return `
+                    <div class="menu-item" onclick="addToCart('${item.id}')" style="position:relative; ${borderStyle}">
+                        ${qtyBadge}
+                        <div style="font-weight:600; font-size: 0.9rem; padding-right:15px;">${item.name}</div>
+                        <div style="color: var(--primary); margin-top:5px;">₹${item.price}</div>
+                    </div>
+                `}).join('');
+            }
         }
 
         function loadCustomerHistory(phone) {
