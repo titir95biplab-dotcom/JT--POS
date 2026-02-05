@@ -17,10 +17,10 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, addDoc } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, addDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyCbHeWurSgxdE1cYFvTGsoyzpK7PQ_1Z0o", // Using the key from your provided file
+            apiKey: "AIzaSyCbHeWurSgxdE1cYFvTGsoyzpK7PQ_1Z0o", 
             authDomain: "jt-s-pos.firebaseapp.com",
             projectId: "jt-s-pos",
             storageBucket: "jt-s-pos.firebasestorage.app",
@@ -33,7 +33,7 @@
         window.db = getFirestore(app);
         window.firebaseModules = { 
             signInWithEmailAndPassword, signOut, onAuthStateChanged, 
-            collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc,
+            collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, runTransaction,
             query, where, orderBy, onSnapshot, serverTimestamp, increment 
         };
         window.firebaseReady = true;
@@ -76,10 +76,12 @@
             font-size: 0.95rem; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
         }
         .btn:active { transform: scale(0.98); }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-secondary { background: rgba(255,255,255,0.1); color: white; }
         .btn-danger { background: rgba(255, 82, 82, 0.2); color: var(--danger); }
         .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: black; }
         
         .input {
             width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
@@ -305,8 +307,40 @@
                 <h1 style="font-size: 3rem; margin: 10px 0;" id="custPoints">0</h1>
                 <p>Bonus Points Available</p>
             </div>
-            <h3>My History</h3>
-            <div id="custHistoryList"></div>
+
+            <!-- Customer Tabs -->
+            <div class="tabs">
+                <button class="btn btn-secondary tab-btn active" onclick="switchCustTab('menu')" id="btn-cust-menu">🍔 Order Now</button>
+                <button class="btn btn-secondary tab-btn" onclick="switchCustTab('history')" id="btn-cust-history">📜 My History</button>
+            </div>
+
+            <!-- Customer Menu Tab -->
+            <div id="cust-view-menu">
+                <div class="pos-container" style="height: 60vh;">
+                    <div class="pos-left">
+                         <div class="menu-area">
+                            <div class="cat-sidebar" id="custSidebar"></div>
+                            <div class="item-grid" id="custGrid"></div>
+                         </div>
+                    </div>
+                    <div class="cart-panel">
+                        <h3>My Cart</h3>
+                        <div class="cart-items" id="custCartItems"></div>
+                        <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                            <div class="flex justify-between font-bold" style="font-size: 1.2rem; margin-bottom: 10px;">
+                                <span>Total</span>
+                                <span id="custCartTotal">₹0</span>
+                            </div>
+                            <button class="btn btn-primary w-full" onclick="placeCustomerOrder()">Place Order</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer History Tab -->
+            <div id="cust-view-history" class="hidden">
+                <div id="custHistoryList"></div>
+            </div>
         </div>
     </div>
 
@@ -317,7 +351,6 @@
             <h3>Add/Edit Item</h3>
             <input type="text" id="newItemName" class="input" placeholder="Item Name">
             <input type="number" id="newItemPrice" class="input" placeholder="Price">
-            <!-- Datalist for Category Suggestion -->
             <input list="categoryOptions" id="newItemCat" class="input" placeholder="Category (Select or Type New)">
             <datalist id="categoryOptions"></datalist>
             
@@ -328,29 +361,39 @@
         </div>
     </div>
 
+    <!-- Customer Name Modal -->
+    <div id="customerNameModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 300; display: flex; align-items: center; justify-content: center;">
+        <div class="card" style="width: 90%; max-width: 400px; text-align: center;">
+            <h3 style="margin-bottom: 10px;">Welcome!</h3>
+            <p style="margin-bottom: 20px; color: var(--text-muted);">Please enter your name to continue.</p>
+            <input type="text" id="newCustName" class="input" placeholder="Your Name">
+            <button class="btn btn-primary w-full" onclick="saveCustomerName()">Start Ordering</button>
+        </div>
+    </div>
+
     <script>
         // --- APP STATE ---
         const STATE = {
             user: null,
-            role: null, // 'admin', 'staff', 'customer'
+            role: null, 
             menu: [],
             categories: [],
             cart: [],
+            custCart: [], // Separate cart for customer view
             orders: [],
-            editingOrderId: null, // If editing an existing order
-            activeCategory: 'All'
+            editingOrderId: null,
+            activeCategory: 'All',
+            tempPhone: null
         };
 
         // --- INIT ---
         window.onload = () => {
-            // Check PWA Install
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
                 window.deferredPrompt = e;
                 document.getElementById('installBtn').style.display = 'flex';
             });
 
-            // Wait for Firebase
             const checkFirebase = setInterval(() => {
                 if (window.firebaseReady) {
                     clearInterval(checkFirebase);
@@ -360,11 +403,8 @@
         };
 
         function initApp() {
-            // Listen for Auth
             window.firebaseModules.onAuthStateChanged(window.auth, (user) => {
                 if (user) {
-                    // Check user role in Firestore 'users' collection or 'staff'
-                    // For simplicity in this demo, we assume email login is staff/admin
                     checkUserRole(user.uid);
                 } else {
                     document.getElementById('loginScreen').classList.remove('hidden');
@@ -373,8 +413,6 @@
         }
 
         async function checkUserRole(uid) {
-            // In real app, fetch from Firestore. Here we simulate or use local logic if simplified
-            // Assuming if email is admin@jt.com -> admin, else staff
             if (window.auth.currentUser.email === 'admin@jt.com') {
                 STATE.role = 'admin';
                 showPanel('adminPanel');
@@ -383,11 +421,10 @@
                 STATE.role = 'staff';
                 showPanel('outletPanel');
                 loadMenu();
-                loadOrders(); // Real-time listener
+                loadOrders(); 
             }
         }
 
-        // --- NAVIGATION ---
         function showPanel(panelId) {
             ['loginScreen', 'adminPanel', 'outletPanel', 'customerPanel'].forEach(id => document.getElementById(id).classList.add('hidden'));
             document.getElementById(panelId).classList.remove('hidden');
@@ -423,28 +460,47 @@
             const phone = document.getElementById('custPhoneLogin').value;
             if (phone.length !== 10) return showToast('Invalid phone', 'error');
 
-            // Simulating customer login without Auth (using phone as ID)
-            STATE.user = { uid: phone, phone: phone };
-            STATE.role = 'customer';
-            
-            // Check/Create Customer Doc
-            const { doc, getDoc, setDoc, serverTimestamp } = window.firebaseModules;
+            const { doc, getDoc } = window.firebaseModules;
             const custRef = doc(window.db, 'customers', phone);
             const snap = await getDoc(custRef);
             
-            if (!snap.exists()) {
-                await setDoc(custRef, {
-                    phone: phone,
-                    points: 0,
-                    joined: serverTimestamp()
-                });
-            } else {
-                STATE.points = snap.data().points;
+            // If new user or name missing, force name input
+            if (!snap.exists() || !snap.data().name) {
+                STATE.tempPhone = phone;
+                document.getElementById('customerNameModal').classList.remove('hidden');
+                return;
             }
 
-            document.getElementById('custNameDisplay').innerText = phone;
-            document.getElementById('custPoints').innerText = STATE.points || 0;
+            finalizeCustomerLogin(phone, snap.data());
+        }
+
+        async function saveCustomerName() {
+            const name = document.getElementById('newCustName').value;
+            if(!name) return showToast('Name is required', 'error');
+
+            const { doc, setDoc, serverTimestamp } = window.firebaseModules;
+            const phone = STATE.tempPhone;
             
+            // Create/Update customer
+            await setDoc(doc(window.db, 'customers', phone), {
+                phone: phone,
+                name: name,
+                points: 0,
+                joined: serverTimestamp()
+            }, { merge: true });
+
+            document.getElementById('customerNameModal').classList.add('hidden');
+            finalizeCustomerLogin(phone, { name, points: 0 });
+        }
+
+        function finalizeCustomerLogin(phone, data) {
+            STATE.user = { uid: phone, phone: phone, name: data.name };
+            STATE.role = 'customer';
+            
+            document.getElementById('custNameDisplay').innerText = data.name;
+            document.getElementById('custPoints').innerText = data.points || 0;
+            
+            loadMenu(); // For customer menu
             loadCustomerHistory(phone);
             showPanel('customerPanel');
         }
@@ -461,12 +517,12 @@
             
             onSnapshot(q, (snap) => {
                 STATE.menu = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                // Extract Categories
                 const cats = new Set(STATE.menu.map(m => m.category).filter(Boolean));
                 STATE.categories = ['All', ...Array.from(cats).sort()];
                 
                 if (STATE.role === 'admin') renderAdminMenu();
                 if (STATE.role === 'staff') renderOutletMenu();
+                if (STATE.role === 'customer') renderCustomerMenu();
                 updateCategoryDatalist();
             });
         }
@@ -515,9 +571,7 @@
             const price = Number(document.getElementById('newItemPrice').value);
             const category = document.getElementById('newItemCat').value || 'Uncategorized';
             const id = document.getElementById('addItemModal').dataset.id;
-
             const { collection, addDoc, doc, updateDoc } = window.firebaseModules;
-            
             try {
                 if(id) {
                     await updateDoc(doc(window.db, 'menu', id), { name, price, category });
@@ -527,9 +581,7 @@
                     showToast('Item added');
                 }
                 document.getElementById('addItemModal').classList.add('hidden');
-            } catch(e) {
-                showToast(e.message, 'error');
-            }
+            } catch(e) { showToast(e.message, 'error'); }
         }
 
         async function deleteItem(id) {
@@ -542,25 +594,19 @@
         function switchOutletTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
-            
             ['view-pos', 'view-current', 'view-completed'].forEach(v => document.getElementById(v).classList.add('hidden'));
             document.getElementById(`view-${tab}`).classList.remove('hidden');
         }
 
         function renderOutletMenu() {
-            // Render Sidebar
             const sidebar = document.getElementById('posSidebar');
             sidebar.innerHTML = STATE.categories.map(cat => `
                 <div class="cat-btn ${cat === STATE.activeCategory ? 'active' : ''}" 
                      onclick="filterCategory('${cat}')">${cat}</div>
             `).join('');
 
-            // Render Grid
             const grid = document.getElementById('posGrid');
-            const items = STATE.activeCategory === 'All' 
-                ? STATE.menu 
-                : STATE.menu.filter(m => m.category === STATE.activeCategory);
-            
+            const items = STATE.activeCategory === 'All' ? STATE.menu : STATE.menu.filter(m => m.category === STATE.activeCategory);
             grid.innerHTML = items.map(item => `
                 <div class="menu-item" onclick="addToCart('${item.id}')">
                     <div style="font-weight:600; font-size: 0.9rem;">${item.name}</div>
@@ -571,15 +617,14 @@
 
         function filterCategory(cat) {
             STATE.activeCategory = cat;
-            renderOutletMenu();
+            if(STATE.role === 'staff') renderOutletMenu();
+            if(STATE.role === 'customer') renderCustomerMenu();
         }
 
         function filterMenu(query) {
             if(!query) return renderOutletMenu();
             const lower = query.toLowerCase();
             const filtered = STATE.menu.filter(m => m.name.toLowerCase().includes(lower));
-            
-            // Bypass category filter for search
             document.getElementById('posGrid').innerHTML = filtered.map(item => `
                 <div class="menu-item" onclick="addToCart('${item.id}')">
                     <div style="font-weight:600; font-size: 0.9rem;">${item.name}</div>
@@ -588,27 +633,30 @@
             `).join('');
         }
 
-        // --- CART LOGIC ---
+        // --- CART LOGIC (SHARED BUT SEPARATE ARRAYS) ---
         function addToCart(itemId) {
             const item = STATE.menu.find(i => i.id === itemId);
-            const existing = STATE.cart.find(c => c.id === itemId);
+            const targetCart = STATE.role === 'customer' ? STATE.custCart : STATE.cart;
             
-            if(existing) {
-                existing.qty++;
-            } else {
-                STATE.cart.push({ ...item, qty: 1 });
-            }
-            renderCart();
+            const existing = targetCart.find(c => c.id === itemId);
+            if(existing) existing.qty++;
+            else targetCart.push({ ...item, qty: 1 });
+            
+            if(STATE.role === 'customer') renderCustCart();
+            else renderCart();
         }
 
         function updateQty(itemId, delta) {
-            const item = STATE.cart.find(c => c.id === itemId);
+            const targetCart = STATE.role === 'customer' ? STATE.custCart : STATE.cart;
+            const item = targetCart.find(c => c.id === itemId);
             if(!item) return;
             item.qty += delta;
             if(item.qty <= 0) {
-                STATE.cart = STATE.cart.filter(c => c.id !== itemId);
+                if(STATE.role === 'customer') STATE.custCart = STATE.custCart.filter(c => c.id !== itemId);
+                else STATE.cart = STATE.cart.filter(c => c.id !== itemId);
             }
-            renderCart();
+            if(STATE.role === 'customer') renderCustCart();
+            else renderCart();
         }
 
         function clearCart() {
@@ -623,15 +671,23 @@
         function renderCart() {
             const list = document.getElementById('cartItemsList');
             const totalEl = document.getElementById('cartTotal');
-            
-            if(STATE.cart.length === 0) {
-                list.innerHTML = '<div class="text-center text-muted" style="margin-top:20px;">Cart is empty</div>';
+            renderCartGeneric(list, totalEl, STATE.cart);
+        }
+
+        function renderCustCart() {
+            const list = document.getElementById('custCartItems');
+            const totalEl = document.getElementById('custCartTotal');
+            renderCartGeneric(list, totalEl, STATE.custCart);
+        }
+
+        function renderCartGeneric(container, totalEl, cartArray) {
+            if(cartArray.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted" style="margin-top:20px;">Cart is empty</div>';
                 totalEl.innerText = '₹0';
                 return;
             }
-
             let total = 0;
-            list.innerHTML = STATE.cart.map(item => {
+            container.innerHTML = cartArray.map(item => {
                 const sub = item.price * item.qty;
                 total += sub;
                 return `
@@ -648,7 +704,6 @@
                     </div>
                 `;
             }).join('');
-            
             totalEl.innerText = '₹' + total;
         }
 
@@ -657,19 +712,33 @@
             if(phone.length !== 10) return showToast('Enter 10-digit Phone', 'error');
             if(STATE.cart.length === 0) return showToast('Cart is empty', 'error');
 
-            const { addDoc, collection, serverTimestamp, doc, setDoc, getDoc } = window.firebaseModules;
+            await submitOrder(phone, STATE.cart);
+            clearCart();
+            switchOutletTab('current');
+        }
 
-            // Auto-create customer
+        async function placeCustomerOrder() {
+            if(STATE.custCart.length === 0) return showToast('Cart is empty', 'error');
+            await submitOrder(STATE.user.phone, STATE.custCart);
+            STATE.custCart = [];
+            renderCustCart();
+            showToast('Order Sent to Outlet');
+            switchCustTab('history');
+        }
+
+        async function submitOrder(phone, items) {
+            const { addDoc, collection, serverTimestamp, doc, setDoc, getDoc } = window.firebaseModules;
+            
+            // Ensure customer exists
             const custRef = doc(window.db, 'customers', phone);
             const custSnap = await getDoc(custRef);
             if (!custSnap.exists()) {
                 await setDoc(custRef, { phone, points: 0, joined: serverTimestamp() });
             }
 
-            const total = STATE.cart.reduce((s, i) => s + (i.price * i.qty), 0);
-
+            const total = items.reduce((s, i) => s + (i.price * i.qty), 0);
             const order = {
-                items: STATE.cart,
+                items: items,
                 phone: phone,
                 total: total,
                 status: 'pending',
@@ -677,26 +746,41 @@
             };
 
             await addDoc(collection(window.db, 'orders'), order);
-            showToast('Order Placed!');
-            clearCart();
-            switchOutletTab('current');
         }
 
-        // --- ORDER MANAGEMENT ---
+        // --- CUSTOMER PANEL LOGIC ---
+        function switchCustTab(tab) {
+            document.getElementById('btn-cust-menu').classList.toggle('active', tab === 'menu');
+            document.getElementById('btn-cust-history').classList.toggle('active', tab === 'history');
+            document.getElementById('cust-view-menu').classList.toggle('hidden', tab !== 'menu');
+            document.getElementById('cust-view-history').classList.toggle('hidden', tab !== 'history');
+        }
+
+        function renderCustomerMenu() {
+            const sidebar = document.getElementById('custSidebar');
+            sidebar.innerHTML = STATE.categories.map(cat => `
+                <div class="cat-btn ${cat === STATE.activeCategory ? 'active' : ''}" 
+                     onclick="filterCategory('${cat}')">${cat}</div>
+            `).join('');
+
+            const grid = document.getElementById('custGrid');
+            const items = STATE.activeCategory === 'All' ? STATE.menu : STATE.menu.filter(m => m.category === STATE.activeCategory);
+            grid.innerHTML = items.map(item => `
+                <div class="menu-item" onclick="addToCart('${item.id}')">
+                    <div style="font-weight:600; font-size: 0.9rem;">${item.name}</div>
+                    <div style="color: var(--primary);">₹${item.price}</div>
+                </div>
+            `).join('');
+        }
+
+        // --- ORDER MANAGEMENT (OUTLET) ---
         function loadOrders() {
             const { collection, query, orderBy, onSnapshot } = window.firebaseModules;
             const q = query(collection(window.db, 'orders'), orderBy('timestamp', 'desc'));
-            
             onSnapshot(q, (snap) => {
                 const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                
-                // Current Orders (Pending)
-                const current = orders.filter(o => o.status === 'pending');
-                renderCurrentOrders(current);
-                
-                // Completed Orders (Today - simplified filter)
-                const completed = orders.filter(o => o.status === 'completed');
-                renderCompletedOrders(completed);
+                renderCurrentOrders(orders.filter(o => o.status === 'pending'));
+                renderCompletedOrders(orders.filter(o => o.status === 'completed'));
             });
         }
 
@@ -716,7 +800,7 @@
                     </div>
                     <div class="flex gap-2">
                         <button class="btn btn-secondary w-full" onclick="editOrder('${o.id}')">✏️ Edit</button>
-                        <button class="btn btn-success w-full" onclick="completeOrder('${o.id}')">✅ Complete</button>
+                        <button class="btn btn-success w-full" onclick="completeOrder('${o.id}', ${o.total}, '${o.phone}')">✅ Complete</button>
                     </div>
                 </div>
             `).join('');
@@ -741,19 +825,14 @@
             `).join('');
         }
 
-        // --- EDIT ORDER LOGIC ---
+        // --- EDITING & COMPLETING ---
         function editOrder(orderId) {
-            // Find order in local state (from snapshot) or fetch
-            // Since we don't keep global state sync of orders in variable except inside render, let's fetch doc or assume we have data if we optimize.
-            // For safety, we fetch doc.
             const { doc, getDoc } = window.firebaseModules;
             getDoc(doc(window.db, 'orders', orderId)).then(snap => {
                 if(snap.exists()) {
                     const data = snap.data();
                     STATE.cart = data.items;
                     STATE.editingOrderId = orderId;
-                    
-                    // Switch UI
                     switchOutletTab('pos');
                     document.getElementById('posPhone').value = data.phone;
                     document.getElementById('btnPlaceOrder').classList.add('hidden');
@@ -767,23 +846,42 @@
         async function updateExistingOrder() {
             if(!STATE.editingOrderId) return;
             const total = STATE.cart.reduce((s, i) => s + (i.price * i.qty), 0);
-            
             const { doc, updateDoc } = window.firebaseModules;
             await updateDoc(doc(window.db, 'orders', STATE.editingOrderId), {
                 items: STATE.cart,
                 total: total
             });
-            
             showToast('Order Updated');
             clearCart();
             switchOutletTab('current');
         }
 
-        async function completeOrder(orderId) {
-            if(!confirm('Mark as Completed?')) return;
-            const { doc, updateDoc } = window.firebaseModules;
-            await updateDoc(doc(window.db, 'orders', orderId), { status: 'completed' });
-            showToast('Order Completed');
+        async function completeOrder(orderId, total, phone) {
+            if(!confirm('Mark as Completed? 5% Bonus will be added.')) return;
+            
+            const bonus = Math.floor(total * 0.05);
+            const { doc, runTransaction, serverTimestamp } = window.firebaseModules;
+            
+            try {
+                await runTransaction(window.db, async (transaction) => {
+                    // Update Order Status
+                    const orderRef = doc(window.db, 'orders', orderId);
+                    transaction.update(orderRef, { status: 'completed' });
+
+                    // Update Customer Bonus
+                    const custRef = doc(window.db, 'customers', phone);
+                    const custDoc = await transaction.get(custRef);
+                    
+                    if(custDoc.exists()) {
+                        const newPoints = (custDoc.data().points || 0) + bonus;
+                        transaction.update(custRef, { points: newPoints });
+                    }
+                });
+                showToast(`Order Completed! +${bonus} points added.`);
+            } catch(e) {
+                console.error(e);
+                showToast('Transaction failed', 'error');
+            }
         }
 
         function sendBill(phone, total) {
@@ -793,24 +891,27 @@
 
         // --- CUSTOMER HISTORY ---
         function loadCustomerHistory(phone) {
-            const { collection, query, where, orderBy, getDocs } = window.firebaseModules;
+            const { collection, query, where, orderBy, onSnapshot } = window.firebaseModules;
             const q = query(collection(window.db, 'orders'), where('phone', '==', phone), orderBy('timestamp', 'desc'));
-            
-            getDocs(q).then(snap => {
+            onSnapshot(q, (snap) => {
                 const list = document.getElementById('custHistoryList');
                 if(snap.empty) {
-                    list.innerHTML = '<p class="text-muted">No orders yet.</p>';
+                    list.innerHTML = '<p class="text-muted text-center">No orders yet.</p>';
                 } else {
                     list.innerHTML = snap.docs.map(d => {
                         const o = d.data();
                         const date = o.timestamp ? o.timestamp.toDate().toLocaleDateString() : '';
+                        const statusClass = o.status === 'completed' ? 'status-completed' : 'status-pending';
                         return `
                             <div class="order-card">
                                 <div class="flex justify-between">
-                                    <span>${date}</span>
+                                    <div>
+                                        <span class="order-status ${statusClass}">${o.status.toUpperCase()}</span>
+                                        <span style="margin-left: 10px;">${date}</span>
+                                    </div>
                                     <span class="font-bold">₹${o.total}</span>
                                 </div>
-                                <div class="text-muted" style="font-size:0.8rem;">${o.items.length} items</div>
+                                <div class="text-muted" style="font-size:0.8rem; margin-top:5px;">${o.items.map(i => i.name).join(', ')}</div>
                             </div>
                         `;
                     }).join('');
@@ -818,7 +919,6 @@
             });
         }
 
-        // --- UTILS ---
         function showToast(msg, type='success') {
             const el = document.getElementById('notification');
             el.innerText = msg;
@@ -827,14 +927,11 @@
             setTimeout(() => el.style.transform = 'translateX(150%)', 3000);
         }
 
-        // PWA Install
         window.installPWA = async () => {
             if (window.deferredPrompt) {
                 window.deferredPrompt.prompt();
                 const { outcome } = await window.deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    document.getElementById('installBtn').style.display = 'none';
-                }
+                if (outcome === 'accepted') document.getElementById('installBtn').style.display = 'none';
                 window.deferredPrompt = null;
             }
         };
