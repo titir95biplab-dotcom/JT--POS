@@ -3045,7 +3045,7 @@ async function saveTokenToDatabase(token) {
 // ==========================================
 
 function loadCustomerNotifications() {
-    const { collection, query, orderBy, onSnapshot } = window.firebaseModules;
+    const { collection, query, orderBy, onSnapshot, where } = window.firebaseModules;
     // Order by newest first
     const q = query(
         collection(window.db, 'notifications'), 
