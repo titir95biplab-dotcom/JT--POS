@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
@@ -254,29 +254,83 @@
 
             <!-- Dashboard -->
             <div id="adm-view-dashboard">
-                <div class="card">
-                    <h3>Sales Analytics</h3>
-                    <div class="flex gap-2" style="margin: 15px 0;">
-                        <input type="date" id="dashStart" class="input" style="margin:0;">
-                        <input type="date" id="dashEnd" class="input" style="margin:0;">
-                        <button class="btn btn-primary" onclick="loadAnalytics()">Go</button>
-                    </div>
-                    <div class="grid-4">
-                        <div class="stat-card">
-                            <div class="stat-label">Total Sales</div>
-                            <div class="stat-value" id="statTotalSales">₹0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Total Orders</div>
-                            <div class="stat-value" id="statTotalOrders">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Avg Order Value</div>
-                            <div class="stat-value" id="statAvgValue">₹0</div>
-                        </div>
-                    </div>
-                </div>
+    <div class="card">
+        <h3>Sales Analytics</h3>
+        
+        <div class="flex gap-2" style="margin: 15px 0; align-items: flex-end;">
+            <div>
+                <label class="text-muted" style="font-size:0.8rem;">From</label>
+                <input type="date" id="dashStart" class="input" style="margin:0;">
             </div>
+            <div>
+                <label class="text-muted" style="font-size:0.8rem;">To</label>
+                <input type="date" id="dashEnd" class="input" style="margin:0;">
+            </div>
+            <button class="btn btn-primary" onclick="loadAnalytics()">Go</button>
+        </div>
+
+        <div class="grid-4" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
+            <div class="stat-card">
+                <div class="stat-label">Total Sales</div>
+                <div class="stat-value" id="statTotalSales">₹0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Orders</div>
+                <div class="stat-value" id="statTotalOrders">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Order Value</div>
+                <div class="stat-value" id="statAvgValue">₹0</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--warning);">
+                <div class="stat-label">Bonus Redeemed</div>
+                <div class="stat-value" id="statBonus">₹0</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--success);">
+                <div class="stat-label">Cash Collected</div>
+                <div class="stat-value" id="statCash">₹0</div>
+            </div>
+            <div class="stat-card" style="border-color: var(--info);">
+                <div class="stat-label">Online Collected</div>
+                <div class="stat-value" id="statOnline">₹0</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <h4 style="margin-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom:5px;">Top Selling Items (Selected Date Range)</h4>
+            <div id="topItemsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px;">
+                <p class="text-muted">Loading data...</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+        <h3>Last 30 Days Trend</h3>
+        <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="salesChart"></canvas>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+        <h3>Detailed Item Analytics</h3>
+        <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 10px;">Based on the date range selected above.</p>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid rgba(255,255,255,0.1);">
+                        <th style="padding: 10px;">Item Name</th>
+                        <th style="padding: 10px; text-align: center;">Qty Sold</th>
+                        <th style="padding: 10px; text-align: right;">Revenue Generated</th>
+                    </tr>
+                </thead>
+                <tbody id="itemAnalyticsTable">
+                    <tr><td colspan="3" class="text-center text-muted" style="padding:20px;">Click 'Go' to load data</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
             <!-- Menu Manager -->
             <div id="adm-view-menu" class="hidden">
@@ -602,6 +656,7 @@
             storeSettings: { name: 'Juice Therapy', address: '', footer: 'Thank you!', link: '' }
         };
 let TEMP_EDIT_ITEMS = [];
+let SALES_CHART_INSTANCE = null;
         window.onload = () => {
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
@@ -853,38 +908,200 @@ let TEMP_EDIT_ITEMS = [];
 
         // --- ADMIN ANALYTICS & ORDERS ---
         async function loadAnalytics() {
-            const startInput = document.getElementById('dashStart').value;
-            const endInput = document.getElementById('dashEnd').value;
-            
-            if(!startInput || !endInput) return;
+    const startInput = document.getElementById('dashStart').value;
+    const endInput = document.getElementById('dashEnd').value;
+    
+    if(!startInput || !endInput) return showToast('Please select dates', 'error');
 
-            const startDate = new Date(startInput);
-            const endDate = new Date(endInput);
-            endDate.setHours(23, 59, 59);
+    // 1. Setup Dates
+    const startDate = new Date(startInput);
+    const endDate = new Date(endInput);
+    endDate.setHours(23, 59, 59, 999);
 
-            const { collection, query, where, getDocs } = window.firebaseModules;
-            
-            const q = query(collection(window.db, 'orders'), where('status', '==', 'completed'));
-            
-            const snap = await getDocs(q);
-            let totalSales = 0;
-            let count = 0;
+    const { collection, query, where, getDocs, orderBy } = window.firebaseModules;
+    
+    // UI Loading State
+    document.getElementById('statTotalSales').innerText = '...';
+    document.getElementById('topItemsList').innerHTML = '<p class="text-muted">Analyzing...</p>';
+    
+    // 2. Query ALL Completed Orders (We filter by date in JS to allow flexible "Last 30 Days" graph logic)
+    // NOTE: For huge databases, you would split this into two queries, but for <5000 orders this is faster.
+    const q = query(collection(window.db, 'orders'), where('status', '==', 'completed'));
+    
+    try {
+        const snap = await getDocs(q);
+        
+        // --- Variables for Selected Range ---
+        let totalSales = 0;
+        let count = 0;
+        let bonusRedeemed = 0;
+        let cashTotal = 0;
+        let onlineTotal = 0;
+        let itemMap = {}; // Format: { "Mango Shake": { qty: 5, revenue: 500 } }
 
-            snap.forEach(d => {
-                const data = d.data();
-                if(data.timestamp) {
-                    const orderDate = data.timestamp.toDate();
-                    if(orderDate >= startDate && orderDate <= endDate) {
-                        totalSales += (data.total || 0);
-                        count++;
+        // --- Variables for Last 30 Days Graph ---
+        let dailySales = {}; // Format: { "2023-10-01": 5000, "2023-10-02": 3200 }
+        
+        // Initialize last 30 days keys
+        for (let i = 29; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dateKey = d.toISOString().split('T')[0];
+            dailySales[dateKey] = 0;
+        }
+
+        // 3. Process Data
+        snap.forEach(doc => {
+            const data = doc.data();
+            if (!data.timestamp) return;
+            
+            const orderDate = data.timestamp.toDate();
+            const dateKey = orderDate.toISOString().split('T')[0];
+
+            // A. Populate Graph Data (Last 30 Days)
+            if (dailySales.hasOwnProperty(dateKey)) {
+                dailySales[dateKey] += (data.finalPaid || data.total || 0);
+            }
+
+            // B. Filter for Selected Range (Metrics & Item Analytics)
+            if (orderDate >= startDate && orderDate <= endDate) {
+                const finalAmt = data.finalPaid !== undefined ? data.finalPaid : data.total;
+                
+                totalSales += finalAmt;
+                count++;
+                bonusRedeemed += (data.redeemed || 0);
+
+                // Payment Mode Split
+                if (data.paymentMode === 'Online') onlineTotal += finalAmt;
+                else cashTotal += finalAmt; // Default to cash if undefined or 'Cash'
+
+                // Item Analysis
+                if (data.items && Array.isArray(data.items)) {
+                    data.items.forEach(item => {
+                        if (!itemMap[item.name]) {
+                            itemMap[item.name] = { qty: 0, revenue: 0 };
+                        }
+                        itemMap[item.name].qty += (item.qty || 0);
+                        itemMap[item.name].revenue += (item.price * item.qty || 0);
+                    });
+                }
+            }
+        });
+
+        // 4. Update Metric Cards
+        document.getElementById('statTotalSales').innerText = '₹' + totalSales;
+        document.getElementById('statTotalOrders').innerText = count;
+        document.getElementById('statAvgValue').innerText = count ? '₹' + Math.floor(totalSales/count) : '₹0';
+        document.getElementById('statBonus').innerText = '₹' + bonusRedeemed;
+        document.getElementById('statCash').innerText = '₹' + cashTotal;
+        document.getElementById('statOnline').innerText = '₹' + onlineTotal;
+
+        // 5. Update Top Items List & Detailed Table
+        renderItemAnalytics(itemMap);
+
+        // 6. Render Graph
+        renderSalesChart(dailySales);
+
+    } catch (e) {
+        console.error("Analytics Error:", e);
+        showToast('Error loading analytics', 'error');
+    }
+}
+
+function renderItemAnalytics(itemMap) {
+    // Convert Map to Array and Sort by Quantity Descending
+    const sortedItems = Object.entries(itemMap)
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.qty - a.qty);
+
+    // A. Render Top 5 Items List
+    const topListEl = document.getElementById('topItemsList');
+    if (sortedItems.length === 0) {
+        topListEl.innerHTML = '<p class="text-muted">No items sold in this period.</p>';
+    } else {
+        topListEl.innerHTML = sortedItems.slice(0, 5).map((item, index) => `
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid rgba(255,255,255,0.05); padding:5px 0;">
+                <span>${index+1}. ${item.name}</span>
+                <span class="text-muted">${item.qty} sold</span>
+            </div>
+        `).join('');
+    }
+
+    // B. Render Detailed Table
+    const tableBody = document.getElementById('itemAnalyticsTable');
+    if (sortedItems.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted" style="padding:20px;">No data</td></tr>';
+    } else {
+        tableBody.innerHTML = sortedItems.map(item => `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 10px;">${item.name}</td>
+                <td style="padding: 10px; text-align: center;">${item.qty}</td>
+                <td style="padding: 10px; text-align: right;">₹${item.revenue}</td>
+            </tr>
+        `).join('');
+    }
+}
+
+function renderSalesChart(dailyData) {
+    const ctx = document.getElementById('salesChart').getContext('2d');
+    
+    // Prepare Data Arrays
+    const labels = Object.keys(dailyData).map(dateStr => {
+        const d = new Date(dateStr);
+        return `${d.getDate()}/${d.getMonth()+1}`; // Format: DD/MM
+    });
+    const dataPoints = Object.values(dailyData);
+
+    // DESTROY OLD CHART (Crucial to prevent glitches)
+    if (SALES_CHART_INSTANCE) {
+        SALES_CHART_INSTANCE.destroy();
+    }
+
+    // Create New Chart
+    SALES_CHART_INSTANCE = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Daily Sales (₹)',
+                data: dataPoints,
+                borderColor: '#FF6B35', // Your Primary Brand Color
+                backgroundColor: 'rgba(255, 107, 53, 0.2)',
+                borderWidth: 2,
+                tension: 0.3, // Curve smoothing
+                fill: true,
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: { 
+                    mode: 'index', 
+                    intersect: false,
+                    callbacks: {
+                        label: function(context) {
+                            return ' Sales: ₹' + context.raw;
+                        }
                     }
                 }
-            });
-
-            document.getElementById('statTotalSales').innerText = '₹' + totalSales;
-            document.getElementById('statTotalOrders').innerText = count;
-            document.getElementById('statAvgValue').innerText = count ? '₹' + Math.floor(totalSales/count) : '₹0';
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { color: '#888' }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#888', maxTicksLimit: 10 }
+                }
+            }
         }
+    });
+}
 
         function loadAdminOrders() {
             const { collection, query, where, onSnapshot } = window.firebaseModules;
