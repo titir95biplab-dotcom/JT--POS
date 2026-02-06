@@ -885,14 +885,14 @@
                 list.innerHTML = orders.map(o => {
                     const dateStr = o.timestamp ? new Date(o.timestamp.toDate()).toLocaleDateString() : 'N/A';
                     return `
-                    <div class="order-card" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div class="order-card" onclick="viewOrderDetails('${o.id}')" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
                         <div>
-                            <div style="font-weight:bold; font-size:1.1rem;">${o.phone}</div>
-                            <div class="text-muted" style="font-size:0.85rem;">${dateStr} • ₹${o.total}</div>
+                            <div style="font-weight:bold; font-size:1.1rem;">${o.customerName || o.phone}</div>
+                            <div class="text-muted" style="font-size:0.85rem;">${dateStr} • ₹${o.total} • ${o.paymentMode || 'Cash'}</div>
                             <div class="text-muted" style="font-size:0.8rem;">${o.items.length} Items</div>
                         </div>
                         <div>
-                            <button class="btn btn-danger btn-sm" onclick="adminDeleteOrder('${o.id}')">Delete</button>
+                            <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); adminDeleteOrder('${o.id}')">Delete</button>
                         </div>
                     </div>
                 `;}).join('');
@@ -935,6 +935,106 @@
             } catch (e) {
                 console.error(e);
                 showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+// --- ORDER DETAILS & ADMIN EDIT ---
+        let CURRENT_VIEW_ORDER_ID = null;
+
+        async function viewOrderDetails(orderId) {
+            CURRENT_VIEW_ORDER_ID = orderId;
+            const { doc, getDoc } = window.firebaseModules;
+            
+            // 1. Fetch Order
+            const snap = await getDoc(doc(window.db, 'orders', orderId));
+            if(!snap.exists()) return showToast('Order not found', 'error');
+            const data = snap.data();
+
+            // 2. Populate Modal Fields
+            document.getElementById('viewStoreName').innerText = STATE.storeSettings?.name || 'Juice Therapy';
+            document.getElementById('viewOrderId').innerText = `Order #${data.timestamp ? data.timestamp.toMillis().toString().slice(-4) : '...'}`;
+            document.getElementById('viewDate').innerText = data.timestamp ? data.timestamp.toDate().toLocaleString() : '';
+            
+            document.getElementById('editCustName').value = data.customerName || 'Guest';
+            document.getElementById('editCustPhone').value = data.phone || '';
+            
+            // Populate Items
+            const itemsHtml = data.items.map(i => `
+                <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:4px;">
+                    <span>${i.qty} x ${i.name}</span>
+                    <span>₹${i.price * i.qty}</span>
+                </div>
+            `).join('');
+            document.getElementById('viewItemsList').innerHTML = itemsHtml;
+
+            // Populate Payment
+            document.getElementById('editTotal').value = data.finalPaid || data.total;
+            document.getElementById('editMode').value = data.paymentMode || 'Cash';
+
+            // 3. Reset Edit State
+            disableAdminEdit();
+            
+            // 4. Show "Edit" button ONLY if Admin
+            if(STATE.role === 'admin') {
+                document.getElementById('btnAdminEdit').classList.remove('hidden');
+            } else {
+                document.getElementById('btnAdminEdit').classList.add('hidden');
+            }
+
+            document.getElementById('orderDetailsModal').classList.remove('hidden');
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('orderDetailsModal').classList.add('hidden');
+        }
+
+        // --- ADMIN EDIT LOGIC ---
+        function enableAdminEdit() {
+            // Enable Inputs
+            document.getElementById('editCustName').disabled = false;
+            document.getElementById('editCustPhone').disabled = false;
+            document.getElementById('editTotal').disabled = false;
+            document.getElementById('editMode').disabled = false;
+            
+            // Toggle Buttons
+            document.getElementById('btnAdminEdit').classList.add('hidden');
+            document.getElementById('btnAdminSave').classList.remove('hidden');
+        }
+
+        function disableAdminEdit() {
+            document.getElementById('editCustName').disabled = true;
+            document.getElementById('editCustPhone').disabled = true;
+            document.getElementById('editTotal').disabled = true;
+            document.getElementById('editMode').disabled = true;
+            
+            document.getElementById('btnAdminEdit').classList.remove('hidden');
+            document.getElementById('btnAdminSave').classList.add('hidden');
+        }
+
+        async function saveAdminOrder() {
+            if(!confirm('Save changes to this historical order?')) return;
+
+            const newData = {
+                customerName: document.getElementById('editCustName').value,
+                phone: document.getElementById('editCustPhone').value,
+                finalPaid: Number(document.getElementById('editTotal').value),
+                total: Number(document.getElementById('editTotal').value), // Updating base total too for consistency
+                paymentMode: document.getElementById('editMode').value
+            };
+
+            try {
+                const { doc, updateDoc } = window.firebaseModules;
+                await updateDoc(doc(window.db, 'orders', CURRENT_VIEW_ORDER_ID), newData);
+                
+                showToast('Order Updated Successfully');
+                disableAdminEdit();
+                closeDetailsModal();
+                // Refresh Lists
+                if(STATE.role === 'admin') loadAdminOrders();
+                else loadOrders(); 
+            } catch(e) {
+                console.error(e);
+                showToast('Update Failed: ' + e.message, 'error');
             }
         }
 
@@ -1188,18 +1288,32 @@ function filterMenu(text) {
 
         function loadOrders() {
             const { collection, query, orderBy, onSnapshot } = window.firebaseModules;
+            
+            // Listen to all orders sorted by newest first
             onSnapshot(query(collection(window.db, 'orders'), orderBy('timestamp', 'desc')), (snap) => {
                 const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
                 
+                // Define "Start of Today" (Midnight)
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+
+                // Filter 1: Incoming Requests (Show All)
                 const requested = orders.filter(o => o.status === 'requested');
                 renderIncoming(requested);
                 
+                // Filter 2: Pending Orders (Show All)
                 const pending = orders.filter(o => o.status === 'pending');
                 renderCurrentOrders(pending);
                 
-                const completed = orders.filter(o => o.status === 'completed');
+                // Filter 3: Completed Orders (SHOW ONLY TODAY'S)
+                const completed = orders.filter(o => {
+                    if (o.status !== 'completed') return false;
+                    // Check if the order time is greater than or equal to Today 00:00 AM
+                    return o.timestamp && o.timestamp.toDate() >= today;
+                });
                 renderCompletedOrders(completed);
                 
+                // Notification Badge Logic
                 const badge = document.getElementById('badgeIncoming');
                 if(requested.length > 0) badge.classList.remove('hidden');
                 else badge.classList.add('hidden');
@@ -1293,7 +1407,7 @@ function filterMenu(text) {
                     : `<div style="font-weight:bold; font-size:1rem;">${o.phone}</div>`;
 
                 return `
-                <div class="order-card">
+                <div class="order-card" onclick="viewOrderDetails('${o.id}')" style="cursor:pointer;">
                     <div class="flex justify-between" style="align-items:flex-start;">
                         <div>
                             <div style="margin-bottom:5px;">${customerDisplay}</div>
@@ -1311,10 +1425,11 @@ function filterMenu(text) {
                     </div>
                     
                     <div class="flex gap-2" style="margin-top:10px;">
-                        <button class="btn btn-success w-full btn-sm" onclick="sendBillFromHistory('${o.phone}', '${o.id}', 'whatsapp')">
+                        <!-- STOP PROPAGATION helps prevent opening the modal when clicking buttons -->
+                        <button class="btn btn-success w-full btn-sm" onclick="event.stopPropagation(); sendBillFromHistory('${o.phone}', '${o.id}', 'whatsapp')">
                             📱 WA
                         </button>
-                        <button class="btn btn-primary w-full btn-sm" onclick="sendBillFromHistory('${o.phone}', '${o.id}', 'sms')">
+                        <button class="btn btn-primary w-full btn-sm" onclick="event.stopPropagation(); sendBillFromHistory('${o.phone}', '${o.id}', 'sms')">
                             💬 SMS
                         </button>
                     </div>
@@ -1741,5 +1856,60 @@ async function deletePendingOrder(orderId) {
             }
         };
     </script>
+
+<!-- Order Details & Admin Edit Modal -->
+<div id="orderDetailsModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 500; display: flex; align-items: center; justify-content: center;">
+    <div class="card" style="width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto;">
+        
+        <div class="flex justify-between items-center" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+            <h3>Order Details</h3>
+            <button class="btn btn-secondary btn-sm" onclick="closeDetailsModal()">✖</button>
+        </div>
+
+        <div id="billContent">
+            <!-- Header -->
+            <div class="text-center" style="margin-bottom: 15px;">
+                <h2 id="viewStoreName" style="color:var(--primary);">Juice Therapy</h2>
+                <p class="text-muted" style="font-size:0.8rem;" id="viewOrderId">#0000</p>
+                <p class="text-muted" style="font-size:0.8rem;" id="viewDate">...</p>
+            </div>
+
+            <!-- Customer Info (Editable) -->
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                <label class="text-muted" style="font-size:0.75rem;">Customer</label>
+                <input id="editCustName" class="input" style="margin-bottom:5px;" disabled>
+                <input id="editCustPhone" class="input" style="margin-bottom:0;" disabled>
+            </div>
+
+            <!-- Items List -->
+            <div id="viewItemsList" style="border-top: 1px dashed rgba(255,255,255,0.2); border-bottom: 1px dashed rgba(255,255,255,0.2); padding: 10px 0; margin-bottom: 10px;">
+                <!-- Items injected via JS -->
+            </div>
+
+            <!-- Payment Details (Editable) -->
+            <div class="grid-2" style="gap:10px;">
+                <div>
+                    <label class="text-muted" style="font-size:0.75rem;">Total (₹)</label>
+                    <input type="number" id="editTotal" class="input" disabled>
+                </div>
+                <div>
+                    <label class="text-muted" style="font-size:0.75rem;">Payment Mode</label>
+                    <select id="editMode" class="input" disabled>
+                        <option value="Cash">Cash</option>
+                        <option value="Online">Online</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div id="detailsActions" class="flex gap-2" style="margin-top: 20px;">
+            <button class="btn btn-secondary w-full" onclick="closeDetailsModal()">Close</button>
+            <!-- Admin Edit Button (Hidden by default) -->
+            <button id="btnAdminEdit" class="btn btn-warning w-full hidden" onclick="enableAdminEdit()">✏️ Edit</button>
+            <button id="btnAdminSave" class="btn btn-success w-full hidden" onclick="saveAdminOrder()">💾 Save</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>
