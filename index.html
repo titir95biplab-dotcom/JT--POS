@@ -3005,14 +3005,18 @@ async function requestNotificationPermission() {
             
             const { getToken, messaging } = window.firebaseModules;
             
-            // Get the Device Token
+            // FIX: Wait for YOUR existing service worker to be ready
+            // This prevents Firebase from looking for "firebase-messaging-sw.js"
+            const registration = await navigator.serviceWorker.ready;
+
+            // Get the Device Token using YOUR registration
             const token = await getToken(messaging, { 
-                vapidKey: 'BNMWPFfWtc6-5ZSm0Eru3u3f-iB7zSpzY2vlHos7HEjbKQPfstSGgFXSnzivajBU4fto4oSKlWCQJwhtjKmNzLQ' // <--- PASTE YOUR KEY HERE
+                vapidKey: 'BNMWPFfWtc6-5ZSm0Eru3u3f-iB7zSpzY2vlHos7HEjbKQPfstSGgFXSnzivajBU4fto4oSKlWCQJwhtjKmNzLQ', // <--- ENSURE THIS IS YOUR REAL KEY
+                serviceWorkerRegistration: registration // <--- THIS LINE FIXES THE 404 ERROR
             });
 
             if (token) {
                 console.log('FCM Token:', token);
-                // Save this token to the user's profile in Firestore
                 saveTokenToDatabase(token);
             } else {
                 console.log('No registration token available.');
@@ -3021,7 +3025,7 @@ async function requestNotificationPermission() {
             console.log('Unable to get permission to notify.');
         }
     } catch (err) {
-        console.log('An error occurred while retrieving token. ', err);
+        console.error('An error occurred while retrieving token. ', err);
     }
 }
 
