@@ -3070,39 +3070,37 @@ function openNotifications() {
     }
 }
 function payViaUPI(amount, orderId) {
-    // 1. Get Settings
+    // 1. Get UPI ID from Settings
     let upiId = STATE.storeSettings.upi;
-    let storeName = STATE.storeSettings.name || 'Juice Therapy';
+    
+    // 2. FORCE NAME MATCH (Crucial for Personal UPI)
+    // Banks reject payments if the requested name (Juice Therapy) 
+    // doesn't match the bank account name (Biplab Bawali).
+    let payeeName = "Biplab Bawali"; 
     
     if(!upiId) return showToast('Store UPI ID not set. Contact Staff.', 'error');
     
-    // 2. SANITIZE DATA (Critical Fix)
-    // Remove accidental spaces from UPI ID
-    upiId = upiId.trim(); 
+    // 3. Clean Data
+    upiId = upiId.trim(); // Remove invisible spaces
     
-    // Remove special characters from Store Name to prevent URL breaking
-    storeName = storeName.replace(/[^\w\s]/gi, ''); 
-
-    // 3. FORMAT AMOUNT (Critical Fix)
-    // Apps require decimal format (e.g. "100.00")
+    // 4. Strict Amount Formatting
+    // UPI requires "150.00", not "150"
     const formattedAmount = parseFloat(amount).toFixed(2);
     
-    // 4. Create a Clean Transaction Note
-    // We use the last 4 digits of the order ID to keep it short
+    // 5. Use 'Transaction Note' (tn) instead of 'Ref' (tr)
+    // 'tr' fails for personal accounts. 'tn' works for everyone.
     const serial = orderId.slice(-4); 
     const note = `Order ${serial}`;
 
-    // 5. CONSTRUCT LINK
-    // We use 'tn' (Note) instead of 'tr' (Ref) because 'tr' often causes 
-    // "Invalid Merchant" errors on PhonePe/GPay for small business accounts.
+    // 6. Generate Link
     const link = `upi://pay` +
-                 `?pa=${encodeURIComponent(upiId)}` +       // Payee Address
-                 `&pn=${encodeURIComponent(storeName)}` +   // Payee Name
-                 `&am=${formattedAmount}` +                 // Amount (0.00)
+                 `?pa=${encodeURIComponent(upiId)}` +       // Your UPI ID
+                 `&pn=${encodeURIComponent(payeeName)}` +   // "Biplab Bawali"
+                 `&am=${formattedAmount}` +                 // "100.00"
                  `&cu=INR` +                                // Currency
-                 `&tn=${encodeURIComponent(note)}`;         // Note (Visible to user)
-    
-    // 6. Open Intent
+                 `&tn=${encodeURIComponent(note)}`;         // Note
+
+    // 7. Open App
     window.location.href = link;
 }
     </script>
