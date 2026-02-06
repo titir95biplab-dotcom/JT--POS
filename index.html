@@ -427,6 +427,8 @@
 
     <label class="text-muted">Store Phone Number (without +91)</label>
     <input type="tel" id="storePhone" class="input" placeholder="e.g. 9007952259">
+    <label class="text-muted">Store UPI ID (for receiving payments)</label>
+    <input type="text" id="storeUpi" class="input" placeholder="e.g. 9876543210@upl or merchant@okicici">
     
     <label class="text-muted">Address</label>
     <textarea id="storeAddress" class="input" placeholder="Full Address" rows="3"></textarea>
@@ -975,6 +977,7 @@ async function restoreCustomerSession(phone) {
             if(document.getElementById('storeName')) {
                 document.getElementById('storeName').value = s.name || '';
                 document.getElementById('storePhone').value = s.phone || '9007952259';
+document.getElementById('storeUpi').value = s.upi || '';
                 document.getElementById('storeAddress').value = s.address || '';
                 document.getElementById('storeOpenTime').value = s.openTime || '';
                 document.getElementById('storeCloseTime').value = s.closeTime || '';
@@ -1030,10 +1033,11 @@ async function restoreCustomerSession(phone) {
     const settings = {
         name: document.getElementById('storeName').value,
         phone: document.getElementById('storePhone').value,
+        upi: document.getElementById('storeUpi').value, // <--- NEW FIELD
         address: document.getElementById('storeAddress').value,
         openTime: document.getElementById('storeOpenTime').value,
         closeTime: document.getElementById('storeCloseTime').value,
-        isOpen: isOpen, // Boolean value
+        isOpen: isOpen,
         footer: document.getElementById('storeFooter').value,
         link: document.getElementById('storeLink').value
     };
@@ -2621,6 +2625,15 @@ function filterCustomerMenu(text) {
                         dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                     }
 
+                    let actionBtn = '';
+                    if (o.status === 'pending' || o.status === 'completed') {
+                         actionBtn = `
+                            <button class="btn btn-success w-full btn-sm" style="margin-top:10px;" onclick="payViaUPI('${o.total}', '${d.id}')">
+                                💸 Pay ₹${o.total} via UPI
+                            </button>
+                         `;
+                    }
+
                     return `
                         <div class="order-card">
                             <div class="flex justify-between" style="margin-bottom:8px;">
@@ -2633,6 +2646,8 @@ function filterCustomerMenu(text) {
                             <div class="text-muted" style="font-size:0.85rem; border-top:1px solid rgba(255,255,255,0.05); padding-top:8px;">
                                 ${o.items.map(i => `${i.qty} x ${i.name}`).join(', ')}
                             </div>
+                            
+                            ${actionBtn} 
                         </div>
                     `;
                 }).join('');
@@ -3052,6 +3067,23 @@ function openNotifications() {
         // Update "Last Seen" timestamp locally
         localStorage.setItem('jt_last_notif_check', Date.now());
     }
+}
+function payViaUPI(amount, orderId) {
+    const upiId = STATE.storeSettings.upi;
+    const storeName = STATE.storeSettings.name || 'Juice Therapy';
+    
+    if(!upiId) return showToast('Store UPI ID not set. Contact Staff.', 'error');
+    
+    // Construct UPI Intent Link
+    // pa = Payee Address (UPI ID)
+    // pn = Payee Name
+    // am = Amount
+    // tr = Transaction Ref (Order ID)
+    // cu = Currency
+    const link = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(storeName)}&am=${amount}&tr=${orderId}&cu=INR`;
+    
+    // Open the link (Values will be auto-fetched by GPay/PhonePe)
+    window.location.href = link;
 }
     </script>
 
