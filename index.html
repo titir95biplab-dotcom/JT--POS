@@ -459,12 +459,16 @@
     <div id="outletPanel" class="hidden">
         <header>
             <div class="header-content">
-                <div class="flex items-center gap-2">
-                    <img src="logo.png" style="height:30px;"> 
-                    <h2>Outlet POS</h2>
-                </div>
-                <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
-            </div>
+    <div class="flex items-center gap-2">
+        <img src="logo.png" style="height:30px;"> 
+        <h2>Outlet POS</h2>
+    </div>
+    
+    <div class="flex gap-2">
+        <button id="btnConnectPrinter" class="btn btn-warning btn-sm" onclick="connectPrinter()">🖨️ Connect</button>
+        <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+    </div>
+</div>
         </header>
         <div class="app-layout">
             <div class="tabs">
@@ -666,6 +670,9 @@
                 <p class="text-muted" style="margin-bottom: 20px;">Order #<span id="billSerial"></span> completed.</p>
                 
                 <div style="display:flex; flex-direction:column; gap:10px;">
+                    <button class="btn btn-secondary w-full" style="background:#444; color:white; border:1px solid #666;" onclick="printBillDirect(PAYMENT_DATA.orderId)">
+        🖨️ Print Receipt
+    </button>
                     <button class="btn btn-success w-full" style="background:#25D366; border:none;" onclick="sendBill('whatsapp')">
                         📱 Send via WhatsApp
                     </button>
@@ -1910,6 +1917,8 @@ function filterMenu(text) {
     
     onSnapshot(q, (snap) => {
         const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+
+STATE.orders = orders;
         
         // Filter 1: Incoming Requests
         const requested = orders.filter(o => o.status === 'requested');
@@ -2067,7 +2076,7 @@ const customerDisplay = o.customerName
                     </div>
                     
                     <div class="flex gap-2" style="margin-top:12px;">
-    <button class="btn btn-secondary" style="background:#444;" onclick="printKOT('${o.id}')">🖨️ KOT</button>
+    <button class="btn btn-secondary" style="background:#444;" onclick="printKOTDirect('${o.id}')">🖨️ KOT</button>
     
     <button class="btn btn-secondary w-full" onclick="editOrder('${o.id}')">✏️ Edit</button>
     <button class="btn btn-success w-full" onclick="openPaymentModal('${o.id}', ${o.total}, '${o.phone}')">✅ Bill</button>
@@ -2153,6 +2162,9 @@ function printKOT(orderId) {
                     </div>
 
 <div class="flex gap-2" style="margin-top:10px;">
+    <button class="btn btn-secondary btn-sm" style="background:#444;" onclick="event.stopPropagation(); printBillDirect('${o.id}')">
+        🖨️
+    </button>
     <button class="btn btn-secondary w-full btn-sm" onclick="callCustomer('${o.phone}', event)">
         📞 Call
     </button>
@@ -2610,6 +2622,201 @@ function filterCustomerMenu(text) {
                 window.deferredPrompt = null;
             }
         };
+// ==========================================
+// WEB BLUETOOTH PRINTING LOGIC
+// ==========================================
+let bluetoothDevice;
+let printCharacteristic;
+
+async function connectPrinter() {
+    try {
+        // 1. Request Device
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+            filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }], 
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+        });
+
+        // 2. Connect
+        const server = await bluetoothDevice.gatt.connect();
+        const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+        printCharacteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+
+        // UI Update
+        const btn = document.getElementById('btnConnectPrinter');
+        btn.innerText = "✅ Connected";
+        btn.classList.remove('btn-warning');
+        btn.classList.add('btn-success');
+        showToast('Printer Connected!');
+
+        // Handle Disconnect
+        bluetoothDevice.addEventListener('gattserverdisconnected', () => {
+            printCharacteristic = null;
+            btn.innerText = "🖨️ Connect";
+            btn.classList.add('btn-warning');
+            btn.classList.remove('btn-success');
+        });
+
+    } catch (error) {
+        console.error(error);
+        // Fallback for generic printers
+        tryGenericConnection();
+    }
+}
+
+async function tryGenericConnection() {
+    try {
+        bluetoothDevice = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+        });
+        const server = await bluetoothDevice.gatt.connect();
+        const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+        printCharacteristic = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+        
+        const btn = document.getElementById('btnConnectPrinter');
+        btn.innerText = "✅ Connected";
+        btn.classList.remove('btn-warning');
+        btn.classList.add('btn-success');
+        showToast('Printer Connected!');
+    } catch(e) {
+        showToast('Connection Failed: ' + e.message, 'error');
+    }
+}
+
+async function printKOTDirect(orderId) {
+    if (!printCharacteristic) return showToast('Please Connect Printer First', 'error');
+
+    const order = STATE.orders.find(o => o.id === orderId);
+    if (!order) return showToast('Order not found', 'error');
+
+    const serial = order.timestamp ? order.timestamp.toMillis().toString().slice(-4) : '????';
+    const dateObj = order.timestamp ? order.timestamp.toDate() : new Date();
+    const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    const encoder = new TextEncoder();
+    let data = [];
+    const addText = (text) => data.push(...encoder.encode(text));
+    const addCmd = (...cmds) => data.push(...cmds);
+
+    // ESC/POS Commands
+    addCmd(0x1B, 0x40); // Init
+    addCmd(0x1B, 0x61, 1); // Center
+    addCmd(0x1B, 0x21, 0x30); // Double Height/Width
+    addText(`KOT #${serial}\n`);
+    addCmd(0x1B, 0x21, 0x00); // Normal
+    addText(`${time}\n${order.status.toUpperCase()}\n`);
+    addText(`Cust: ${order.customerName || 'Guest'}\n`);
+    addText(`Ph: ${order.phone || 'N/A'}\n`);
+    addText("--------------------------------\n");
+    
+    addCmd(0x1B, 0x61, 0); // Left
+    order.items.forEach(item => {
+        addCmd(0x1B, 0x45, 1); // Bold
+        addText(`${item.qty} x ${item.name}\n`);
+        addCmd(0x1B, 0x45, 0); // Bold Off
+    });
+
+    addText("--------------------------------\n");
+    addCmd(0x1B, 0x61, 1); // Center
+    addText("KITCHEN COPY\n\n\n"); 
+
+    const uint8Data = new Uint8Array(data);
+    await printCharacteristic.writeValue(uint8Data);
+}
+async function printBillDirect(orderId) {
+    if (!printCharacteristic) return showToast('Please Connect Printer First', 'error');
+
+    // 1. Fetch Order & Store Data
+    const order = STATE.orders.find(o => o.id === orderId);
+    if (!order) return showToast('Order not found', 'error');
+    
+    // FETCH SETTINGS (Just like WhatsApp Bill)
+    const s = STATE.storeSettings || { name: 'Juice Therapy', address: '', phone: '', footer: 'Thank you!' };
+
+    // 2. Prepare Data
+    const serial = order.timestamp ? order.timestamp.toMillis().toString().slice(-4) : '????';
+    const dateObj = order.timestamp ? order.timestamp.toDate() : new Date();
+    const date = dateObj.toLocaleDateString();
+    const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    // Encoder Helpers
+    const encoder = new TextEncoder();
+    let data = [];
+    const addText = (text) => data.push(...encoder.encode(text));
+    const addCmd = (...cmds) => data.push(...cmds);
+
+    // --- START RECEIPT ---
+    addCmd(0x1B, 0x40); // Initialize
+    addCmd(0x1B, 0x61, 1); // Center Align
+
+    // STORE HEADER (From Admin Settings)
+    addCmd(0x1B, 0x21, 0x30); // Double Height/Width
+    addText(`${s.name}\n`);
+    addCmd(0x1B, 0x21, 0x00); // Normal Text
+    
+    if(s.address) addText(`${s.address}\n`);
+    // Use Store Phone from Settings, fallback to hardcoded if missing
+    const storePhone = s.phone || '9007952259'; 
+    addText(`Ph: ${storePhone}\n`);
+    addText("--------------------------------\n");
+    
+    // BILL META
+    addCmd(0x1B, 0x61, 0); // Left Align
+    addText(`Date: ${date} ${time}\n`);
+    addText(`Bill No: ${serial}\n`);
+    addText(`Cust: ${order.customerName || 'Guest'}\n`);
+    addText(`Ph: ${order.phone || 'N/A'}\n`);
+    addText("--------------------------------\n");
+    
+    // ITEMS HEADER
+    addText("Item             Qty    Price   Amt\n");
+    addText("--------------------------------\n");
+
+    // ITEMS LIST
+    order.items.forEach(item => {
+        const amt = item.price * item.qty;
+        addText(`${item.name}\n`);
+        // Formatting for 58mm paper
+        addText(`   x ${item.qty}    ${item.price}   ${amt}\n`);
+    });
+
+    addText("--------------------------------\n");
+
+    // TOTALS
+    addCmd(0x1B, 0x61, 2); // Right Align
+    addText(`Total:  ${order.total}\n`);
+    
+    if(order.redeemed > 0) {
+        addText(`Bonus Used: -${order.redeemed}\n`);
+    }
+    
+    addCmd(0x1B, 0x45, 1); // Bold ON
+    addText(`NET PAYABLE:  ${order.finalPaid}\n`);
+    addCmd(0x1B, 0x45, 0); // Bold OFF
+    
+    addText(`Mode: ${order.paymentMode || 'Cash'}\n`);
+    
+    // Cash Details
+    if(order.paymentMode === 'Cash' && order.cashGiven) {
+        addText(`Cash Given:  ${order.cashGiven}\n`);
+        addText(`Change:  ${order.changeReturn}\n`);
+    }
+
+    addText("--------------------------------\n");
+    
+    // FOOTER
+    addCmd(0x1B, 0x61, 1); // Center Align
+    if(order.bonusEarned > 0) {
+        addText(`* Points Earned: ${order.bonusEarned} *\n`);
+    }
+    
+    if(s.footer) addText(`${s.footer}\n`);
+    addText("\n\n\n"); // Feed paper
+
+    // Send to Printer
+    const uint8Data = new Uint8Array(data);
+    await printCharacteristic.writeValue(uint8Data);
+}
     </script>
 
 <!-- Order Details & Admin Edit Modal -->
