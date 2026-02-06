@@ -946,27 +946,41 @@ async function restoreCustomerSession(phone) {
 }
 
         async function saveStoreSettings() {
+    // 1. Get Values
     const isOpen = document.getElementById('storeIsOpen').checked;
     
     const settings = {
         name: document.getElementById('storeName').value,
-        phone: document.getElementById('storePhone').value, // New
+        phone: document.getElementById('storePhone').value,
         address: document.getElementById('storeAddress').value,
-        openTime: document.getElementById('storeOpenTime').value, // New
-        closeTime: document.getElementById('storeCloseTime').value, // New
-        isOpen: isOpen, // New
+        openTime: document.getElementById('storeOpenTime').value,
+        closeTime: document.getElementById('storeCloseTime').value,
+        isOpen: isOpen, // Boolean value
         footer: document.getElementById('storeFooter').value,
         link: document.getElementById('storeLink').value
     };
     
-    await window.firebaseModules.setDoc(window.firebaseModules.doc(window.db, 'settings', 'store'), settings);
-    
-    // Update label immediately for visual feedback
-    const statusLabel = document.getElementById('storeStatusLabel');
-    statusLabel.innerText = isOpen ? "OPEN" : "CLOSED";
-    statusLabel.style.color = isOpen ? "var(--success)" : "var(--danger)";
-    
-    showToast('Settings Saved!');
+    try {
+        const { doc, setDoc } = window.firebaseModules;
+        
+        // 2. Save with Merge (Protects existing data)
+        await setDoc(doc(window.db, 'settings', 'store'), settings, { merge: true });
+        
+        // 3. Force UI Update (Visual Feedback)
+        const statusLabel = document.getElementById('storeStatusLabel');
+        statusLabel.innerText = isOpen ? "OPEN" : "CLOSED";
+        statusLabel.style.color = isOpen ? "var(--success)" : "var(--danger)";
+        
+        showToast('Settings Saved Successfully!');
+        
+    } catch (e) {
+        console.error("Save Error:", e);
+        // Alert the user if it fails (so you know if it's a permission issue)
+        showToast('Error Saving: ' + e.message, 'error');
+        
+        // Optional: Revert checkbox if save failed
+        document.getElementById('storeIsOpen').checked = !isOpen; 
+    }
 }
 
 // Helper for contact buttons
@@ -995,6 +1009,15 @@ END:VCARD`;
         a.click();
         URL.revokeObjectURL(url);
     }
+}
+
+function callCustomer(phone, event) {
+    if(event) event.stopPropagation(); // Prevent opening order details
+    if(!phone) return showToast('No phone number found', 'error');
+    
+    // Remove spaces or dashes just in case
+    const cleanPhone = phone.toString().replace(/\D/g, ''); 
+    window.open(`tel:+91${cleanPhone}`, '_self');
 }
 
 // Helper for 12-hour time format
@@ -1936,10 +1959,11 @@ async function searchHistory() {
         function renderIncoming(orders) {
             document.getElementById('incomingOrdersList').innerHTML = orders.map(o => {
                 let timeStr = o.timestamp ? o.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-                
-                const customerDisplay = o.customerName 
-                    ? `<strong>${o.customerName}</strong> <span style="font-weight:normal; font-size:0.8rem">(${o.phone})</span>`
-                    : `<strong>${o.phone}</strong>`;
+                const callBtn = `<button class="btn btn-secondary btn-sm" style="padding:2px 6px; margin-left:8px; border-radius:50%;" onclick="callCustomer('${o.phone}', event)">📞</button>`;
+
+const customerDisplay = o.customerName 
+    ? `<strong>${o.customerName}</strong> <span style="font-weight:normal; font-size:0.8rem">(${o.phone})</span>${callBtn}`
+    : `<strong>${o.phone}</strong>${callBtn}`;
 
                 return `
                 <div class="order-card">
@@ -1974,10 +1998,17 @@ async function searchHistory() {
                     timeStr = `${d.getDate()}/${d.getMonth()+1} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
                 }
 
-                // 2. Format Name & Phone Display
-                const customerDisplay = o.customerName 
-                    ? `<div style="font-weight:bold; font-size:1rem; line-height:1.2;">${o.customerName}</div><div style="font-size:0.85rem; color:#aaa;">${o.phone}</div>`
-                    : `<div style="font-weight:bold; font-size:1rem;">${o.phone}</div>`;
+                const callBtn = `<button class="btn btn-secondary btn-sm" style="padding:2px 6px; margin-left:8px; border-radius:50%;" onclick="callCustomer('${o.phone}', event)">📞</button>`;
+
+// 2. Format Name & Phone Display
+const customerDisplay = o.customerName 
+    ? `<div style="font-weight:bold; font-size:1rem; line-height:1.2; display:flex; align-items:center;">
+          ${o.customerName} ${callBtn}
+       </div>
+       <div style="font-size:0.85rem; color:#aaa;">${o.phone}</div>`
+    : `<div style="font-weight:bold; font-size:1rem; display:flex; align-items:center;">
+          ${o.phone} ${callBtn}
+       </div>`;
 
                 return `
                 <div class="order-card">
@@ -2036,16 +2067,19 @@ async function searchHistory() {
                     <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px; margin-top:8px;">
                         ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
                     </div>
-                    
-                    <div class="flex gap-2" style="margin-top:10px;">
-                        <!-- STOP PROPAGATION helps prevent opening the modal when clicking buttons -->
-                        <button class="btn btn-success w-full btn-sm" onclick="event.stopPropagation(); sendBillFromHistory('${o.phone}', '${o.id}', 'whatsapp')">
-                            📱 WA
-                        </button>
-                        <button class="btn btn-primary w-full btn-sm" onclick="event.stopPropagation(); sendBillFromHistory('${o.phone}', '${o.id}', 'sms')">
-                            💬 SMS
-                        </button>
-                    </div>
+
+<div class="flex gap-2" style="margin-top:10px;">
+    <button class="btn btn-secondary w-full btn-sm" onclick="callCustomer('${o.phone}', event)">
+        📞 Call
+    </button>
+
+    <button class="btn btn-success w-full btn-sm" onclick="event.stopPropagation(); sendBillFromHistory('${o.phone}', '${o.id}', 'whatsapp')">
+        📱 WA
+    </button>
+    <button class="btn btn-primary w-full btn-sm" onclick="event.stopPropagation(); sendBillFromHistory('${o.phone}', '${o.id}', 'sms')">
+        💬 SMS
+    </button>
+</div>
                 </div>
             `}).join('');
         }
