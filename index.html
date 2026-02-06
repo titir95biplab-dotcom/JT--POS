@@ -247,7 +247,9 @@
 <body>
 
     <div id="notification"></div>
-    <button id="installBtn" class="btn btn-primary" onclick="installPWA()">📲 Install App</button>
+    <button id="pwaInstallBtn" class="btn btn-primary hidden" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);">
+    📲 Install App
+</button>
 
     <!-- Login Screen -->
     <div id="loginScreen" class="login-container">
@@ -2817,6 +2819,56 @@ async function printBillDirect(orderId) {
     const uint8Data = new Uint8Array(data);
     await printCharacteristic.writeValue(uint8Data);
 }
+// ==========================================
+// PWA INSTALLATION LOGIC
+// ==========================================
+let deferredPrompt; // Stores the browser's install event
+
+// 1. Register Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then(reg => console.log('Service Worker Registered'))
+            .catch(err => console.log('SW Registration Failed: ', err));
+    });
+}
+
+// 2. Listen for "Can be installed" event
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent Chrome 67 and earlier from automatically showing the prompt
+    e.preventDefault();
+    // Stash the event so it can be triggered later.
+    deferredPrompt = e;
+    
+    // SHOW the Install Button
+    const btn = document.getElementById('pwaInstallBtn');
+    if(btn) {
+        btn.classList.remove('hidden');
+        
+        // Add Click Event
+        btn.addEventListener('click', async () => {
+            // Hide button immediately
+            btn.classList.add('hidden');
+            // Show the browser's install prompt
+            deferredPrompt.prompt();
+            // Wait for user choice
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to install prompt: ${outcome}`);
+            deferredPrompt = null;
+        });
+    }
+});
+
+// 3. Listen for "App Successfully Installed"
+window.addEventListener('appinstalled', () => {
+    // Hide the button permanently
+    const btn = document.getElementById('pwaInstallBtn');
+    if(btn) btn.classList.add('hidden');
+    console.log('PWA Installed Successfully');
+    
+    // Optional: Send analytics or show a "Thank You" toast
+    showToast('App Installed! Launching...');
+});
     </script>
 
 <!-- Order Details & Admin Edit Modal -->
