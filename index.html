@@ -714,11 +714,23 @@ let SALES_CHART_INSTANCE = null;
         };
 
         function initApp() {
-            window.firebaseModules.onAuthStateChanged(window.auth, (user) => {
-                if (user) checkUserRole(user); 
-                else document.getElementById('loginScreen').classList.remove('hidden');
-            });
+    window.firebaseModules.onAuthStateChanged(window.auth, (user) => {
+        if (user) {
+            // CASE A: Staff/Admin is logged in via Firebase Auth
+            checkUserRole(user); 
+        } else {
+            // CASE B: No Staff logged in. Check for Customer Session.
+            const savedPhone = localStorage.getItem('jt_cust_phone');
+            
+            if (savedPhone) {
+                restoreCustomerSession(savedPhone);
+            } else {
+                // CASE C: No one is logged in
+                document.getElementById('loginScreen').classList.remove('hidden');
+            }
         }
+    });
+}
 
         async function checkUserRole(user) {
             // Load Store Settings for everyone (needed for bills)
@@ -797,6 +809,24 @@ let SALES_CHART_INSTANCE = null;
             finalizeCustomerLogin(phone, snap.data());
         }
 
+async function restoreCustomerSession(phone) {
+    const { doc, getDoc } = window.firebaseModules;
+    try {
+        const snap = await getDoc(doc(window.db, 'customers', phone));
+        if (snap.exists()) {
+            // User exists, log them back in with fresh data
+            finalizeCustomerLogin(phone, snap.data());
+        } else {
+            // User might have been deleted, clear invalid session
+            localStorage.removeItem('jt_cust_phone');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+    } catch (e) {
+        console.error("Session Restore Error:", e);
+        document.getElementById('loginScreen').classList.remove('hidden');
+    }
+}
+
         async function saveCustomerName() {
             const name = document.getElementById('newCustName').value;
             if(!name) return showToast('Name is required', 'error');
@@ -809,6 +839,7 @@ let SALES_CHART_INSTANCE = null;
         }
 
         function finalizeCustomerLogin(phone, data) {
+            localStorage.setItem('jt_cust_phone', phone);
             STATE.user = { uid: phone, phone: phone, name: data.name };
             STATE.role = 'customer';
             document.getElementById('custNameDisplay').innerText = data.name;
@@ -821,9 +852,15 @@ let SALES_CHART_INSTANCE = null;
         }
 
         function logout() {
-            window.auth.signOut();
-            location.reload();
-        }
+    // 1. CLEAR CUSTOMER SESSION
+    localStorage.removeItem('jt_cust_phone');
+    
+    // 2. SIGN OUT STAFF (Firebase)
+    window.auth.signOut();
+    
+    // 3. RELOAD
+    location.reload();
+}
 
         // --- ADMIN SETTINGS & TABS ---
         function switchAdminTab(tab) {
