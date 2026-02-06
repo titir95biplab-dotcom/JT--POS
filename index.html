@@ -767,6 +767,15 @@ let SALES_CHART_INSTANCE = null;
         };
 
         function initApp() {
+        // LISTEN FOR FOREGROUND MESSAGES (While app is open)
+const { onMessage, messaging } = window.firebaseModules;
+onMessage(messaging, (payload) => {
+    console.log('Message received. ', payload);
+    const { title, body, image } = payload.notification;
+    
+    // Use your existing Toast or create a custom popup
+    showToast(`🔔 ${title}: ${body}`);
+});
     window.firebaseModules.onAuthStateChanged(window.auth, (user) => {
         if (user) {
             // CASE A: Staff/Admin is logged in via Firebase Auth
@@ -3001,15 +3010,7 @@ async function saveTokenToDatabase(token) {
     console.log('Token saved to database');
 }
 
-// LISTEN FOR FOREGROUND MESSAGES (While app is open)
-const { onMessage, messaging } = window.firebaseModules;
-onMessage(messaging, (payload) => {
-    console.log('Message received. ', payload);
-    const { title, body, image } = payload.notification;
-    
-    // Use your existing Toast or create a custom popup
-    showToast(`🔔 ${title}: ${body}`);
-});
+
 // ==========================================
 // NOTIFICATIONS & OFFERS LOGIC
 // ==========================================
