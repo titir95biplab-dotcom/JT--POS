@@ -3070,37 +3070,30 @@ function openNotifications() {
     }
 }
 function payViaUPI(amount, orderId) {
-    // 1. Get UPI ID from Settings
-    let upiId = STATE.storeSettings.upi;
+    // 1. YOUR EXACT MERCHANT DETAILS (Extracted from your QR)
+    const upiId = "Q022730862@ybl"; 
+    const payeeName = "PhonePeMerchant"; 
     
-    // 2. FORCE NAME MATCH (Crucial for Personal UPI)
-    // Banks reject payments if the requested name (Juice Therapy) 
-    // doesn't match the bank account name (Biplab Bawali).
-    let payeeName = "Biplab Bawali"; 
-    
-    if(!upiId) return showToast('Store UPI ID not set. Contact Staff.', 'error');
-    
-    // 3. Clean Data
-    upiId = upiId.trim(); // Remove invisible spaces
-    
-    // 4. Strict Amount Formatting
-    // UPI requires "150.00", not "150"
+    // 2. Strict Amount Formatting (e.g. "150.00")
     const formattedAmount = parseFloat(amount).toFixed(2);
     
-    // 5. Use 'Transaction Note' (tn) instead of 'Ref' (tr)
-    // 'tr' fails for personal accounts. 'tn' works for everyone.
+    // 3. Create Note (Bill #1234)
     const serial = orderId.slice(-4); 
-    const note = `Order ${serial}`;
+    const note = `Bill ${serial}`;
 
-    // 6. Generate Link
+    // 4. GENERATE THE EXACT QR LINK
+    // We use the exact parameters from your code (mc=0000, mode=02, purpose=00)
     const link = `upi://pay` +
-                 `?pa=${encodeURIComponent(upiId)}` +       // Your UPI ID
-                 `&pn=${encodeURIComponent(payeeName)}` +   // "Biplab Bawali"
-                 `&am=${formattedAmount}` +                 // "100.00"
+                 `?pa=${encodeURIComponent(upiId)}` +       // ID
+                 `&pn=${encodeURIComponent(payeeName)}` +   // Name
+                 `&mc=0000` +                               // Merchant Code
+                 `&mode=02` +                               // Mode 02 (Secure)
+                 `&purpose=00` +                            // Purpose 00
+                 `&am=${formattedAmount}` +                 // Amount
                  `&cu=INR` +                                // Currency
                  `&tn=${encodeURIComponent(note)}`;         // Note
 
-    // 7. Open App
+    // 5. Open
     window.location.href = link;
 }
     </script>
