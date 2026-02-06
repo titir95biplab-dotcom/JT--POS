@@ -437,7 +437,10 @@
                 <button class="btn btn-secondary tab-btn" onclick="switchCustTab('history')" id="btn-cust-history">📜 My History</button>
             </div>
             <div id="cust-view-menu">
-                <div class="pos-container" style="height: 60vh;">
+<input type="text" class="input" placeholder="🔍 Search items..." 
+           style="margin-bottom: 10px;" 
+           onkeyup="filterCustomerMenu(this.value)">                
+<div class="pos-container" style="height: 60vh;">
                     <div class="pos-left">
                          <div class="menu-area">
                             <div class="cat-sidebar" id="custSidebar"></div>
@@ -598,7 +601,7 @@
 	    searchQuery: '',
             storeSettings: { name: 'Juice Therapy', address: '', footer: 'Thank you!', link: '' }
         };
-
+let TEMP_EDIT_ITEMS = [];
         window.onload = () => {
             window.addEventListener('beforeinstallprompt', (e) => {
                 e.preventDefault();
@@ -970,6 +973,13 @@
             const snap = await getDoc(doc(window.db, 'orders', orderId));
             if(!snap.exists()) return showToast('Order not found', 'error');
             const data = snap.data();
+// 1. Load items into temporary state
+TEMP_EDIT_ITEMS = JSON.parse(JSON.stringify(data.items)); // Deep copy to avoid reference issues
+
+// 2. Populate the "Add Item" dropdown
+const itemSelect = document.getElementById('adminAddItemSelect');
+itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` + 
+    STATE.menu.map(m => `<option value="${m.id}">${m.name} (₹${m.price})</option>`).join('');
 
             // 2. Populate Modal Fields
             document.getElementById('viewStoreName').innerText = STATE.storeSettings?.name || 'Juice Therapy';
@@ -1016,7 +1026,13 @@
             document.getElementById('editCustPhone').disabled = false;
             document.getElementById('editTotal').disabled = false;
             document.getElementById('editMode').disabled = false;
-            
+  
+// NEW: Toggle Item Views
+    document.getElementById('viewItemsList').classList.add('hidden'); // Hide static
+    document.getElementById('editItemsWrapper').classList.remove('hidden'); // Show dynamic
+    
+    renderEditItems(); // Draw the editable list
+          
             // Toggle Buttons
             document.getElementById('btnAdminEdit').classList.add('hidden');
             document.getElementById('btnAdminSave').classList.remove('hidden');
@@ -1028,36 +1044,159 @@
             document.getElementById('editTotal').disabled = true;
             document.getElementById('editMode').disabled = true;
             
+// NEW: Toggle Item Views Back
+    document.getElementById('viewItemsList').classList.remove('hidden');
+    document.getElementById('editItemsWrapper').classList.add('hidden');
             document.getElementById('btnAdminEdit').classList.remove('hidden');
             document.getElementById('btnAdminSave').classList.add('hidden');
         }
 
         async function saveAdminOrder() {
-            if(!confirm('Save changes to this historical order?')) return;
+    if(!confirm('Save changes to this historical order?\n(Customer points will be recalculated)')) return;
 
-            const newData = {
-                customerName: document.getElementById('editCustName').value,
-                phone: document.getElementById('editCustPhone').value,
-                finalPaid: Number(document.getElementById('editTotal').value),
-                total: Number(document.getElementById('editTotal').value), // Updating base total too for consistency
-                paymentMode: document.getElementById('editMode').value
-            };
+    // 1. Prepare the New Data from your Inputs/Temp State
+    const newTotal = Number(document.getElementById('editTotal').value);
+    const newItems = TEMP_EDIT_ITEMS;
+    const newPhone = document.getElementById('editCustPhone').value;
+    const newName = document.getElementById('editCustName').value;
+    const newMode = document.getElementById('editMode').value;
 
-            try {
-                const { doc, updateDoc } = window.firebaseModules;
-                await updateDoc(doc(window.db, 'orders', CURRENT_VIEW_ORDER_ID), newData);
-                
-                showToast('Order Updated Successfully');
-                disableAdminEdit();
-                closeDetailsModal();
-                // Refresh Lists
-                if(STATE.role === 'admin') loadAdminOrders();
-                else loadOrders(); 
-            } catch(e) {
-                console.error(e);
-                showToast('Update Failed: ' + e.message, 'error');
+    try {
+        const { doc, runTransaction, serverTimestamp } = window.firebaseModules;
+        
+        // 2. Run a Transaction (Ensures points & order update together)
+        await runTransaction(window.db, async (transaction) => {
+            
+            // A. Get references
+            const orderRef = doc(window.db, 'orders', CURRENT_VIEW_ORDER_ID);
+            const orderDoc = await transaction.get(orderRef);
+            if (!orderDoc.exists()) throw "Order does not exist!";
+
+            const oldOrderData = orderDoc.data();
+            const isCompleted = oldOrderData.status === 'completed';
+
+            // B. Calculate Point Adjustments (Only if order is completed)
+            let newBonus = 0;
+            
+            if (isCompleted) {
+                // Calculate what the bonus SHOULD be now (5% of new total)
+                newBonus = Math.floor(newTotal * 0.05);
+
+                // Get the OLD bonus (use recorded 'bonusEarned' or calculate it if missing)
+                const oldBonus = oldOrderData.bonusEarned !== undefined 
+                    ? oldOrderData.bonusEarned 
+                    : Math.floor(oldOrderData.total * 0.05);
+
+                const pointDifference = newBonus - oldBonus;
+
+                // Update Customer Points
+                // Note: We use the OLD phone to find the customer in case you changed the number
+                const custPhone = oldOrderData.phone; 
+                const custRef = doc(window.db, 'customers', custPhone);
+                const custDoc = await transaction.get(custRef);
+
+                if (custDoc.exists()) {
+                    const currentPoints = custDoc.data().points || 0;
+                    const newBalance = currentPoints + pointDifference;
+                    
+                    // Prevent negative points (optional, but good practice)
+                    if (newBalance < 0) {
+                        // You can throw an error here if you want to block the edit, 
+                        // or just set it to 0. We'll allow it but warn in console.
+                        console.warn("Customer points dropped below zero.");
+                    }
+
+                    transaction.update(custRef, { points: newBalance });
+                }
             }
+
+            // C. Update the Order Document
+            transaction.update(orderRef, {
+                customerName: newName,
+                phone: newPhone,
+                finalPaid: newTotal,
+                total: newTotal,
+                paymentMode: newMode,
+                items: newItems,
+                bonusEarned: newBonus // Save the new bonus amount so next time it's accurate
+            });
+        });
+        
+        // 3. Success UI Updates
+        showToast('Order & Points Updated Successfully');
+        disableAdminEdit();
+        closeDetailsModal();
+        
+        // Refresh Lists
+        if(STATE.role === 'admin') searchHistory();
+        else loadOrders(); 
+
+    } catch(e) {
+        console.error(e);
+        showToast('Update Failed: ' + e.message, 'error');
+    }
+}
+
+// 1. Render the editable list with Qty inputs and Delete buttons
+function renderEditItems() {
+    const container = document.getElementById('editItemsList');
+    container.innerHTML = TEMP_EDIT_ITEMS.map((item, index) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:8px; border-radius:6px;">
+            <div style="flex:1;">
+                <div style="font-size:0.9rem;">${item.name}</div>
+                <div class="text-muted" style="font-size:0.75rem;">₹${item.price} each</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <input type="number" value="${item.qty}" min="1" 
+                    style="width:50px; padding:4px; border-radius:4px; border:none;"
+                    onchange="adminUpdateItemQty(${index}, this.value)">
+                <button class="btn btn-danger btn-sm" onclick="adminRemoveItem(${index})">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+    
+    recalcEditTotal(); // Auto-update the total price
+}
+
+// 2. Update Quantity
+function adminUpdateItemQty(index, newQty) {
+    const qty = parseInt(newQty);
+    if (qty > 0) {
+        TEMP_EDIT_ITEMS[index].qty = qty;
+        recalcEditTotal();
+    }
+}
+
+// 3. Remove Item
+function adminRemoveItem(index) {
+    TEMP_EDIT_ITEMS.splice(index, 1);
+    renderEditItems();
+}
+
+// 4. Add New Item from Dropdown
+function adminAddNewItem(selectEl) {
+    const itemId = selectEl.value;
+    if (!itemId) return;
+
+    const menuItem = STATE.menu.find(m => m.id === itemId);
+    if (menuItem) {
+        // Check if already exists, just add qty
+        const existing = TEMP_EDIT_ITEMS.find(i => i.id === itemId);
+        if (existing) {
+            existing.qty++;
+        } else {
+            TEMP_EDIT_ITEMS.push({ ...menuItem, qty: 1 });
         }
+        renderEditItems();
+    }
+    selectEl.value = ""; // Reset dropdown
+}
+
+// 5. Auto-Calculate Total
+function recalcEditTotal() {
+    const total = TEMP_EDIT_ITEMS.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    document.getElementById('editTotal').value = total;
+}
 
         function filterAdminOrders(val) {
             const cards = document.querySelectorAll('#adminOrdersList .order-card');
@@ -1841,42 +1980,66 @@ async function deletePendingOrder(orderId) {
             document.getElementById('cust-view-menu').classList.toggle('hidden', tab !== 'menu');
             document.getElementById('cust-view-history').classList.toggle('hidden', tab !== 'history');
         }
-
+function filterCustomerMenu(text) {
+    STATE.searchQuery = text.trim().toLowerCase();
+    renderCustomerMenu();
+}
         function renderCustomerMenu() {
-            const sidebar = document.getElementById('custSidebar');
-            const cats = ['All', ...STATE.categories.map(c => c.name)];
-            
-            sidebar.innerHTML = cats.map(cat => {
-                const safeCat = cat.replace(/'/g, "\\'");
-                return `
-                <div class="cat-btn ${cat === STATE.activeCategory ? 'active' : ''}" 
-                     onclick="filterCategory('${safeCat}')">${cat}</div>
-                `;
-            }).join('');
-            
-            const grid = document.getElementById('custGrid');
-            const items = STATE.activeCategory === 'All' 
-                ? STATE.menu 
-                : STATE.menu.filter(m => (m.category || '').trim() === STATE.activeCategory);
-            
-            if (items.length === 0) {
-                grid.innerHTML = '<div class="text-muted" style="grid-column: 1/-1; text-align:center; padding:20px;">No items found</div>';
-            } else {
-                grid.innerHTML = items.map(item => {
-                    const cartItem = STATE.custCart.find(c => c.id === item.id);
-                    const qty = cartItem ? cartItem.qty : 0;
-                    const qtyBadge = qty > 0 ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3); font-size:0.8rem;">${qty}</div>` : '';
-                    const borderStyle = qty > 0 ? 'border: 1px solid var(--primary); background: rgba(255, 107, 53, 0.1);' : '';
+    const sidebar = document.getElementById('custSidebar');
+    
+    // 1. Render Categories (Safe rendering)
+    const cats = ['All', ...STATE.categories.map(c => c.name)];
+    
+    sidebar.innerHTML = cats.map(cat => {
+        const safeCat = cat.replace(/'/g, "\\'"); // Prevent errors with names like "Chef's"
+        return `
+        <div class="cat-btn ${cat === STATE.activeCategory ? 'active' : ''}" 
+             onclick="filterCategory('${safeCat}')">${cat}</div>
+        `;
+    }).join('');
+    
+    const grid = document.getElementById('custGrid');
+    let items = [];
 
-                    return `
-                    <div class="menu-item" onclick="addToCart('${item.id}')" style="position:relative; ${borderStyle}">
-                        ${qtyBadge}
-                        <div style="font-weight:600; font-size: 0.9rem; padding-right:15px;">${item.name}</div>
-                        <div style="color: var(--primary); margin-top:5px;">₹${item.price}</div>
-                    </div>
-                `}).join('');
-            }
+    // 2. LOGIC FIX: Handle Search vs Category
+    if (STATE.searchQuery) {
+        // If searching, ignore category and search ALL items
+        items = STATE.menu.filter(item => 
+            item.name.toLowerCase().includes(STATE.searchQuery)
+        );
+    } else {
+        // If not searching, use Category
+        if (STATE.activeCategory === 'All') {
+            items = STATE.menu;
+        } else {
+            // Trim strings to ensure "Juice " matches "Juice"
+            items = STATE.menu.filter(m => 
+                (m.category || '').trim() === STATE.activeCategory.trim()
+            );
         }
+    }
+    
+    // 3. Render Items
+    if (items.length === 0) {
+        grid.innerHTML = '<div class="text-muted" style="grid-column: 1/-1; text-align:center; padding:20px;">No items found</div>';
+    } else {
+        grid.innerHTML = items.map(item => {
+            const cartItem = STATE.custCart.find(c => c.id === item.id);
+            const qty = cartItem ? cartItem.qty : 0;
+            
+            // Badge & Styling
+            const qtyBadge = qty > 0 ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3); font-size:0.8rem;">${qty}</div>` : '';
+            const borderStyle = qty > 0 ? 'border: 1px solid var(--primary); background: rgba(255, 107, 53, 0.1);' : '';
+
+            return `
+            <div class="menu-item" onclick="addToCart('${item.id}')" style="position:relative; ${borderStyle}">
+                ${qtyBadge}
+                <div style="font-weight:600; font-size: 0.9rem; padding-right:15px;">${item.name}</div>
+                <div style="color: var(--primary); margin-top:5px;">₹${item.price}</div>
+            </div>
+        `}).join('');
+    }
+}
 
         function loadCustomerHistory(phone) {
             const { collection, query, where, onSnapshot } = window.firebaseModules;
@@ -1970,9 +2133,18 @@ async function deletePendingOrder(orderId) {
             </div>
 
             <!-- Items List -->
-            <div id="viewItemsList" style="border-top: 1px dashed rgba(255,255,255,0.2); border-bottom: 1px dashed rgba(255,255,255,0.2); padding: 10px 0; margin-bottom: 10px;">
-                <!-- Items injected via JS -->
-            </div>
+           
+<div id="viewItemsList" style="border-top: 1px dashed rgba(255,255,255,0.2); border-bottom: 1px dashed rgba(255,255,255,0.2); padding: 10px 0; margin-bottom: 10px;"></div>
+
+<div id="editItemsWrapper" class="hidden" style="margin-bottom: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 10px;">
+    <div id="editItemsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+    
+    <div style="margin-top: 10px; display:flex; gap:5px;">
+        <select id="adminAddItemSelect" class="input" style="margin:0;" onchange="adminAddNewItem(this)">
+            <option value="">+ Add Menu Item</option>
+        </select>
+    </div>
+</div>
 
             <!-- Payment Details (Editable) -->
             <div class="grid-2" style="gap:10px;">
