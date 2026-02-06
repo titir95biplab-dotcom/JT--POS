@@ -2985,13 +2985,6 @@ async function saveTokenToDatabase(token) {
 const userId = STATE.user.phone || STATE.user.email || window.auth.currentUser?.uid;
 if (!userId) return;
 
-const { doc, setDoc, serverTimestamp } = window.firebaseModules;
-await setDoc(doc(window.db, 'fcmTokens', userId), {
-    token: token,
-    userType: STATE.user.phone ? 'customer' : 'staff',
-    lastUpdated: serverTimestamp()
-}, { merge: true });
-
     const { doc, setDoc, serverTimestamp } = window.firebaseModules;
     // Save to a sub-collection 'tokens' or directly on the user doc
     await setDoc(doc(window.db, 'customers', STATE.user.phone), {
