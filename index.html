@@ -2754,21 +2754,40 @@ async function printKOTDirect(orderId) {
     addText("KITCHEN COPY\n\n\n"); 
 
     const uint8Data = new Uint8Array(data);
-    await printCharacteristic.writeValue(uint8Data);
+    const chunkSize = 50;
+    
+    for (let i = 0; i < uint8Data.length; i += chunkSize) {
+        const chunk = uint8Data.slice(i, i + chunkSize);
+        await printCharacteristic.writeValue(chunk);
+        await new Promise(resolve => setTimeout(resolve, 20));
+    }
 }
 async function printBillDirect(orderId) {
     if (!printCharacteristic) return showToast('Please Connect Printer First', 'error');
 
-    // 1. Fetch Order & Store Data
-    const order = STATE.orders.find(o => o.id === orderId);
-    if (!order) return showToast('Order not found', 'error');
+    // 1. Fetch Order
+    // Try finding in STATE.orders first
+    let order = STATE.orders.find(o => o.id === orderId);
     
-    // FETCH SETTINGS (Just like WhatsApp Bill)
+    // Fallback: If not found (rare) or if we just paid and STATE isn't updated yet, use PAYMENT_DATA
+    if (!order && PAYMENT_DATA.orderId === orderId) {
+        order = { ...PAYMENT_DATA, items: PAYMENT_DATA.items || [] };
+    }
+    
+    if (!order) return showToast('Order data not found', 'error');
+    
     const s = STATE.storeSettings || { name: 'Juice Therapy', address: '', phone: '', footer: 'Thank you!' };
 
     // 2. Prepare Data
-    const serial = order.timestamp ? order.timestamp.toMillis().toString().slice(-4) : '????';
-    const dateObj = order.timestamp ? order.timestamp.toDate() : new Date();
+    // Use safe fallbacks for values to prevent crashes
+    const serial = (order.timestamp && order.timestamp.toMillis) 
+        ? order.timestamp.toMillis().toString().slice(-4) 
+        : (PAYMENT_DATA.serial || '----');
+        
+    const dateObj = (order.timestamp && order.timestamp.toDate) 
+        ? order.timestamp.toDate() 
+        : new Date();
+        
     const date = dateObj.toLocaleDateString();
     const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
@@ -2778,77 +2797,98 @@ async function printBillDirect(orderId) {
     const addText = (text) => data.push(...encoder.encode(text));
     const addCmd = (...cmds) => data.push(...cmds);
 
-    // --- START RECEIPT ---
-    addCmd(0x1B, 0x40); // Initialize
-    addCmd(0x1B, 0x61, 1); // Center Align
+    try {
+        // --- START RECEIPT ---
+        addCmd(0x1B, 0x40); // Initialize
+        addCmd(0x1B, 0x61, 1); // Center Align
 
-    // STORE HEADER (From Admin Settings)
-    addCmd(0x1B, 0x21, 0x30); // Double Height/Width
-    addText(`${s.name}\n`);
-    addCmd(0x1B, 0x21, 0x00); // Normal Text
-    
-    if(s.address) addText(`${s.address}\n`);
-    // Use Store Phone from Settings, fallback to hardcoded if missing
-    const storePhone = s.phone || '9007952259'; 
-    addText(`Ph: ${storePhone}\n`);
-    addText("--------------------------------\n");
-    
-    // BILL META
-    addCmd(0x1B, 0x61, 0); // Left Align
-    addText(`Date: ${date} ${time}\n`);
-    addText(`Bill No: ${serial}\n`);
-    addText(`Cust: ${order.customerName || 'Guest'}\n`);
-    addText(`Ph: ${order.phone || 'N/A'}\n`);
-    addText("--------------------------------\n");
-    
-    // ITEMS HEADER
-    addText("Item             Qty    Price   Amt\n");
-    addText("--------------------------------\n");
+        // STORE HEADER
+        addCmd(0x1B, 0x21, 0x30); // Double Height/Width
+        addText(`${s.name}\n`);
+        addCmd(0x1B, 0x21, 0x00); // Normal Text
+        
+        if(s.address) addText(`${s.address}\n`);
+        const storePhone = s.phone || ''; 
+        if(storePhone) addText(`Ph: ${storePhone}\n`);
+        addText("--------------------------------\n");
+        
+        // BILL META
+        addCmd(0x1B, 0x61, 0); // Left Align
+        addText(`Date: ${date} ${time}\n`);
+        addText(`Bill No: ${serial}\n`);
+        addText(`Cust: ${order.customerName || 'Guest'}\n`);
+        addText(`Ph: ${order.phone || 'N/A'}\n`);
+        addText("--------------------------------\n");
+        
+        // ITEMS HEADER
+        addText("Item             Qty    Price   Amt\n");
+        addText("--------------------------------\n");
 
-    // ITEMS LIST
-    order.items.forEach(item => {
-        const amt = item.price * item.qty;
-        addText(`${item.name}\n`);
-        // Formatting for 58mm paper
-        addText(`   x ${item.qty}    ${item.price}   ${amt}\n`);
-    });
+        // ITEMS LIST
+        if(order.items && Array.isArray(order.items)) {
+            order.items.forEach(item => {
+                const amt = (item.price * item.qty).toFixed(2);
+                addText(`${item.name}\n`);
+                // Formatting for 58mm paper (approx 32 chars)
+                addText(`   x ${item.qty}    ${item.price}   ${amt}\n`);
+            });
+        }
 
-    addText("--------------------------------\n");
+        addText("--------------------------------\n");
 
-    // TOTALS
-    addCmd(0x1B, 0x61, 2); // Right Align
-    addText(`Total:  ${order.total}\n`);
-    
-    if(order.redeemed > 0) {
-        addText(`Bonus Used: -${order.redeemed}\n`);
+        // TOTALS
+        addCmd(0x1B, 0x61, 2); // Right Align
+        addText(`Total:  ${order.total}\n`);
+        
+        if(order.redeemed > 0) {
+            addText(`Bonus Used: -${order.redeemed}\n`);
+        }
+        
+        addCmd(0x1B, 0x45, 1); // Bold ON
+        const finalPay = order.finalPaid !== undefined ? order.finalPaid : order.total;
+        addText(`NET PAYABLE:  ${finalPay}\n`);
+        addCmd(0x1B, 0x45, 0); // Bold OFF
+        
+        addText(`Mode: ${order.paymentMode || 'Cash'}\n`);
+        
+        // Cash Details
+        // Check both Order object and Payment Data fallback
+        const cashGiven = order.cashGiven || PAYMENT_DATA.cashGiven;
+        const change = order.changeReturn || PAYMENT_DATA.change;
+        
+        if(order.paymentMode === 'Cash' && cashGiven) {
+            addText(`Cash Given:  ${cashGiven}\n`);
+            addText(`Change:  ${change}\n`);
+        }
+
+        addText("--------------------------------\n");
+        
+        // FOOTER
+        addCmd(0x1B, 0x61, 1); // Center Align
+        const bonusEarned = order.bonusEarned || PAYMENT_DATA.bonusEarned;
+        if(bonusEarned > 0) {
+            addText(`* Points Earned: ${bonusEarned} *\n`);
+        }
+        
+        if(s.footer) addText(`${s.footer}\n`);
+        addText("\n\n\n"); // Feed paper
+
+        // --- SEND TO PRINTER (WITH CHUNKING) ---
+        // This is the CRITICAL FIX for long bills
+        const uint8Data = new Uint8Array(data);
+        const chunkSize = 50; // Safe size for most bluetooth printers
+        
+        for (let i = 0; i < uint8Data.length; i += chunkSize) {
+            const chunk = uint8Data.slice(i, i + chunkSize);
+            await printCharacteristic.writeValue(chunk);
+            // Tiny delay to let printer buffer process data
+            await new Promise(resolve => setTimeout(resolve, 20)); 
+        }
+
+    } catch (e) {
+        console.error(e);
+        showToast('Print Error: ' + e.message, 'error');
     }
-    
-    addCmd(0x1B, 0x45, 1); // Bold ON
-    addText(`NET PAYABLE:  ${order.finalPaid}\n`);
-    addCmd(0x1B, 0x45, 0); // Bold OFF
-    
-    addText(`Mode: ${order.paymentMode || 'Cash'}\n`);
-    
-    // Cash Details
-    if(order.paymentMode === 'Cash' && order.cashGiven) {
-        addText(`Cash Given:  ${order.cashGiven}\n`);
-        addText(`Change:  ${order.changeReturn}\n`);
-    }
-
-    addText("--------------------------------\n");
-    
-    // FOOTER
-    addCmd(0x1B, 0x61, 1); // Center Align
-    if(order.bonusEarned > 0) {
-        addText(`* Points Earned: ${order.bonusEarned} *\n`);
-    }
-    
-    if(s.footer) addText(`${s.footer}\n`);
-    addText("\n\n\n"); // Feed paper
-
-    // Send to Printer
-    const uint8Data = new Uint8Array(data);
-    await printCharacteristic.writeValue(uint8Data);
 }
 // ==========================================
 // PWA INSTALLATION LOGIC
