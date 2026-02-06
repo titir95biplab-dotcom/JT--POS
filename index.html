@@ -3070,20 +3070,39 @@ function openNotifications() {
     }
 }
 function payViaUPI(amount, orderId) {
-    const upiId = STATE.storeSettings.upi;
-    const storeName = STATE.storeSettings.name || 'Juice Therapy';
+    // 1. Get Settings
+    let upiId = STATE.storeSettings.upi;
+    let storeName = STATE.storeSettings.name || 'Juice Therapy';
     
     if(!upiId) return showToast('Store UPI ID not set. Contact Staff.', 'error');
     
-    // Construct UPI Intent Link
-    // pa = Payee Address (UPI ID)
-    // pn = Payee Name
-    // am = Amount
-    // tr = Transaction Ref (Order ID)
-    // cu = Currency
-    const link = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(storeName)}&am=${amount}&tr=${orderId}&cu=INR`;
+    // 2. SANITIZE DATA (Critical Fix)
+    // Remove accidental spaces from UPI ID
+    upiId = upiId.trim(); 
     
-    // Open the link (Values will be auto-fetched by GPay/PhonePe)
+    // Remove special characters from Store Name to prevent URL breaking
+    storeName = storeName.replace(/[^\w\s]/gi, ''); 
+
+    // 3. FORMAT AMOUNT (Critical Fix)
+    // Apps require decimal format (e.g. "100.00")
+    const formattedAmount = parseFloat(amount).toFixed(2);
+    
+    // 4. Create a Clean Transaction Note
+    // We use the last 4 digits of the order ID to keep it short
+    const serial = orderId.slice(-4); 
+    const note = `Order ${serial}`;
+
+    // 5. CONSTRUCT LINK
+    // We use 'tn' (Note) instead of 'tr' (Ref) because 'tr' often causes 
+    // "Invalid Merchant" errors on PhonePe/GPay for small business accounts.
+    const link = `upi://pay` +
+                 `?pa=${encodeURIComponent(upiId)}` +       // Payee Address
+                 `&pn=${encodeURIComponent(storeName)}` +   // Payee Name
+                 `&am=${formattedAmount}` +                 // Amount (0.00)
+                 `&cu=INR` +                                // Currency
+                 `&tn=${encodeURIComponent(note)}`;         // Note (Visible to user)
+    
+    // 6. Open Intent
     window.location.href = link;
 }
     </script>

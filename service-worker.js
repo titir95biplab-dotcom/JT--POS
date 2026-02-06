@@ -30,7 +30,7 @@ messaging.onBackgroundMessage((payload) => {
 
 
 // --- STANDARD PWA CACHING (Keep your existing logic) ---
-const CACHE_NAME = 'jt-pos-v4';
+const CACHE_NAME = 'jt-pos-v5';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
