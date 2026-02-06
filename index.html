@@ -378,22 +378,40 @@
             <!-- Settings Manager -->
             <div id="adm-view-settings" class="hidden">
                 <div class="card">
-                    <h3>Store Profile (For Bills)</h3>
-                    <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
-                        <label class="text-muted">Outlet Name</label>
-                        <input type="text" id="storeName" class="input" placeholder="e.g. Juice Therapy">
-                        
-                        <label class="text-muted">Address & Phone</label>
-                        <textarea id="storeAddress" class="input" placeholder="Full Address\nPhone Number" rows="3"></textarea>
-                        
-                        <label class="text-muted">Bill Footer Note</label>
-                        <input type="text" id="storeFooter" class="input" placeholder="e.g. Thank you for visiting!">
-                        
-                        <label class="text-muted">Website / Promo Link</label>
-                        <input type="text" id="storeLink" class="input" placeholder="e.g. www.juicetherapy.com">
-                        
-                        <button class="btn btn-primary w-full" onclick="saveStoreSettings()">💾 Save Settings</button>
-                    </div>
+                    <h3>Store Profile & Status</h3>
+<div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+    <label class="text-muted">Outlet Name</label>
+    <input type="text" id="storeName" class="input" placeholder="e.g. Juice Therapy">
+
+    <label class="text-muted">Store Phone Number (without +91)</label>
+    <input type="tel" id="storePhone" class="input" placeholder="e.g. 9007952259">
+    
+    <label class="text-muted">Address</label>
+    <textarea id="storeAddress" class="input" placeholder="Full Address" rows="3"></textarea>
+    
+    <label class="text-muted">Opening Hours</label>
+    <div class="flex gap-2">
+        <input type="time" id="storeOpenTime" class="input">
+        <span style="align-self:center;">to</span>
+        <input type="time" id="storeCloseTime" class="input">
+    </div>
+
+    <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+        <span>Outlet Status:</span>
+        <label class="flex items-center gap-2" style="cursor:pointer;">
+            <input type="checkbox" id="storeIsOpen" style="transform:scale(1.5);">
+            <span id="storeStatusLabel" style="font-weight:bold; color:var(--success);">OPEN</span>
+        </label>
+    </div>
+    
+    <label class="text-muted">Bill Footer Note</label>
+    <input type="text" id="storeFooter" class="input" placeholder="e.g. Thank you!">
+    
+    <label class="text-muted">Website / Promo Link</label>
+    <input type="text" id="storeLink" class="input" placeholder="e.g. www.juicetherapy.com">
+    
+    <button class="btn btn-primary w-full" onclick="saveStoreSettings()">💾 Save Settings</button>
+</div>
                 </div>
             </div>
         </div>
@@ -481,6 +499,25 @@
             </div>
         </header>
         <div class="app-layout">
+<div id="custOutletInfo" class="card" style="border-left: 5px solid var(--success); margin-bottom: 20px;">
+    <div class="flex justify-between items-start">
+        <div>
+            <h2 id="infoStoreName" style="color:var(--primary); margin-bottom:5px;">Juice Therapy</h2>
+            <p id="infoAddress" class="text-muted" style="font-size:0.9rem; margin-bottom:5px;"></p>
+            <div class="flex gap-2" style="font-size:0.85rem; color:#aaa;">
+                <span>🕒 <span id="infoTiming">--:-- to --:--</span></span>
+                <span>•</span>
+                <span id="infoStatus" style="font-weight:bold; color:var(--success);">OPEN</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid-4" style="grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-top:15px;">
+        <button class="btn btn-secondary btn-sm" onclick="contactStore('call')">📞 Call</button>
+        <button class="btn btn-secondary btn-sm" style="background:#25D366; color:white;" onclick="contactStore('whatsapp')">💬 WhatsApp</button>
+        <button class="btn btn-secondary btn-sm" onclick="contactStore('save')">💾 Save No.</button>
+    </div>
+</div>
             <div class="card text-center" style="background: linear-gradient(135deg, var(--primary), #FF9F43);">
                 <h3>Welcome, <span id="custNameDisplay">Guest</span></h3>
                 <h1 style="font-size: 3rem; margin: 10px 0;" id="custPoints">0</h1>
@@ -812,31 +849,125 @@ let SALES_CHART_INSTANCE = null;
         }
 
         function loadStoreSettings() {
-            const { doc, onSnapshot } = window.firebaseModules;
-            onSnapshot(doc(window.db, 'settings', 'store'), (snap) => {
-                if (snap.exists()) {
-                    STATE.storeSettings = snap.data();
-                    // Update Inputs if Admin Panel
-                    if(document.getElementById('storeName')) {
-                        document.getElementById('storeName').value = STATE.storeSettings.name || '';
-                        document.getElementById('storeAddress').value = STATE.storeSettings.address || '';
-                        document.getElementById('storeFooter').value = STATE.storeSettings.footer || '';
-                        document.getElementById('storeLink').value = STATE.storeSettings.link || '';
-                    }
+    const { doc, onSnapshot } = window.firebaseModules;
+    onSnapshot(doc(window.db, 'settings', 'store'), (snap) => {
+        if (snap.exists()) {
+            STATE.storeSettings = snap.data();
+            const s = STATE.storeSettings;
+
+            // 1. Update Admin Inputs (Only if element exists)
+            if(document.getElementById('storeName')) {
+                document.getElementById('storeName').value = s.name || '';
+                document.getElementById('storePhone').value = s.phone || '9007952259';
+                document.getElementById('storeAddress').value = s.address || '';
+                document.getElementById('storeOpenTime').value = s.openTime || '';
+                document.getElementById('storeCloseTime').value = s.closeTime || '';
+                document.getElementById('storeFooter').value = s.footer || '';
+                document.getElementById('storeLink').value = s.link || '';
+                
+                // Toggle Switch Logic
+                const check = document.getElementById('storeIsOpen');
+                const label = document.getElementById('storeStatusLabel');
+                check.checked = s.isOpen !== false; // Default to true if undefined
+                
+                // Add event listener to change label dynamically when clicked
+                check.onchange = () => {
+                    label.innerText = check.checked ? "OPEN" : "CLOSED";
+                    label.style.color = check.checked ? "var(--success)" : "var(--danger)";
+                };
+                // Trigger once to set initial state text
+                check.onchange(); 
+            }
+
+            // 2. Update Customer Info Card
+            if(document.getElementById('infoStoreName')) {
+                document.getElementById('infoStoreName').innerText = s.name || 'Juice Therapy';
+                document.getElementById('infoAddress').innerText = s.address || '';
+                
+                // Timing Format
+                const t1 = formatTime(s.openTime);
+                const t2 = formatTime(s.closeTime);
+                document.getElementById('infoTiming').innerText = (t1 && t2) ? `${t1} - ${t2}` : 'Timings not set';
+
+                // Status Indicator
+                const statusEl = document.getElementById('infoStatus');
+                const cardEl = document.getElementById('custOutletInfo');
+                
+                if (s.isOpen === false) {
+                    statusEl.innerText = "CLOSED";
+                    statusEl.style.color = "var(--danger)";
+                    cardEl.style.borderLeftColor = "var(--danger)";
+                } else {
+                    statusEl.innerText = "OPEN";
+                    statusEl.style.color = "var(--success)";
+                    cardEl.style.borderLeftColor = "var(--success)";
                 }
-            });
+            }
         }
+    });
+}
 
         async function saveStoreSettings() {
-            const settings = {
-                name: document.getElementById('storeName').value,
-                address: document.getElementById('storeAddress').value,
-                footer: document.getElementById('storeFooter').value,
-                link: document.getElementById('storeLink').value
-            };
-            await window.firebaseModules.setDoc(window.firebaseModules.doc(window.db, 'settings', 'store'), settings);
-            showToast('Settings Saved!');
-        }
+    const isOpen = document.getElementById('storeIsOpen').checked;
+    
+    const settings = {
+        name: document.getElementById('storeName').value,
+        phone: document.getElementById('storePhone').value, // New
+        address: document.getElementById('storeAddress').value,
+        openTime: document.getElementById('storeOpenTime').value, // New
+        closeTime: document.getElementById('storeCloseTime').value, // New
+        isOpen: isOpen, // New
+        footer: document.getElementById('storeFooter').value,
+        link: document.getElementById('storeLink').value
+    };
+    
+    await window.firebaseModules.setDoc(window.firebaseModules.doc(window.db, 'settings', 'store'), settings);
+    
+    // Update label immediately for visual feedback
+    const statusLabel = document.getElementById('storeStatusLabel');
+    statusLabel.innerText = isOpen ? "OPEN" : "CLOSED";
+    statusLabel.style.color = isOpen ? "var(--success)" : "var(--danger)";
+    
+    showToast('Settings Saved!');
+}
+
+// Helper for contact buttons
+function contactStore(action) {
+    const phone = STATE.storeSettings.phone || '9007952259';
+    const cleanPhone = phone.replace(/\D/g, ''); // Remove spaces/dashes
+    
+    if (action === 'call') {
+        window.open(`tel:+91${cleanPhone}`, '_self');
+    } 
+    else if (action === 'whatsapp') {
+        window.open(`https://wa.me/91${cleanPhone}`, '_blank');
+    } 
+    else if (action === 'save') {
+        // Generate vCard for "Save Contact"
+        const vCardData = `BEGIN:VCARD
+VERSION:3.0
+FN:${STATE.storeSettings.name || 'Juice Therapy'}
+TEL;TYPE=CELL:+91${cleanPhone}
+END:VCARD`;
+        const blob = new Blob([vCardData], { type: "text/vcard" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "JuiceTherapy.vcf";
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+}
+
+// Helper for 12-hour time format
+function formatTime(timeStr) {
+    if (!timeStr) return '';
+    const [h, m] = timeStr.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const h12 = hour % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+}
 
         function loadCategories() {
             const { collection, onSnapshot, query, orderBy } = window.firebaseModules;
