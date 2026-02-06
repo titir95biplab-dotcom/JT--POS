@@ -848,10 +848,18 @@ let SALES_CHART_INSTANCE = null;
         }
 
         async function loginCustomer() {
-            const phone = document.getElementById('custPhoneLogin').value;
-            if (phone.length !== 10) return showToast('Invalid phone (10 digits required)', 'error');
-            
-            const { doc, getDoc } = window.firebaseModules;
+    let rawPhone = document.getElementById('custPhoneLogin').value;
+    
+    // 1. Sanitize: Remove spaces, dashes, +91, etc.
+    // This turns "+91 900-795-2259" into "9007952259"
+    const phone = rawPhone.replace(/\D/g, '').slice(-10); 
+
+    // 2. Check length AFTER cleaning
+    if (phone.length !== 10) {
+        return showToast('Please enter valid 10-digit number', 'error');
+    }
+    
+    const { doc, getDoc } = window.firebaseModules;
             
             try {
                 // Show loading feedback (Optional but good)
