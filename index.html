@@ -2953,14 +2953,14 @@ async function requestNotificationPermission() {
             
             const { getToken, messaging } = window.firebaseModules;
             
-            // Wait for service worker to be ready
-            const registration = await navigator.serviceWorker.ready;
-
             // Get the Device Token
-            const token = await getToken(messaging, { 
-                vapidKey: 'BNMWPFfWtc6-5ZSm0Eru3u3f-iB7zSpzY2vlHos7HEjbKQPfstSGgFXSnzivajBU4fto4oSKlWCQJwhtjKmNzLQ',
-                serviceWorkerRegistration: registration
-            });
+            // Wait for service worker to be ready
+const registration = await navigator.serviceWorker.ready;
+
+const token = await getToken(messaging, { 
+    vapidKey: 'BNMWPFfWtc6-5ZSm0Eru3u3f-iB7zSpzY2vlHos7HEjbKQPfstSGgFXSnzivajBU4fto4oSKlWCQJwhtjKmNzLQ',
+    serviceWorkerRegistration: registration
+});
 
             if (token) {
                 console.log('FCM Token:', token);
@@ -2977,19 +2977,20 @@ async function requestNotificationPermission() {
     }
 }
 
+
 async function saveTokenToDatabase(token) {
     // Only save if a user is logged in
     if (!STATE.user) return;
 
-// Handle both customer and staff users
-const userId = STATE.user.phone || STATE.user.email || window.auth.currentUser?.uid;
-if (!userId) return;
+    // Handle both customer and staff users
+    const userId = STATE.user.phone || STATE.user.email || window.auth.currentUser?.uid;
+    if (!userId) return;
 
     const { doc, setDoc, serverTimestamp } = window.firebaseModules;
-    // Save to a sub-collection 'tokens' or directly on the user doc
-    await setDoc(doc(window.db, 'customers', STATE.user.phone), {
-        fcmToken: token,
-        lastLogin: serverTimestamp()
+    await setDoc(doc(window.db, 'fcmTokens', userId), {
+        token: token,
+        userType: STATE.user.phone ? 'customer' : 'staff',
+        lastUpdated: serverTimestamp()
     }, { merge: true });
     
     console.log('Token saved to database');
