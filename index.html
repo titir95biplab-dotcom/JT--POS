@@ -2953,14 +2953,14 @@ async function requestNotificationPermission() {
             
             const { getToken, messaging } = window.firebaseModules;
             
-            // Get the Device Token
             // Wait for service worker to be ready
-const registration = await navigator.serviceWorker.ready;
+            const registration = await navigator.serviceWorker.ready;
 
-const token = await getToken(messaging, { 
-    vapidKey: 'BNMWPFfWtc6-5ZSm0Eru3u3f-iB7zSpzY2vlHos7HEjbKQPfstSGgFXSnzivajBU4fto4oSKlWCQJwhtjKmNzLQ',
-    serviceWorkerRegistration: registration
-});
+            // Get the Device Token
+            const token = await getToken(messaging, { 
+                vapidKey: 'BNMWPFfWtc6-5ZSm0Eru3u3f-iB7zSpzY2vlHos7HEjbKQPfstSGgFXSnzivajBU4fto4oSKlWCQJwhtjKmNzLQ',
+                serviceWorkerRegistration: registration
+            });
 
             if (token) {
                 console.log('FCM Token:', token);
