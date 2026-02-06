@@ -537,12 +537,18 @@
     <div id="customerPanel" class="hidden">
         <header>
             <div class="header-content">
-                <div class="flex items-center gap-2">
-                    <img src="logo.png" style="height:30px;"> 
-                    <h2>My Juice Therapy</h2>
-                </div>
-                <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
-            </div>
+    <div class="flex items-center gap-2">
+        <img src="logo.png" style="height:30px;"> 
+        <h2>My Juice Therapy</h2>
+    </div>
+    <div class="flex gap-2 items-center">
+        <button class="btn btn-secondary btn-sm" style="position:relative;" onclick="openNotifications()">
+            🔔
+            <span id="custNotifBadge" class="hidden" style="position:absolute; top:-5px; right:-5px; background:red; color:white; font-size:0.7rem; padding:2px 6px; border-radius:10px;">New</span>
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+    </div>
+</div>
         </header>
         <div class="app-layout">
 <div id="custOutletInfo" class="card" style="border-left: 5px solid var(--success); margin-bottom: 20px;">
@@ -843,15 +849,29 @@ let SALES_CHART_INSTANCE = null;
 
         async function loginCustomer() {
             const phone = document.getElementById('custPhoneLogin').value;
-            if (phone.length !== 10) return showToast('Invalid phone', 'error');
+            if (phone.length !== 10) return showToast('Invalid phone (10 digits required)', 'error');
+            
             const { doc, getDoc } = window.firebaseModules;
-            const snap = await getDoc(doc(window.db, 'customers', phone));
-            if (!snap.exists() || !snap.data().name) {
-                STATE.tempPhone = phone;
-                document.getElementById('customerNameModal').classList.remove('hidden');
-                return;
+            
+            try {
+                // Show loading feedback (Optional but good)
+                showToast('Checking ID...', 'info');
+
+                const snap = await getDoc(doc(window.db, 'customers', phone));
+                
+                if (!snap.exists() || !snap.data().name) {
+                    STATE.tempPhone = phone;
+                    document.getElementById('customerNameModal').classList.remove('hidden');
+                    return;
+                }
+                
+                finalizeCustomerLogin(phone, snap.data());
+
+            } catch (e) {
+                console.error("Login Error:", e);
+                // This will tell us if it's a Permission issue!
+                showToast('Login Failed: ' + e.message, 'error'); 
             }
-            finalizeCustomerLogin(phone, snap.data());
         }
 
 async function restoreCustomerSession(phone) {
@@ -2927,6 +2947,64 @@ onMessage(messaging, (payload) => {
     // Use your existing Toast or create a custom popup
     showToast(`🔔 ${title}: ${body}`);
 });
+// ==========================================
+// NOTIFICATIONS & OFFERS LOGIC
+// ==========================================
+
+function loadCustomerNotifications() {
+    const { collection, query, orderBy, onSnapshot } = window.firebaseModules;
+    // Order by newest first
+    const q = query(collection(window.db, 'notifications'), orderBy('timestamp', 'desc'));
+
+    onSnapshot(q, (snap) => {
+        const list = document.getElementById('custNotificationList');
+        const badge = document.getElementById('custNotifBadge');
+        
+        // Safety check: if HTML elements are missing, stop here
+        if(!list || !badge) return; 
+
+        if(snap.empty) {
+            list.innerHTML = '<div class="text-center text-muted" style="padding:20px;">No new offers at the moment.</div>';
+            return;
+        }
+
+        // Check for new notifications since last view
+        const lastCheck = localStorage.getItem('jt_last_notif_check') || 0;
+        let hasNew = false;
+
+        list.innerHTML = snap.docs.map(d => {
+            const c = d.data();
+            const time = c.timestamp ? c.timestamp.toMillis() : 0;
+            const dateStr = c.timestamp ? c.timestamp.toDate().toLocaleDateString() : '';
+            
+            if(time > lastCheck) hasNew = true;
+
+            return `
+            <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:15px; margin-bottom:15px; border:1px solid rgba(255,255,255,0.1);">
+                ${c.image ? `<img src="${c.image}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-bottom:10px;">` : ''}
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:5px;">
+                    <h4 style="color:var(--primary); margin:0;">${c.title}</h4>
+                    <span style="font-size:0.7rem; color:#888; white-space:nowrap;">${dateStr}</span>
+                </div>
+                <p style="font-size:0.95rem; line-height:1.5; color:#eee;">${c.message}</p>
+            </div>
+            `;
+        }).join('');
+
+        if(hasNew) badge.classList.remove('hidden');
+    });
+}
+
+function openNotifications() {
+    const modal = document.getElementById('notificationModal');
+    if(modal) {
+        modal.classList.remove('hidden');
+        // Hide Badge when opened
+        document.getElementById('custNotifBadge').classList.add('hidden');
+        // Update "Last Seen" timestamp locally
+        localStorage.setItem('jt_last_notif_check', Date.now());
+    }
+}
     </script>
 
 <!-- Order Details & Admin Edit Modal -->
@@ -2994,5 +3072,17 @@ onMessage(messaging, (payload) => {
 </div>
 <div id="kot-receipt">
     </div>
+
+<div id="notificationModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 600; display: flex; align-items: center; justify-content: center;">
+    <div class="card" style="width: 90%; max-width: 400px; max-height: 80vh; display:flex; flex-direction:column;">
+        <div class="flex justify-between items-center" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+            <h3>📢 Offers & Updates</h3>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('notificationModal').classList.add('hidden')">✖</button>
+        </div>
+        <div id="custNotificationList" style="overflow-y:auto; flex:1; padding-right:5px;">
+            </div>
+    </div>
+</div>
+
 </body>
 </html>
