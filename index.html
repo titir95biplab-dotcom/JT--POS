@@ -204,6 +204,44 @@
             .item-grid { grid-template-columns: repeat(2, 1fr); }
             .grid-4 { grid-template-columns: 1fr 1fr; }
         }
+/* KOT PRINT STYLES (2-inch / 58mm) */
+@media print {
+    /* Hide everything by default */
+    body * { visibility: hidden; height: 0; overflow: hidden; }
+    
+    /* Show only the KOT Receipt */
+    #kot-receipt, #kot-receipt * { 
+        visibility: visible; 
+        height: auto; 
+        overflow: visible; 
+    }
+
+    #kot-receipt {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 58mm; /* 2-inch width */
+        padding: 0;
+        margin: 0;
+        background: white;
+        color: black;
+        font-family: 'Courier New', monospace; /* Monospace looks best on thermal */
+    }
+
+    /* Remove browser headers/footers */
+    @page { margin: 0; size: auto; }
+}
+
+/* KOT Layout Styling (Screen View - Hidden) */
+#kot-receipt { display: none; }
+@media print { #kot-receipt { display: block; } }
+
+.kot-header { text-align: center; border-bottom: 2px dashed black; padding-bottom: 5px; margin-bottom: 5px; }
+.kot-title { font-weight: bold; font-size: 1.2rem; text-transform: uppercase; }
+.kot-meta { font-size: 0.8rem; margin-top: 2px; }
+.kot-items { border-bottom: 2px dashed black; padding-bottom: 5px; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold; }
+.kot-item-row { display: flex; gap: 5px; margin-bottom: 2px; }
+.kot-footer { text-align: center; font-size: 0.8rem; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -2029,12 +2067,58 @@ const customerDisplay = o.customerName
                     </div>
                     
                     <div class="flex gap-2" style="margin-top:12px;">
-                        <button class="btn btn-secondary w-full" onclick="editOrder('${o.id}')">✏️ Edit</button>
-                        <button class="btn btn-success w-full" onclick="openPaymentModal('${o.id}', ${o.total}, '${o.phone}')">✅ Bill & Pay</button>
-                    </div>
+    <button class="btn btn-secondary" style="background:#444;" onclick="printKOT('${o.id}')">🖨️ KOT</button>
+    
+    <button class="btn btn-secondary w-full" onclick="editOrder('${o.id}')">✏️ Edit</button>
+    <button class="btn btn-success w-full" onclick="openPaymentModal('${o.id}', ${o.total}, '${o.phone}')">✅ Bill</button>
+</div>
                 </div>
             `}).join('');
         }
+
+function printKOT(orderId) {
+    // 1. Find the order in our local list (Pending or Completed)
+    // We search all lists to be safe
+    const allOrders = [...STATE.orders]; 
+    const order = allOrders.find(o => o.id === orderId);
+
+    if (!order) return showToast('Order data not found for printing', 'error');
+
+    // 2. Format Data
+    const serial = order.timestamp ? order.timestamp.toMillis().toString().slice(-4) : '????';
+    const dateObj = order.timestamp ? order.timestamp.toDate() : new Date();
+    const time = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const totalQty = order.items.reduce((sum, i) => sum + i.qty, 0);
+
+    // 3. Generate HTML
+    const html = `
+        <div class="kot-header">
+            <div class="kot-title">KOT #${serial}</div>
+            <div class="kot-meta">${time} • ${order.status.toUpperCase()}</div>
+            <div class="kot-meta">Customer: ${order.customerName || 'Guest'}</div>
+        </div>
+        <div class="kot-items">
+            ${order.items.map(item => `
+                <div class="kot-item-row">
+                    <div style="width:20px;">${item.qty}</div>
+                    <div style="flex:1;">${item.name}</div>
+                </div>
+            `).join('')}
+        </div>
+        <div class="kot-footer">
+            Total Items: ${totalQty}<br>
+            *** KITCHEN COPY ***
+        </div>
+    `;
+
+    // 4. Inject and Print
+    document.getElementById('kot-receipt').innerHTML = html;
+    
+    // Small delay to ensure rendering before print trigger
+    setTimeout(() => {
+        window.print();
+    }, 200);
+}
 
         function renderCompletedOrders(orders) {
             document.getElementById('completedOrdersList').innerHTML = orders.map(o => {
@@ -2591,5 +2675,7 @@ function filterCustomerMenu(text) {
         </div>
     </div>
 </div>
+<div id="kot-receipt">
+    </div>
 </body>
 </html>
