@@ -2986,7 +2986,11 @@ async function saveTokenToDatabase(token) {
 function loadCustomerNotifications() {
     const { collection, query, orderBy, onSnapshot } = window.firebaseModules;
     // Order by newest first
-    const q = query(collection(window.db, 'notifications'), orderBy('timestamp', 'desc'));
+    const q = query(
+        collection(window.db, 'notifications'), 
+        where('target', 'in', ['ALL', STATE.user.phone]), 
+        orderBy('timestamp', 'desc')
+    );
 
     onSnapshot(q, (snap) => {
         const list = document.getElementById('custNotificationList');
