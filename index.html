@@ -299,10 +299,27 @@
 
             <!-- Order Manager -->
             <div id="adm-view-orders" class="hidden">
-                <h3>Completed Orders History</h3>
-                <input type="text" class="input" placeholder="Search by Phone Number..." onkeyup="filterAdminOrders(this.value)" style="margin: 10px 0;">
-                <div id="adminOrdersList"></div>
+    <h3>Order History</h3>
+    
+    <div class="card" style="margin: 15px 0; padding: 15px;">
+        <div class="grid-2" style="margin-bottom: 10px;">
+            <div>
+                <label class="text-muted" style="font-size: 0.8rem;">Start Date</label>
+                <input type="date" id="historyStart" class="input">
             </div>
+            <div>
+                <label class="text-muted" style="font-size: 0.8rem;">End Date</label>
+                <input type="date" id="historyEnd" class="input">
+            </div>
+        </div>
+        <button class="btn btn-primary w-full" onclick="searchHistory()">🔍 Search History</button>
+    </div>
+
+    <h4 style="margin-bottom: 10px;">Results</h4>
+    <div id="adminOrdersList">
+        <p class="text-muted text-center" style="padding:20px;">Select dates and click Search to view past orders.</p>
+    </div>
+</div>
 
             <!-- Settings Manager -->
             <div id="adm-view-settings" class="hidden">
@@ -727,7 +744,11 @@
             if(activeBtn) activeBtn.classList.add('active');
             if(activeView) activeView.classList.remove('hidden');
 
-            if(tab === 'orders') loadAdminOrders();
+           if(tab === 'orders') {
+        const d = new Date();
+        document.getElementById('historyEnd').valueAsDate = d;
+        document.getElementById('historyStart').valueAsDate = d; // Default to "Today"
+    }
             if(tab === 'dashboard') loadAnalytics();
             if(tab === 'menu') updateCategorySelects();
         }
@@ -1287,38 +1308,105 @@ function filterMenu(text) {
         }
 
         function loadOrders() {
-            const { collection, query, orderBy, onSnapshot } = window.firebaseModules;
-            
-            // Listen to all orders sorted by newest first
-            onSnapshot(query(collection(window.db, 'orders'), orderBy('timestamp', 'desc')), (snap) => {
-                const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                
-                // Define "Start of Today" (Midnight)
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+    const { collection, query, orderBy, onSnapshot, where } = window.firebaseModules;
+    
+    // 1. Define "Start of Today" (Midnight)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-                // Filter 1: Incoming Requests (Show All)
-                const requested = orders.filter(o => o.status === 'requested');
-                renderIncoming(requested);
-                
-                // Filter 2: Pending Orders (Show All)
-                const pending = orders.filter(o => o.status === 'pending');
-                renderCurrentOrders(pending);
-                
-                // Filter 3: Completed Orders (SHOW ONLY TODAY'S)
-                const completed = orders.filter(o => {
-                    if (o.status !== 'completed') return false;
-                    // Check if the order time is greater than or equal to Today 00:00 AM
-                    return o.timestamp && o.timestamp.toDate() >= today;
-                });
-                renderCompletedOrders(completed);
-                
-                // Notification Badge Logic
-                const badge = document.getElementById('badgeIncoming');
-                if(requested.length > 0) badge.classList.remove('hidden');
-                else badge.classList.add('hidden');
-            });
+    // 2. Updated Query: Only fetch orders where timestamp is >= Today
+    // NOTE: This will require a Firestore Index. Check your browser console for the link!
+    const q = query(
+        collection(window.db, 'orders'), 
+        where('timestamp', '>=', today),
+        orderBy('timestamp', 'desc')
+    );
+    
+    onSnapshot(q, (snap) => {
+        const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        
+        // Filter 1: Incoming Requests
+        const requested = orders.filter(o => o.status === 'requested');
+        renderIncoming(requested);
+        
+        // Filter 2: Pending Orders
+        const pending = orders.filter(o => o.status === 'pending');
+        renderCurrentOrders(pending);
+        
+        // Filter 3: Completed Orders (Already filtered to "Today" by the query above)
+        const completed = orders.filter(o => o.status === 'completed');
+        renderCompletedOrders(completed);
+        
+        // Badge Logic
+        const badge = document.getElementById('badgeIncoming');
+        if(requested.length > 0) badge.classList.remove('hidden');
+        else badge.classList.add('hidden');
+    });
+}
+
+async function searchHistory() {
+    const startVal = document.getElementById('historyStart').value;
+    const endVal = document.getElementById('historyEnd').value;
+    
+    if(!startVal || !endVal) return showToast('Please select both dates', 'error');
+
+    const startDate = new Date(startVal);
+    const endDate = new Date(endVal);
+    endDate.setHours(23, 59, 59, 999); // Set to end of the selected day
+
+    // UI Loading State
+    const list = document.getElementById('adminOrdersList');
+    list.innerHTML = '<p class="text-center">Searching...</p>';
+
+    const { collection, query, where, orderBy, getDocs } = window.firebaseModules;
+
+    try {
+        // Query for history range
+        const q = query(
+            collection(window.db, 'orders'),
+            where('timestamp', '>=', startDate),
+            where('timestamp', '<=', endDate),
+            orderBy('timestamp', 'desc')
+        );
+
+        const snap = await getDocs(q);
+
+        if(snap.empty) {
+            list.innerHTML = '<p class="text-muted text-center" style="padding:20px;">No orders found in this range.</p>';
+            return;
         }
+
+        const orders = snap.docs.map(d => ({id: d.id, ...d.data()}));
+
+        // Render Results (Reusing your card design)
+        list.innerHTML = orders.map(o => {
+            const dateStr = o.timestamp ? new Date(o.timestamp.toDate()).toLocaleDateString() + ' ' + new Date(o.timestamp.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A';
+            
+            // Determine status color
+            let statusColor = '#4CAF50'; // Default success
+            if(o.status === 'cancelled') statusColor = '#FF5252';
+            if(o.status === 'pending') statusColor = '#FFC107';
+
+            return `
+            <div class="order-card" onclick="viewOrderDetails('${o.id}')" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                <div>
+                    <div style="font-weight:bold; font-size:1.1rem;">${o.customerName || o.phone}</div>
+                    <div class="text-muted" style="font-size:0.85rem;">${dateStr} • <span style="color:${statusColor}">${o.status.toUpperCase()}</span></div>
+                    <div class="text-muted" style="font-size:0.8rem;">₹${o.total} • ${o.paymentMode || 'Cash'}</div>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-weight:bold; font-size:1.2rem;">₹${o.total}</div>
+                    <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); adminDeleteOrder('${o.id}')" style="margin-top:5px;">🗑️</button>
+                </div>
+            </div>
+        `;}).join('');
+
+    } catch (e) {
+        console.error(e);
+        list.innerHTML = `<p class="text-danger text-center">Error: ${e.message}</p>`;
+        // Note: The first time you run this, check the console for the index link!
+    }
+}
 
         function renderIncoming(orders) {
             document.getElementById('incomingOrdersList').innerHTML = orders.map(o => {
