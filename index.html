@@ -331,9 +331,14 @@
 
         <div class="grid-4" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
             <div class="stat-card">
-                <div class="stat-label">Total Sales</div>
-                <div class="stat-value" id="statTotalSales">₹0</div>
-            </div>
+    <div class="stat-label">Total Sales</div>
+    <div class="stat-value" id="statTotalSales">₹0</div>
+</div>
+
+<div class="stat-card" style="border-color: #9C27B0;">
+    <div class="stat-label">Active Users (7 Days)</div>
+    <div class="stat-value" id="statActiveUsers">0</div>
+</div>
             <div class="stat-card">
                 <div class="stat-label">Total Orders</div>
                 <div class="stat-value" id="statTotalOrders">0</div>
@@ -930,6 +935,7 @@ async function restoreCustomerSession(phone) {
             STATE.role = 'customer';
             document.getElementById('custNameDisplay').innerText = data.name;
             document.getElementById('custPoints').innerText = data.points || 0;
+            trackUserActivity(phone);
             loadCategories();
             loadMenu();
             loadCustomerHistory(phone);
@@ -975,6 +981,7 @@ async function restoreCustomerSession(phone) {
     }
             if(tab === 'dashboard') loadAnalytics();
             if(tab === 'menu') updateCategorySelects();
+            if(tab === 'notify') loadAdminNotificationHistory();
         }
 
 async function sendBroadcastNotification() {
@@ -1231,7 +1238,8 @@ function formatTime(timeStr) {
 
         // --- ADMIN ANALYTICS & ORDERS ---
         async function loadAnalytics() {
-    const startInput = document.getElementById('dashStart').value;
+loadActiveUsersReport();    
+const startInput = document.getElementById('dashStart').value;
     const endInput = document.getElementById('dashEnd').value;
     
     if(!startInput || !endInput) return showToast('Please select dates', 'error');
@@ -3104,6 +3112,105 @@ function openNotifications() {
         document.getElementById('custNotifBadge').classList.add('hidden');
         // Update "Last Seen" timestamp locally
         localStorage.setItem('jt_last_notif_check', Date.now());
+    }
+}
+// --- NEW HELPER FUNCTION ---
+async function trackUserActivity(phone) {
+    const { doc, updateDoc, serverTimestamp } = window.firebaseModules;
+    try {
+        // Updates 'lastActive' every time they open the app
+        await updateDoc(doc(window.db, 'customers', phone), {
+            lastActive: serverTimestamp()
+        });
+    } catch(e) { console.log("Activity track error", e); }
+}
+// --- NEW NOTIFICATION HISTORY LOGIC ---
+function loadAdminNotificationHistory() {
+    const { collection, query, orderBy, onSnapshot, where } = window.firebaseModules;
+    
+    // Query notifications targeting 'ALL'
+    const q = query(
+        collection(window.db, 'notifications'), 
+        where('target', '==', 'ALL'), 
+        orderBy('timestamp', 'desc')
+    );
+
+    onSnapshot(q, (snap) => {
+        const list = document.getElementById('adminNotifHistory');
+        if (!list) return;
+
+        if (snap.empty) {
+            list.innerHTML = '<p class="text-muted">No recent broadcasts.</p>';
+            return;
+        }
+
+        list.innerHTML = snap.docs.map(d => {
+            const data = d.data();
+            const dateStr = data.timestamp ? data.timestamp.toDate().toLocaleString() : 'Just now';
+            // Use the counter from Cloud Function (default to 0 if pending)
+            const count = data.deliveryCount !== undefined ? data.deliveryCount : '...';
+
+            return `
+            <div class="card" style="padding:10px; border:1px solid rgba(255,255,255,0.1); margin-bottom:10px;">
+                <div class="flex justify-between">
+                    <strong>${data.title}</strong>
+                    <span class="text-muted" style="font-size:0.8rem;">${dateStr}</span>
+                </div>
+                <div class="text-muted" style="font-size:0.9rem; margin:5px 0;">${data.message}</div>
+                
+                <div class="flex justify-between items-center" style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px;">
+                    <span style="color:var(--success); font-weight:bold;">
+                        📱 Delivered to: ${count} devices
+                    </span>
+                    <button class="btn btn-sm btn-secondary" onclick="resendCampaign('${d.id}')">
+                        🔁 Resend
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    });
+}
+
+// --- NEW RESEND LOGIC ---
+async function resendCampaign(docId) {
+    const { doc, getDoc } = window.firebaseModules;
+    const snap = await getDoc(doc(window.db, 'notifications', docId));
+    if(snap.exists()) {
+        const data = snap.data();
+        // Fill the form with old data
+        document.getElementById('notifTitle').value = data.title;
+        document.getElementById('notifBody').value = data.message;
+        document.getElementById('notifImage').value = data.image || '';
+        showToast('Campaign details loaded! Click Send.');
+        // Scroll to top
+        document.getElementById('notifTitle').focus();
+    }
+}
+// --- NEW REPORT FUNCTION ---
+async function loadActiveUsersReport() {
+    const { collection, query, where, getCountFromServer, Timestamp } = window.firebaseModules;
+    
+    // Calculate date 7 days ago
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    const sevenDaysAgo = Timestamp.fromDate(d);
+
+    // Query: Count users where 'lastActive' > 7 days ago
+    const q = query(
+        collection(window.db, 'customers'), 
+        where('lastActive', '>=', sevenDaysAgo)
+    );
+
+    try {
+        // NOTE: This requires a Firestore Index. Check console for link if it fails!
+        const snapshot = await getCountFromServer(q);
+        const activeCount = snapshot.data().count;
+        
+        // Display it
+        const el = document.getElementById('statActiveUsers');
+        if(el) el.innerText = activeCount;
+    } catch(e) {
+        console.log("Report Error (Check Console for Index Link):", e);
     }
 }
     </script>
