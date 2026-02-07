@@ -37,6 +37,19 @@
             query, where, orderBy, onSnapshot, serverTimestamp, increment, Timestamp, getMessaging, getToken, onMessage, messaging 
         };
         window.firebaseReady = true;
+// --- 1. PASTE THIS TRACKER HERE (AT THE TOP) ---
+async function trackUserActivity(phone) {
+    console.log("Tracking activity for:", phone); // Debug log
+    const { doc, updateDoc, serverTimestamp } = window.firebaseModules;
+    try {
+        await updateDoc(doc(window.db, 'customers', phone), {
+            lastActive: serverTimestamp() // This creates the missing field
+        });
+        console.log("✅ Success: lastActive updated in DB");
+    } catch(e) { 
+        console.error("❌ Tracker Failed:", e); 
+    }
+}
     </script>
     
     <style>
@@ -2952,19 +2965,31 @@ async function printBillDirect(orderId) {
         showToast('Print Error: ' + e.message, 'error');
     }
 }
+
 // ==========================================
 // PWA INSTALLATION LOGIC
 // ==========================================
-let deferredPrompt; // Stores the browser's install event
+let deferredPrompt; 
 
-// 1. Register Service Worker
+// AUTOMATIC UPDATE RELOADER (Replaces the old Step 1)
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
-            .then(reg => console.log('Service Worker Registered'))
-            .catch(err => console.log('SW Registration Failed: ', err));
+    navigator.serviceWorker.register('./service-worker.js').then(reg => {
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New update found!
+                    showToast('Update available! Reloading...');
+                    setTimeout(() => window.location.reload(), 2000);
+                }
+            });
+        });
     });
 }
+
+// 2. Listen for "Can be installed" event
+window.addEventListener('beforeinstallprompt', (e) => {
+    // ... rest of your code ...
 
 // 2. Listen for "Can be installed" event
 window.addEventListener('beforeinstallprompt', (e) => {
