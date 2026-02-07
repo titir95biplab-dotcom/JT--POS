@@ -13,10 +13,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script type="module">
+        // 1. UPDATE THIS IMPORT LINE (Added 'getCountFromServer')
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
         import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging.js";
-        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, addDoc, runTransaction, Timestamp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, increment, addDoc, runTransaction, Timestamp, getCountFromServer } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyCbHeWurSgxdE1cYFvTGsoyzpK7PQ_1Z0o", 
@@ -31,19 +32,23 @@
         const messaging = getMessaging(app);
         window.auth = getAuth(app);
         window.db = getFirestore(app);
+        
+        // 2. UPDATE THIS LIST (Added 'getCountFromServer' at the end)
         window.firebaseModules = { 
             signInWithEmailAndPassword, signOut, onAuthStateChanged, 
             collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, runTransaction,
-            query, where, orderBy, onSnapshot, serverTimestamp, increment, Timestamp, getMessaging, getToken, onMessage, messaging 
+            query, where, orderBy, onSnapshot, serverTimestamp, increment, Timestamp, getMessaging, getToken, onMessage, messaging,
+            getCountFromServer // <--- IMPORTANT: Added this here!
         };
         window.firebaseReady = true;
+
 // --- 1. PASTE THIS TRACKER HERE (AT THE TOP) ---
 async function trackUserActivity(phone) {
-    console.log("Tracking activity for:", phone); // Debug log
+    console.log("Tracking activity for:", phone); 
     const { doc, updateDoc, serverTimestamp } = window.firebaseModules;
     try {
         await updateDoc(doc(window.db, 'customers', phone), {
-            lastActive: serverTimestamp() // This creates the missing field
+            lastActive: serverTimestamp() 
         });
         console.log("✅ Success: lastActive updated in DB");
     } catch(e) { 
