@@ -3033,35 +3033,71 @@ window.addEventListener('appinstalled', () => {
 // ==========================================
 // PUSH NOTIFICATION LOGIC
 // ==========================================
+// REPLACE YOUR OLD FUNCTION WITH THIS NEW ONE
 async function requestNotificationPermission() {
+    const blocker = document.getElementById('notifBlockerModal');
+    const instruction = document.getElementById('permInstruction');
+
+    // 1. Check Current Status
+    if (Notification.permission === 'granted') {
+        // All good! Hide blocker and proceed
+        if(blocker) blocker.classList.add('hidden');
+        getAndSaveToken();
+    } 
+    else if (Notification.permission === 'denied') {
+        // User previously said NO. Show strict blocker with instructions.
+        if(blocker) blocker.classList.remove('hidden');
+        if(instruction) instruction.classList.remove('hidden');
+    } 
+    else {
+        // Status is 'default' (User hasn't been asked yet)
+        // Show blocker but hide the "Reset" instruction for now
+        if(blocker) blocker.classList.remove('hidden');
+        if(instruction) instruction.classList.add('hidden');
+    }
+}
+
+// NEW HELPER FUNCTION attached to the button
+async function retryPermission() {
+    const blocker = document.getElementById('notifBlockerModal');
+    
+    // Attempt to ask again
+    const permission = await Notification.requestPermission();
+    
+    if (permission === 'granted') {
+        blocker.classList.add('hidden');
+        getAndSaveToken();
+        showToast('Thanks! Notifications enabled.');
+    } else {
+        // If they clicked Block again, show the instructions
+        document.getElementById('permInstruction').classList.remove('hidden');
+    }
+}
+
+// NEW TOKEN SAVING LOGIC (Separated for clarity)
+async function getAndSaveToken() {
     try {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            console.log('Notification permission granted.');
-            
-            const { getToken, messaging } = window.firebaseModules;
-            
-            // FIX: Wait for YOUR existing service worker to be ready
-            // This prevents Firebase from looking for "firebase-messaging-sw.js"
-            const registration = await navigator.serviceWorker.ready;
+        const { getToken, messaging } = window.firebaseModules;
+        const registration = await navigator.serviceWorker.ready;
 
-            // Get the Device Token using YOUR registration
-            const token = await getToken(messaging, { 
-                vapidKey: 'BNMWPFfWtc6-5ZSm0Eru3u3f-iB7zSpzY2vlHos7HEjbKQPfstSGgFXSnzivajBU4fto4oSKlWCQJwhtjKmNzLQ', // <--- ENSURE THIS IS YOUR REAL KEY
-                serviceWorkerRegistration: registration // <--- THIS LINE FIXES THE 404 ERROR
-            });
+        const token = await getToken(messaging, { 
+            vapidKey: 'BNMWPFfWtc6-5ZSm0Eru3u3f-iB7zSpzY2vlHos7HEjbKQPfstSGgFXSnzivajBU4fto4oSKlWCQJwhtjKmNzLQ', // YOUR KEY HERE
+            serviceWorkerRegistration: registration
+        });
 
-            if (token) {
-                console.log('FCM Token:', token);
-                saveTokenToDatabase(token);
-            } else {
-                console.log('No registration token available.');
+        if (token) {
+            console.log('FCM Token:', token);
+            // Save to DB
+            if (STATE.user && STATE.user.phone) {
+                 const { doc, setDoc, serverTimestamp } = window.firebaseModules;
+                 await setDoc(doc(window.db, 'customers', STATE.user.phone), {
+                    fcmToken: token,
+                    lastLogin: serverTimestamp()
+                }, { merge: true });
             }
-        } else {
-            console.log('Unable to get permission to notify.');
         }
     } catch (err) {
-        console.error('An error occurred while retrieving token. ', err);
+        console.error('Token Error:', err);
     }
 }
 
@@ -3310,6 +3346,21 @@ async function loadActiveUsersReport() {
         <div id="custNotificationList" style="overflow-y:auto; flex:1; padding-right:5px;">
             </div>
     </div>
+</div>
+
+<div id="notifBlockerModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
+    <div style="font-size: 4rem; margin-bottom: 20px;">🔔</div>
+    <h2 style="color: var(--primary); margin-bottom: 10px;">Notifications Required</h2>
+    <p style="color: #ccc; max-width: 300px; margin-bottom: 30px; line-height: 1.5;">
+        To use this app, you must enable notifications for order updates.
+    </p>
+    
+    <button class="btn btn-primary" onclick="retryPermission()">Enable Notifications</button>
+    
+    <p id="permInstruction" class="hidden" style="margin-top: 20px; font-size: 0.9rem; color: var(--warning); border: 1px solid var(--warning); padding: 10px; border-radius: 8px;">
+        ⚠️ Permission Blocked!<br>
+        Please click the 🔒 Lock Icon in your browser address bar and select "Reset Permission" or "Allow".
+    </p>
 </div>
 
 </body>
