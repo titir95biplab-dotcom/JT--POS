@@ -241,9 +241,9 @@ async function trackUserActivity(phone) {
         .pos-left { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
         
         .menu-area { 
-            display: grid; 
-            grid-template-columns: 120px 1fr; 
-            gap: 20px; 
+            display: flex;
+            flex-direction: column;
+            gap: 16px; 
             flex: 1; 
             overflow: hidden; 
             border: 1px solid rgba(255,255,255,0.15); 
@@ -254,23 +254,35 @@ async function trackUserActivity(phone) {
             box-shadow: var(--shadow-md);
         }
         
-        .cat-sidebar { overflow-y: auto; padding-right: 8px; display: flex; flex-direction: column; gap: 10px; }
+        .cat-sidebar { 
+            display: flex;
+            flex-direction: row;
+            gap: 10px; 
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 8px;
+            flex-shrink: 0;
+        }
+        .cat-sidebar::-webkit-scrollbar {
+            height: 6px;
+        }
         .cat-btn { 
-            padding: 14px 8px; 
-            font-size: 0.8rem; 
+            padding: 10px 20px; 
+            font-size: 0.85rem; 
             background: rgba(255,255,255,0.06); 
             border-radius: 12px; 
             text-align: center; 
             cursor: pointer; 
-            word-break: break-word; 
+            white-space: nowrap;
             line-height: 1.3;
             transition: all 0.3s ease;
             border: 2px solid transparent;
             font-weight: 500;
+            flex-shrink: 0;
         }
         .cat-btn:hover { 
             background: rgba(255,255,255,0.1); 
-            transform: translateX(4px);
+            transform: translateY(-2px);
             border-color: rgba(255, 107, 53, 0.3);
         }
         .cat-btn.active { 
@@ -281,7 +293,16 @@ async function trackUserActivity(phone) {
             border-color: var(--primary);
         }
 
-        .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 14px; overflow-y: auto; align-content: start; padding-bottom: 50px; padding-right: 6px; }
+        .item-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 14px; 
+            overflow-y: auto; 
+            align-content: start; 
+            padding-bottom: 20px; 
+            padding-right: 6px;
+            flex: 1;
+        }
         /* Updated Item Card Design */
         .menu-item { 
             background: rgba(255,255,255,0.06); 
@@ -291,7 +312,7 @@ async function trackUserActivity(phone) {
             flex-direction: column; 
             justify-content: space-between; 
             height: 100%; 
-            min-height: 120px;
+            min-height: 130px;
             border: 2px solid rgba(255,255,255,0.1);
             overflow: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -325,23 +346,26 @@ async function trackUserActivity(phone) {
         /* Item Name Limit (prevents overflow) */
         .item-name-clamp {
             font-weight: 600; 
-            font-size: 0.9rem; 
-            line-height: 1.3;
-            padding: 10px 10px 0 10px;
+            font-size: 0.875rem; 
+            line-height: 1.4;
+            padding: 12px 12px 6px 12px;
             
-            /* Logic to cut off text after 3 lines */
+            /* Logic to cut off text after 2 lines */
             display: -webkit-box;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
+            word-break: break-word;
+            height: 2.8em; /* Ensures consistent height: 2 lines × 1.4 line-height */
         }
 
         /* Price Section pinned to bottom */
         .item-price-tag {
             color: var(--primary); 
-            font-weight: bold; 
-            padding: 5px 10px 10px 10px;
+            font-weight: 700; 
+            font-size: 0.95rem;
+            padding: 6px 12px 12px 12px;
             margin-top: auto; /* Pushes to bottom */
         }
 
@@ -370,6 +394,15 @@ async function trackUserActivity(phone) {
             padding: 12px 0; 
             border-bottom: 1px solid rgba(255,255,255,0.08);
             transition: all 0.2s ease;
+            gap: 12px;
+        }
+        .cart-item > div:first-child {
+            flex: 1;
+            min-width: 0; /* Allows text truncation */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.9rem;
         }
         .cart-item:hover {
             background: rgba(255,255,255,0.03);
@@ -437,11 +470,26 @@ async function trackUserActivity(phone) {
             border-radius: var(--radius);
             transition: all 0.3s ease;
             cursor: pointer;
+            overflow: hidden; /* Prevent content overflow */
         }
         .order-card:hover {
             border-color: rgba(255, 107, 53, 0.3);
             transform: translateX(4px);
             box-shadow: var(--shadow-md);
+        }
+        .order-card strong {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 0.95rem;
+            margin-bottom: 6px;
+        }
+        .order-card .text-muted {
+            font-size: 0.85rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .order-status { 
             font-size: 0.7rem; 
@@ -450,6 +498,7 @@ async function trackUserActivity(phone) {
             text-transform: uppercase; 
             font-weight: 700;
             letter-spacing: 0.5px;
+            display: inline-block;
         }
         .status-requested { background: linear-gradient(135deg, var(--info), #2563EB); color: white; }
         .status-pending { background: linear-gradient(135deg, var(--warning), #D97706); color: white; }
@@ -491,6 +540,8 @@ async function trackUserActivity(phone) {
             -webkit-text-fill-color: transparent;
             margin: 12px 0;
             text-shadow: 0 2px 10px rgba(255, 107, 53, 0.3);
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
         .stat-label { 
             font-size: 0.95rem; 
@@ -498,6 +549,8 @@ async function trackUserActivity(phone) {
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 1px;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
 
         /* Install Button */
@@ -526,12 +579,75 @@ async function trackUserActivity(phone) {
         /* Mobile Responsive */
         @media (max-width: 768px) {
             .pos-container { grid-template-columns: 1fr; height: auto; display: block; }
-            .pos-left { height: 60vh; margin-bottom: 20px; }
-            .menu-area { grid-template-columns: 90px 1fr; }
-            .cart-panel { height: auto; }
+            .pos-left { height: 65vh; margin-bottom: 20px; }
+            .menu-area { 
+                padding: 12px;
+            }
+            .cat-sidebar {
+                gap: 8px;
+            }
+            .cat-btn {
+                padding: 8px 16px;
+                font-size: 0.8rem;
+            }
+            .cart-panel { height: auto; min-height: 300px; }
             .header-content h2 { font-size: 1.2rem; }
-            .item-grid { grid-template-columns: repeat(2, 1fr); }
+            .item-grid { 
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .menu-item {
+                min-height: 110px;
+            }
+            .item-name-clamp {
+                font-size: 0.8rem;
+                padding: 10px 10px 4px 10px;
+                line-height: 1.3;
+                height: 2.6em;
+            }
+            .item-price-tag {
+                font-size: 0.85rem;
+                padding: 4px 10px 10px 10px;
+            }
             .grid-4 { grid-template-columns: 1fr 1fr; }
+            
+            /* Mobile card text fixes */
+            .card h2, .card h3 { 
+                font-size: 1.2rem;
+                word-break: break-word;
+            }
+            .stat-value {
+                font-size: 2rem;
+            }
+            .stat-label {
+                font-size: 0.8rem;
+            }
+            .order-card strong {
+                font-size: 0.9rem;
+            }
+            .cart-item > div:first-child {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Tablet Responsive */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .item-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .pos-container {
+                grid-template-columns: 1fr 320px;
+            }
+            .item-name-clamp {
+                font-size: 0.85rem;
+            }
+        }
+
+        /* Large Desktop */
+        @media (min-width: 1400px) {
+            .item-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
         }
 
         /* Custom Scrollbar */
@@ -569,6 +685,24 @@ async function trackUserActivity(phone) {
         }
         .fade-in {
             animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Text Overflow Prevention Utilities */
+        .text-ellipsis {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .text-wrap {
+            word-wrap: break-word;
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+        
+        /* Ensure all text in cards doesn't overflow */
+        .card p, .card div {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
 /* KOT PRINT STYLES (2-inch / 58mm) */
 @media print {
