@@ -30,7 +30,7 @@ messaging.onBackgroundMessage((payload) => {
 
 
 // --- STANDARD PWA CACHING (Keep your existing logic) ---
-const CACHE_NAME = 'jt-pos-v24';
+const CACHE_NAME = 'jt-pos-v25';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -62,4 +62,5 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((response) => response || fetch(event.request))
   );
+
 });
