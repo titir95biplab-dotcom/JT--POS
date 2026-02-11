@@ -286,28 +286,31 @@ async function trackUserActivity(phone) {
         .cat-sidebar { 
             display: flex;
             flex-direction: row;
-            gap: 10px; 
+            gap: 12px; 
             overflow-x: auto;
             overflow-y: hidden;
-            padding-bottom: 8px;
+            padding-bottom: 10px;
             flex-shrink: 0;
         }
         .cat-sidebar::-webkit-scrollbar {
             height: 6px;
         }
         .cat-btn { 
-            padding: 10px 20px; 
-            font-size: 0.85rem; 
+            padding: 12px 24px; 
+            font-size: 0.95rem; 
             background: rgba(255,255,255,0.06); 
             border-radius: 12px; 
             text-align: center; 
             cursor: pointer; 
             white-space: nowrap;
-            line-height: 1.3;
+            line-height: 1.4;
             transition: all 0.3s ease;
             border: 2px solid transparent;
-            font-weight: 500;
+            font-weight: 600;
             flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .cat-btn:hover { 
             background: rgba(255,255,255,0.1); 
@@ -325,14 +328,16 @@ async function trackUserActivity(phone) {
         .item-grid { 
             display: grid; 
             grid-template-columns: repeat(3, 1fr); 
-            gap: 14px; 
+            grid-template-rows: repeat(3, 1fr);
+            gap: 16px; 
             overflow-y: auto; 
             align-content: start; 
             padding-bottom: 20px; 
             padding-right: 6px;
             flex: 1;
+            height: 100%;
         }
-        /* Updated Item Card Design */
+        /* Updated Item Card Design - Larger Blocks */
         .menu-item { 
             background: rgba(255,255,255,0.06); 
             border-radius: var(--radius); 
@@ -341,7 +346,7 @@ async function trackUserActivity(phone) {
             flex-direction: column; 
             justify-content: space-between; 
             height: 100%; 
-            min-height: 95px;
+            min-height: 140px;
             aspect-ratio: 1 / 1;
             border: 2px solid rgba(255,255,255,0.1);
             overflow: hidden;
@@ -355,7 +360,7 @@ async function trackUserActivity(phone) {
             top: 0;
             left: 0;
             right: 0;
-            height: 2px;
+            height: 3px;
             background: linear-gradient(90deg, var(--primary), var(--primary-light));
             transform: scaleX(0);
             transition: transform 0.3s ease;
@@ -373,30 +378,34 @@ async function trackUserActivity(phone) {
             transform: translateY(-2px) scale(0.98);
         }
 
-        /* Item Name Limit (prevents overflow) */
+        /* Item Name Limit - Larger Text */
         .item-name-clamp {
-            font-weight: 600; 
-            font-size: 0.8rem; 
-            line-height: 1.3;
-            padding: 8px 8px 4px 8px;
+            font-weight: 700; 
+            font-size: 1.05rem; 
+            line-height: 1.4;
+            padding: 14px 14px 8px 14px;
             
-            /* Logic to cut off text after 2 lines */
+            /* Logic to cut off text after 3 lines */
             display: -webkit-box;
-            -webkit-line-clamp: 2;
+            -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
             word-break: break-word;
             flex: 1;
+            text-align: center;
         }
 
-        /* Price Section pinned to bottom */
+        /* Price Section - Larger */
         .item-price-tag {
             color: var(--primary); 
-            font-weight: 700; 
-            font-size: 0.85rem;
-            padding: 4px 8px 8px 8px;
-            margin-top: auto; /* Pushes to bottom */
+            font-weight: 800; 
+            font-size: 1.15rem;
+            padding: 8px 14px 14px 14px;
+            margin-top: auto;
+            text-align: center;
+            background: rgba(255, 107, 53, 0.1);
+            border-top: 1px solid rgba(255, 107, 53, 0.2);
         }
 
         /* Cart Panel */
@@ -655,29 +664,30 @@ async function trackUserActivity(phone) {
             /* Items Grid - Mobile */
             .item-grid { 
                 grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
+                grid-template-rows: auto;
+                gap: 12px;
                 order: 2;
                 padding-bottom: 20px;
             }
 
             /* Menu Item Cards - Mobile Enhanced */
             .menu-item {
-                min-height: 90px;
+                min-height: 120px;
                 aspect-ratio: 1 / 1;
                 padding: 2px;
             }
             .item-name-clamp {
-                font-size: 0.75rem;
-                font-weight: 600;
-                padding: 8px 8px 4px 8px;
-                line-height: 1.25;
-                -webkit-line-clamp: 2;
+                font-size: 0.9rem;
+                font-weight: 700;
+                padding: 12px 10px 6px 10px;
+                line-height: 1.3;
+                -webkit-line-clamp: 3;
                 flex: 1;
             }
             .item-price-tag {
-                font-size: 0.8rem;
-                font-weight: 700;
-                padding: 4px 8px 8px 8px;
+                font-size: 0.95rem;
+                font-weight: 800;
+                padding: 6px 10px 12px 10px;
             }
 
             /* Cart Items - Mobile */
@@ -876,20 +886,22 @@ async function trackUserActivity(phone) {
         @media (max-width: 400px) {
             .item-grid {
                 grid-template-columns: repeat(2, 1fr);
-                gap: 8px;
+                grid-template-rows: auto;
+                gap: 10px;
             }
             .menu-item {
-                min-height: 85px;
+                min-height: 110px;
                 aspect-ratio: 1 / 1;
             }
             .item-name-clamp {
-                font-size: 0.7rem;
-                padding: 6px 6px 3px 6px;
-                line-height: 1.2;
+                font-size: 0.8rem;
+                padding: 10px 8px 5px 8px;
+                line-height: 1.25;
+                -webkit-line-clamp: 3;
             }
             .item-price-tag {
-                font-size: 0.75rem;
-                padding: 3px 6px 6px 6px;
+                font-size: 0.85rem;
+                padding: 5px 8px 10px 8px;
             }
             .tabs {
                 gap: 4px;
@@ -905,8 +917,8 @@ async function trackUserActivity(phone) {
                 grid-template-columns: 1fr;
             }
             .cat-btn {
-                padding: 8px 14px;
-                font-size: 0.8rem;
+                padding: 10px 18px;
+                font-size: 0.85rem;
             }
             h1 { font-size: 1.5rem; }
             h2 { font-size: 1.25rem; }
@@ -917,20 +929,22 @@ async function trackUserActivity(phone) {
         @media (min-width: 401px) and (max-width: 600px) {
             .item-grid {
                 grid-template-columns: repeat(3, 1fr);
-                gap: 10px;
+                grid-template-rows: auto;
+                gap: 12px;
             }
             .menu-item {
-                min-height: 90px;
+                min-height: 115px;
                 aspect-ratio: 1 / 1;
             }
             .item-name-clamp {
-                font-size: 0.75rem;
-                padding: 7px 7px 4px 7px;
-                line-height: 1.25;
+                font-size: 0.85rem;
+                padding: 11px 9px 6px 9px;
+                line-height: 1.3;
+                -webkit-line-clamp: 3;
             }
             .item-price-tag {
-                font-size: 0.8rem;
-                padding: 4px 7px 7px 7px;
+                font-size: 0.9rem;
+                padding: 6px 9px 11px 9px;
             }
         }
 
@@ -941,49 +955,54 @@ async function trackUserActivity(phone) {
             }
             .item-grid {
                 grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(3, 1fr);
             }
             .menu-item {
-                min-height: 95px;
+                min-height: 125px;
                 aspect-ratio: 1 / 1;
             }
             .item-name-clamp {
-                font-size: 0.8rem;
-                padding: 8px 8px 4px 8px;
+                font-size: 0.95rem;
+                padding: 12px 10px 6px 10px;
+                -webkit-line-clamp: 3;
             }
             .item-price-tag {
-                font-size: 0.85rem;
+                font-size: 1rem;
+                padding: 6px 10px 12px 10px;
             }
         }
 
         /* Tablet Responsive */
         @media (min-width: 769px) and (max-width: 1024px) {
             .item-grid {
-                grid-template-columns: repeat(4, 1fr);
-                gap: 12px;
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(3, 1fr);
+                gap: 14px;
             }
             .pos-container {
-                grid-template-columns: 1fr 280px;
+                grid-template-columns: 1fr 300px;
                 gap: 15px;
             }
             .menu-area {
                 padding: 14px;
             }
             .cat-btn {
-                padding: 10px 16px;
-                font-size: 0.85rem;
+                padding: 11px 20px;
+                font-size: 0.9rem;
             }
             .menu-item {
-                min-height: 100px;
+                min-height: 135px;
                 aspect-ratio: 1 / 1;
             }
             .item-name-clamp {
-                font-size: 0.8rem;
-                padding: 9px;
-                line-height: 1.3;
+                font-size: 1rem;
+                padding: 13px 12px 7px 12px;
+                line-height: 1.4;
+                -webkit-line-clamp: 3;
             }
             .item-price-tag {
-                font-size: 0.85rem;
-                padding: 4px 9px 9px 9px;
+                font-size: 1.1rem;
+                padding: 7px 12px 13px 12px;
             }
             .cart-panel {
                 padding: 18px;
@@ -1003,10 +1022,17 @@ async function trackUserActivity(phone) {
         /* Large Desktop */
         @media (min-width: 1400px) {
             .item-grid {
-                grid-template-columns: repeat(5, 1fr);
+                grid-template-columns: repeat(4, 1fr);
+                grid-template-rows: repeat(3, 1fr);
             }
             .menu-item {
-                min-height: 105px;
+                min-height: 145px;
+            }
+            .item-name-clamp {
+                font-size: 1.1rem;
+            }
+            .item-price-tag {
+                font-size: 1.2rem;
             }
         }
 
