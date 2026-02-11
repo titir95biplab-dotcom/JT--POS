@@ -4,38 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Juice Therapy - Smart POS</title>
-    
-    <!-- Primary Meta Tags -->
-    <meta name="title" content="Juice Therapy - Smart POS">
-    <meta name="description" content="Smart Point of Sale system for Juice Therapy">
-    
-    <!-- Theme Colors -->
     <meta name="theme-color" content="#FF6B35">
-    <meta name="msapplication-TileColor" content="#FF6B35">
-    
-    <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    
-    <!-- Standard Favicon -->
     <link rel="icon" href="logo.png" type="image/png">
-    <link rel="shortcut icon" href="logo.png" type="image/png">
-    
-    <!-- Apple-Specific Meta Tags for PWA -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Juice Therapy">
-    
-    <!-- Apple Touch Icons (Required for iOS Home Screen) -->
-    <link rel="apple-touch-icon" href="logo.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="logo.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="logo.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="logo.png">
-    
-    <!-- Apple Splash Screens (Optional but recommended) -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    
-    <!-- iOS Safari Pinned Tab Icon -->
-    <link rel="mask-icon" href="logo.png" color="#FF6B35">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -89,31 +60,22 @@ async function trackUserActivity(phone) {
     <style>
         :root {
             --primary: #FF6B35;
-            --primary-light: #FF8555;
-            --primary-dark: #E85525;
             --secondary: #1A1A2E;
-            --bg: #0A0E27;
-            --bg-gradient: linear-gradient(135deg, #0A0E27 0%, #16213E 100%);
-            --surface: #1E2139;
-            --surface-hover: #252A45;
+            --bg: #121212;
+            --surface: #1E1E2E;
             --text: #FFFFFF;
-            --text-muted: #9CA3AF;
-            --success: #10B981;
-            --danger: #EF4444;
-            --warning: #F59E0B;
-            --info: #3B82F6;
-            --radius: 16px;
-            --radius-lg: 24px;
+            --text-muted: #A0A0A0;
+            --success: #4CAF50;
+            --danger: #FF5252;
+            --warning: #FFC107;
+            --info: #2196F3;
+            --radius: 12px;
             --spacing: 16px;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
-            --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
-            --shadow-glow: 0 0 20px rgba(255, 107, 53, 0.3);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Manrope', sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        body { background: var(--bg-gradient); color: var(--text); overflow-x: hidden; padding-bottom: 60px; min-height: 100vh; }
+        body { background: var(--bg); color: var(--text); overflow-x: hidden; padding-bottom: 60px; }
         
         /* Utils */
         .hidden { display: none !important; }
@@ -131,136 +93,34 @@ async function trackUserActivity(phone) {
 
         /* Components */
         .btn {
-            padding: 14px 24px; border: none; border-radius: 12px; font-weight: 600; cursor: pointer; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 12px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
             font-size: 0.95rem; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            box-shadow: var(--shadow-sm);
-            position: relative;
-            overflow: hidden;
         }
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0;
-            height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            transform: translate(-50%, -50%);
-            transition: width 0.6s, height 0.6s;
-        }
-        .btn:active::before {
-            width: 300px;
-            height: 300px;
-        }
-        .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-        .btn:active { transform: translateY(0); }
-        .btn-sm { padding: 8px 16px; font-size: 0.85rem; }
-        .btn-primary { 
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); 
-            color: white; 
-            box-shadow: var(--shadow-glow);
-        }
-        .btn-primary:hover { box-shadow: 0 0 30px rgba(255, 107, 53, 0.5); }
-        .btn-secondary { background: var(--surface); color: white; border: 1px solid rgba(255,255,255,0.1); }
-        .btn-secondary:hover { background: var(--surface-hover); border-color: rgba(255,255,255,0.2); }
-        .btn-danger { background: linear-gradient(135deg, var(--danger) 0%, #DC2626 100%); color: white; }
-        .btn-success { background: linear-gradient(135deg, var(--success) 0%, #059669 100%); color: white; }
-        .btn-warning { background: linear-gradient(135deg, var(--warning) 0%, #D97706 100%); color: white; }
-        .btn-info { background: linear-gradient(135deg, var(--info) 0%, #2563EB 100%); color: white; }
+        .btn:active { transform: scale(0.98); }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-secondary { background: rgba(255,255,255,0.1); color: white; }
+        .btn-danger { background: rgba(255, 82, 82, 0.2); color: var(--danger); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-warning { background: var(--warning); color: black; }
+        .btn-info { background: var(--info); color: white; }
         
         .input {
-            width: 100%; padding: 14px 16px; background: rgba(255,255,255,0.05); 
-            border: 2px solid rgba(255,255,255,0.1);
-            border-radius: 12px; color: white; font-size: 1rem; margin-bottom: 12px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; color: white; font-size: 1rem; margin-bottom: 10px;
         }
-        .input:focus { 
-            outline: none; 
-            border-color: var(--primary); 
-            background: rgba(255,255,255,0.08);
-            box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
-        }
-        .input::placeholder { color: var(--text-muted); }
+        .input:focus { outline: none; border-color: var(--primary); }
 
-        .card { 
-            background: rgba(30, 33, 57, 0.6); 
-            backdrop-filter: blur(20px);
-            border-radius: var(--radius-lg); 
-            padding: calc(var(--spacing) * 1.25); 
-            margin-bottom: var(--spacing); 
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: var(--shadow-md);
-            transition: all 0.3s ease;
-        }
-        .card:hover { 
-            border-color: rgba(255,255,255,0.15);
-            box-shadow: var(--shadow-lg);
-            transform: translateY(-2px);
-        }
+        .card { background: var(--surface); border-radius: var(--radius); padding: var(--spacing); margin-bottom: var(--spacing); }
 
         /* Login Screen */
-        .login-container { 
-            min-height: 100vh; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            padding: 20px;
-            background: var(--bg-gradient);
-            position: relative;
-        }
-        .login-container::before {
-            content: '';
-            position: absolute;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(255, 107, 53, 0.15) 0%, transparent 70%);
-            border-radius: 50%;
-            filter: blur(60px);
-            animation: float 6s ease-in-out infinite;
-        }
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0); }
-            50% { transform: translate(30px, -30px); }
-        }
-        .login-box { 
-            width: 100%; 
-            max-width: 420px; 
-            text-align: center;
-            position: relative;
-            z-index: 1;
-        }
-        .logo { 
-            width: 140px; 
-            margin-bottom: 30px;
-            filter: drop-shadow(0 4px 12px rgba(255, 107, 53, 0.3));
-            animation: pulse 2s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
+        .login-container { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-box { width: 100%; max-width: 400px; text-align: center; }
+        .logo { width: 120px; margin-bottom: 20px; }
 
         /* Header */
-        header { 
-            background: rgba(30, 33, 57, 0.8); 
-            backdrop-filter: blur(20px);
-            padding: 18px 20px; 
-            position: sticky; 
-            top: 0; 
-            z-index: 50; 
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
-        }
-        .header-content { 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-        }
+        header { background: var(--surface); padding: 15px; position: sticky; top: 0; z-index: 50; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .header-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
 
         /* Layouts */
         .app-layout { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
@@ -269,119 +129,41 @@ async function trackUserActivity(phone) {
         .pos-container { display: grid; grid-template-columns: 1fr 350px; gap: 20px; height: calc(100vh - 140px); }
         .pos-left { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
         
-        .menu-area { 
-            display: flex;
-            flex-direction: column;
-            gap: 16px; 
-            flex: 1; 
-            overflow: hidden; 
-            border: 1px solid rgba(255,255,255,0.15); 
-            border-radius: var(--radius-lg); 
-            padding: 16px; 
-            background: rgba(30, 33, 57, 0.4);
-            backdrop-filter: blur(10px);
-            box-shadow: var(--shadow-md);
-        }
+        .menu-area { display: grid; grid-template-columns: 110px 1fr; gap: 15px; flex: 1; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 10px; background: rgba(255,255,255,0.02); }
         
-        .cat-sidebar { 
-            display: flex;
-            flex-direction: row;
-            gap: 12px; 
-            overflow-x: auto;
-            overflow-y: hidden;
-            padding-bottom: 10px;
-            flex-shrink: 0;
-        }
-        .cat-sidebar::-webkit-scrollbar {
-            height: 6px;
-        }
+        .cat-sidebar { overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 8px; }
         .cat-btn { 
-            padding: 12px 24px; 
-            font-size: 0.95rem; 
-            background: rgba(255,255,255,0.06); 
-            border-radius: 12px; 
-            text-align: center; 
-            cursor: pointer; 
-            white-space: nowrap;
-            line-height: 1.4;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-            font-weight: 600;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            padding: 10px 5px; font-size: 0.75rem; background: rgba(255,255,255,0.05); 
+            border-radius: 6px; text-align: center; cursor: pointer; word-break: break-word; line-height: 1.2;
         }
-        .cat-btn:hover { 
-            background: rgba(255,255,255,0.1); 
-            transform: translateY(-2px);
-            border-color: rgba(255, 107, 53, 0.3);
-        }
-        .cat-btn.active { 
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); 
-            color: white; 
-            font-weight: 700;
-            box-shadow: var(--shadow-glow);
-            border-color: var(--primary);
-        }
+        .cat-btn.active { background: var(--primary); color: white; font-weight: bold; }
 
-        .item-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            grid-auto-rows: minmax(140px, auto);
-            gap: 16px; 
-            overflow-y: auto; 
-            align-content: start; 
-            padding-bottom: 20px; 
-            padding-right: 6px;
-            flex: 1;
-        }
-        /* Updated Item Card Design - Larger Blocks */
+        .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; overflow-y: auto; align-content: start; padding-bottom: 50px; }
+        /* Updated Item Card Design */
         .menu-item { 
-            background: rgba(255,255,255,0.06); 
-            border-radius: var(--radius); 
+            background: rgba(255,255,255,0.05); 
+            border-radius: 12px; 
             cursor: pointer; 
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
-            min-height: 140px;
-            aspect-ratio: 1 / 1;
-            border: 2px solid rgba(255,255,255,0.1);
-            overflow: hidden;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            height: 100%; 
+            min-height: 110px; /* Increased height for better spacing */
+            border: 1px solid transparent;
+            overflow: hidden; /* Keeps everything inside the box */
+            transition: transform 0.2s, background 0.2s;
             position: relative;
-            backdrop-filter: blur(10px);
         }
-        .menu-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--primary-light));
-            transform: scaleX(0);
-            transition: transform 0.3s ease;
-        }
-        .menu-item:hover::before {
-            transform: scaleX(1);
-        }
-        .menu-item:hover {
-            transform: translateY(-4px);
-            border-color: rgba(255, 107, 53, 0.4);
-            background: rgba(255,255,255,0.1);
-            box-shadow: 0 8px 24px rgba(255, 107, 53, 0.2);
-        }
-        .menu-item:active {
-            transform: translateY(-2px) scale(0.98);
-        }
+        
+        .menu-item:active { transform: scale(0.96); }
+        .menu-item:hover { border-color: var(--primary); background: rgba(255,255,255,0.08); }
 
-        /* Item Name Limit - Larger Text */
+        /* Item Name Limit (prevents overflow) */
         .item-name-clamp {
-            font-weight: 700; 
-            font-size: 1.05rem; 
-            line-height: 1.4;
-            padding: 14px 14px 8px 14px;
+            font-weight: 600; 
+            font-size: 0.9rem; 
+            line-height: 1.3;
+            padding: 10px 10px 0 10px;
             
             /* Logic to cut off text after 3 lines */
             display: -webkit-box;
@@ -389,736 +171,56 @@ async function trackUserActivity(phone) {
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
-            word-break: break-word;
-            flex: 1;
-            text-align: center;
         }
 
-        /* Price Section - Larger */
+        /* Price Section pinned to bottom */
         .item-price-tag {
             color: var(--primary); 
-            font-weight: 800; 
-            font-size: 1.15rem;
-            padding: 8px 14px 14px 14px;
-            margin-top: auto;
-            text-align: center;
-            background: rgba(255, 107, 53, 0.1);
-            border-top: 1px solid rgba(255, 107, 53, 0.2);
+            font-weight: bold; 
+            padding: 5px 10px 10px 10px;
+            margin-top: auto; /* Pushes to bottom */
         }
 
         /* Cart Panel */
-        .cart-panel { 
-            background: rgba(30, 33, 57, 0.6); 
-            backdrop-filter: blur(20px);
-            border-radius: var(--radius-lg); 
-            padding: 20px; 
-            display: flex; 
-            flex-direction: column; 
-            height: 100%;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: var(--shadow-md);
-        }
-        .cart-items { 
-            flex: 1; 
-            overflow-y: auto; 
-            margin: 15px 0; 
-            padding-right: 8px;
-        }
-        .cart-item { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 12px 0; 
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            transition: all 0.2s ease;
-            gap: 12px;
-        }
-        .cart-item > div:first-child {
-            flex: 1;
-            min-width: 0; /* Allows text truncation */
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 0.9rem;
-        }
-        .cart-item:hover {
-            background: rgba(255,255,255,0.03);
-            padding-left: 8px;
-            margin: 0 -8px;
-        }
-        .qty-controls { 
-            display: flex; 
-            align-items: center; 
-            gap: 10px; 
-            background: rgba(255,255,255,0.1); 
-            border-radius: 8px; 
-            padding: 4px 6px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .qty-btn { 
-            width: 28px; 
-            height: 28px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            cursor: pointer; 
-            font-weight: bold;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-        }
-        .qty-btn:hover {
-            background: rgba(255, 107, 53, 0.2);
-            color: var(--primary);
-        }
-        .qty-btn:active {
-            transform: scale(0.9);
-        }
+        .cart-panel { background: var(--surface); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; height: 100%; }
+        .cart-items { flex: 1; overflow-y: auto; margin: 10px 0; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .qty-controls { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; padding: 2px; }
+        .qty-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; }
 
         /* Tabs */
-        .tabs { 
-            display: flex; 
-            gap: 12px; 
-            margin-bottom: 20px; 
-            overflow-x: auto; 
-            padding-bottom: 8px;
-            padding: 4px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-        }
-        .tab-btn { 
-            flex: 1; 
-            white-space: nowrap;
-            transition: all 0.3s ease;
-            border-radius: 8px;
-        }
-        .tab-btn.active { 
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-            box-shadow: var(--shadow-glow);
-            transform: translateY(-2px);
-        }
+        .tabs { display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { flex: 1; white-space: nowrap; }
+        .tab-btn.active { background: var(--primary); }
 
         /* Order Cards */
-        .order-card { 
-            padding: 18px; 
-            background: rgba(30, 33, 57, 0.5); 
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1); 
-            margin-bottom: 14px; 
-            border-radius: var(--radius);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            overflow: hidden; /* Prevent content overflow */
-        }
-        .order-card:hover {
-            border-color: rgba(255, 107, 53, 0.3);
-            transform: translateX(4px);
-            box-shadow: var(--shadow-md);
-        }
-        .order-card strong {
-            display: block;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 0.95rem;
-            margin-bottom: 6px;
-        }
-        .order-card .text-muted {
-            font-size: 0.85rem;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .order-status { 
-            font-size: 0.7rem; 
-            padding: 4px 10px; 
-            border-radius: 12px; 
-            text-transform: uppercase; 
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            display: inline-block;
-        }
-        .status-requested { background: linear-gradient(135deg, var(--info), #2563EB); color: white; }
-        .status-pending { background: linear-gradient(135deg, var(--warning), #D97706); color: white; }
-        .status-completed { background: linear-gradient(135deg, var(--success), #059669); color: white; }
-        .status-cancelled { background: linear-gradient(135deg, var(--danger), #DC2626); color: white; }
+        .order-card { padding: 15px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; border-radius: 8px; }
+        .order-status { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
+        .status-requested { background: var(--info); color: white; }
+        .status-pending { background: var(--warning); color: black; }
+        .status-completed { background: var(--success); color: white; }
+        .status-cancelled { background: var(--danger); color: white; }
 
         /* Admin Dashboard Cards */
-        .stat-card { 
-            background: rgba(30, 33, 57, 0.6); 
-            backdrop-filter: blur(20px);
-            padding: 24px; 
-            border-radius: var(--radius-lg); 
-            text-align: center; 
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: var(--shadow-md);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--primary-light));
-        }
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-            border-color: rgba(255, 107, 53, 0.3);
-        }
-        .stat-value { 
-            font-size: 2.5rem; 
-            font-weight: 800; 
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin: 12px 0;
-            text-shadow: 0 2px 10px rgba(255, 107, 53, 0.3);
-            word-break: break-word;
-            overflow-wrap: break-word;
-        }
-        .stat-label { 
-            font-size: 0.95rem; 
-            color: var(--text-muted);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            word-break: break-word;
-            overflow-wrap: break-word;
-        }
+        .stat-card { background: var(--surface); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.1); }
+        .stat-value { font-size: 2rem; font-weight: bold; color: var(--primary); margin: 10px 0; }
+        .stat-label { font-size: 0.9rem; color: var(--text-muted); }
 
         /* Install Button */
         #installBtn { position: fixed; bottom: 20px; right: 20px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.5); display: none; }
 
         /* Notification */
-        #notification { 
-            position: fixed; 
-            top: 80px; 
-            right: 20px; 
-            background: rgba(30, 33, 57, 0.95); 
-            backdrop-filter: blur(20px);
-            padding: 16px 28px; 
-            border-radius: var(--radius); 
-            z-index: 1000; 
-            transform: translateX(150%); 
-            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-            box-shadow: var(--shadow-lg);
-            border: 1px solid rgba(255,255,255,0.15);
-            min-width: 250px;
-        }
-        #notification.show {
-            transform: translateX(0);
-        }
+        #notification { position: fixed; top: 20px; right: 20px; background: #333; padding: 15px 25px; border-radius: 8px; z-index: 1000; transform: translateX(150%); transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
-            /* POS Layout Restructure for Mobile */
-            .pos-container { 
-                grid-template-columns: 1fr; 
-                height: auto; 
-                display: flex;
-                flex-direction: column;
-                gap: 15px;
-            }
-            .pos-left { 
-                height: 75vh; 
-                margin-bottom: 0;
-                order: 1;
-            }
-            .cart-panel { 
-                height: auto; 
-                min-height: 350px;
-                order: 2;
-                padding: 16px;
-            }
-
-            /* Menu Area - Mobile Optimized */
-            .menu-area { 
-                padding: 12px;
-                gap: 12px;
-                flex-direction: column;
-            }
-
-            /* Categories - Horizontal Scroll on Mobile */
-            .cat-sidebar {
-                gap: 8px;
-                flex-direction: row;
-                overflow-x: auto;
-                overflow-y: hidden;
-                padding-bottom: 8px;
-                padding-right: 0;
-                order: 1;
-            }
-            .cat-btn {
-                padding: 10px 20px;
-                font-size: 0.9rem;
-                font-weight: 700;
-                min-width: fit-content;
-            }
-
-            /* Items Grid - Mobile 3x3 FULL SPACE */
-            .item-grid { 
-                grid-template-columns: repeat(3, 1fr);
-                grid-auto-rows: minmax(100px, auto);
-                gap: 8px;
-                order: 2;
-                padding-bottom: 10px;
-                padding-right: 0;
-            }
-
-            /* Menu Item Cards - Mobile 3x3 Grid */
-            .menu-item {
-                min-height: 0;
-                aspect-ratio: 1 / 1;
-                padding: 0;
-            }
-            .item-name-clamp {
-                font-size: 0.75rem;
-                font-weight: 700;
-                padding: 8px 6px 4px 6px;
-                line-height: 1.2;
-                -webkit-line-clamp: 3;
-                flex: 1;
-            }
-            .item-price-tag {
-                font-size: 0.8rem;
-                font-weight: 800;
-                padding: 4px 6px 8px 6px;
-            }
-
-            /* Cart Items - Mobile */
-            .cart-items {
-                margin: 12px 0;
-            }
-            .cart-item {
-                padding: 10px 0;
-                gap: 10px;
-            }
-            .cart-item > div:first-child {
-                font-size: 0.875rem;
-                font-weight: 500;
-            }
-            .qty-controls {
-                gap: 8px;
-                padding: 3px 5px;
-            }
-            .qty-btn {
-                width: 26px;
-                height: 26px;
-                font-size: 0.9rem;
-            }
-
-            /* Header - Mobile */
-            .header-content h2 { 
-                font-size: 1.15rem;
-                font-weight: 700;
-            }
-
-            /* Admin Dashboard - Mobile Optimized */
-            .tabs {
-                gap: 6px;
-                padding: 6px;
-                flex-wrap: nowrap;
-                overflow-x: auto;
-                margin-bottom: 15px;
-            }
-            .tab-btn {
-                padding: 10px 14px;
-                font-size: 0.8rem;
-                white-space: nowrap;
-                min-width: fit-content;
-                flex-shrink: 0;
-                font-weight: 600;
-            }
-
-            /* Cards - Mobile Padding */
-            .card {
-                padding: 16px;
-                margin-bottom: 12px;
-            }
-            .card h2, .card h3 { 
-                font-size: 1.25rem;
-                font-weight: 700;
-                word-break: break-word;
-                margin-bottom: 12px;
-            }
-            .card h4 {
-                font-size: 1.05rem;
-                margin-bottom: 8px;
-            }
-            .card p {
-                font-size: 0.9rem;
-                line-height: 1.5;
-                padding: 2px 0;
-            }
-            .card label {
-                font-size: 0.85rem;
-                margin-bottom: 6px;
-                display: block;
-            }
-
-            /* Stat Cards - Mobile */
-            .stat-card {
-                padding: 18px 14px;
-                min-height: 110px;
-            }
-            .stat-value {
-                font-size: 1.8rem;
-                margin: 8px 0;
-            }
-            .stat-label {
-                font-size: 0.75rem;
-                letter-spacing: 0.5px;
-            }
-
-            /* Order Cards - Mobile */
-            .order-card {
-                padding: 14px;
-                margin-bottom: 12px;
-            }
-            .order-card strong {
-                font-size: 0.925rem;
-                margin-bottom: 6px;
-            }
-            .order-card .text-muted {
-                font-size: 0.825rem;
-            }
-            .order-status {
-                font-size: 0.65rem;
-                padding: 5px 10px;
-            }
-
-            /* Grid Layouts - Mobile */
-            .grid-2 { 
-                grid-template-columns: 1fr;
-                gap: 12px;
-            }
-            .grid-4 { 
-                grid-template-columns: 1fr 1fr;
-                gap: 10px;
-            }
-
-            /* Buttons - Mobile */
-            .btn {
-                padding: 12px 20px;
-                font-size: 0.9rem;
-            }
-            .btn-sm {
-                padding: 8px 14px;
-                font-size: 0.8rem;
-            }
-
-            /* Input Fields - Mobile */
-            .input {
-                padding: 12px 14px;
-                font-size: 0.95rem;
-                margin-bottom: 10px;
-            }
-
-            /* App Layout - Mobile */
-            .app-layout {
-                padding: 0 12px;
-                margin: 15px auto;
-            }
-
-            /* Login - Mobile */
-            .login-box {
-                padding: 0 10px;
-            }
-            .logo {
-                width: 110px;
-            }
-
-            /* Modals - Mobile */
-            .card[style*="max-width: 420px"],
-            .card[style*="max-width: 400px"] {
-                width: 95% !important;
-                max-width: 95% !important;
-                padding: 18px !important;
-            }
-
-            /* Notification Toast - Mobile */
-            #notification {
-                right: 10px;
-                left: 10px;
-                top: 70px;
-                min-width: auto;
-                padding: 14px 18px;
-            }
-
-            /* Customer Panel Mobile Specific */
-            #cust-view-menu .pos-container {
-                height: auto !important;
-                min-height: 75vh;
-            }
-
-            /* Search Input - Mobile */
-            input[placeholder*="Search"] {
-                font-size: 1rem;
-                padding: 14px 16px;
-            }
-
-            /* Better touch targets for mobile */
-            .btn, .cat-btn, .menu-item, .qty-btn {
-                -webkit-tap-highlight-color: rgba(255, 107, 53, 0.2);
-            }
-
-            /* Improved spacing for better readability */
-            h1 { font-size: 1.75rem; margin-bottom: 12px; }
-            h2 { font-size: 1.4rem; margin-bottom: 10px; }
-            h3 { font-size: 1.15rem; margin-bottom: 8px; }
-            h4 { font-size: 1rem; margin-bottom: 6px; }
-
-            /* Better form element visibility */
-            select.input {
-                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23fff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
-                background-repeat: no-repeat;
-                background-position: right 12px center;
-                padding-right: 36px;
-            }
-        }
-
-        /* Small Mobile Phones (<400px) */
-        @media (max-width: 400px) {
-            .pos-left {
-                height: 70vh;
-            }
-            .item-grid {
-                grid-template-columns: repeat(3, 1fr);
-                grid-auto-rows: minmax(90px, auto);
-                gap: 6px;
-            }
-            .menu-item {
-                min-height: 0;
-                aspect-ratio: 1 / 1;
-            }
-            .item-name-clamp {
-                font-size: 0.7rem;
-                padding: 6px 5px 3px 5px;
-                line-height: 1.15;
-                -webkit-line-clamp: 2;
-            }
-            .item-price-tag {
-                font-size: 0.75rem;
-                padding: 3px 5px 6px 5px;
-            }
-            .cat-btn {
-                padding: 8px 16px;
-                font-size: 0.85rem;
-            }
-            .tabs {
-                gap: 4px;
-            }
-            .tab-btn {
-                padding: 8px 10px;
-                font-size: 0.75rem;
-            }
-            .stat-value {
-                font-size: 1.5rem;
-            }
-            .grid-4 {
-                grid-template-columns: 1fr;
-            }
-            h1 { font-size: 1.5rem; }
-            h2 { font-size: 1.25rem; }
-            h3 { font-size: 1.1rem; }
-        }
-
-        /* Medium Mobile (401px-600px) */
-        @media (min-width: 401px) and (max-width: 600px) {
-            .pos-left {
-                height: 75vh;
-            }
-            .item-grid {
-                grid-template-columns: repeat(3, 1fr);
-                grid-auto-rows: minmax(100px, auto);
-                gap: 8px;
-            }
-            .menu-item {
-                min-height: 0;
-                aspect-ratio: 1 / 1;
-            }
-            .item-name-clamp {
-                font-size: 0.75rem;
-                padding: 8px 6px 4px 6px;
-                line-height: 1.2;
-                -webkit-line-clamp: 3;
-            }
-            .item-price-tag {
-                font-size: 0.8rem;
-                padding: 4px 6px 8px 6px;
-            }
-        }
-
-        /* Large Mobile (601px-768px) */
-        @media (min-width: 601px) and (max-width: 768px) {
-            .pos-left {
-                height: 75vh;
-            }
-            .item-grid {
-                grid-template-columns: repeat(3, 1fr);
-                grid-auto-rows: minmax(110px, auto);
-                gap: 10px;
-            }
-            .menu-item {
-                min-height: 0;
-                aspect-ratio: 1 / 1;
-            }
-            .item-name-clamp {
-                font-size: 0.8rem;
-                padding: 9px 7px 5px 7px;
-                -webkit-line-clamp: 3;
-                line-height: 1.25;
-            }
-            .item-price-tag {
-                font-size: 0.85rem;
-                padding: 5px 7px 9px 7px;
-            }
-        }
-
-        /* Tablet Responsive */
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .item-grid {
-                grid-template-columns: repeat(3, 1fr);
-                grid-auto-rows: minmax(135px, auto);
-                gap: 14px;
-            }
-            .pos-container {
-                grid-template-columns: 1fr 300px;
-                gap: 15px;
-            }
-            .menu-area {
-                padding: 14px;
-            }
-            .cat-btn {
-                padding: 11px 20px;
-                font-size: 0.9rem;
-            }
-            .menu-item {
-                min-height: 135px;
-                aspect-ratio: 1 / 1;
-            }
-            .item-name-clamp {
-                font-size: 1rem;
-                padding: 13px 12px 7px 12px;
-                line-height: 1.4;
-                -webkit-line-clamp: 3;
-            }
-            .item-price-tag {
-                font-size: 1.1rem;
-                padding: 7px 12px 13px 12px;
-            }
-            .cart-panel {
-                padding: 18px;
-            }
-            .card {
-                padding: 18px;
-            }
-            .stat-card {
-                padding: 20px 16px;
-            }
-            .tab-btn {
-                padding: 10px 16px;
-                font-size: 0.875rem;
-            }
-        }
-
-        /* Large Desktop */
-        @media (min-width: 1400px) {
-            .item-grid {
-                grid-template-columns: repeat(4, 1fr);
-                grid-auto-rows: minmax(145px, auto);
-            }
-            .menu-item {
-                min-height: 145px;
-            }
-            .item-name-clamp {
-                font-size: 1.1rem;
-            }
-            .item-price-tag {
-                font-size: 1.2rem;
-            }
-        }
-
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(255,255,255,0.05);
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            border-radius: 10px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, var(--primary-light), var(--primary));
-        }
-
-        /* Loading Animation */
-        @keyframes shimmer {
-            0% { background-position: -1000px 0; }
-            100% { background-position: 1000px 0; }
-        }
-        .loading-shimmer {
-            animation: shimmer 2s infinite linear;
-            background: linear-gradient(90deg, transparent 0%, rgba(255,107,53,0.1) 50%, transparent 100%);
-            background-size: 1000px 100%;
-        }
-
-        /* Fade In Animation */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .fade-in {
-            animation: fadeIn 0.3s ease-out;
-        }
-
-        /* Text Overflow Prevention Utilities */
-        .text-ellipsis {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .text-wrap {
-            word-wrap: break-word;
-            word-break: break-word;
-            overflow-wrap: break-word;
-        }
-        
-        /* Ensure all text in cards doesn't overflow */
-        .card p, .card div {
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-        }
-
-        /* Universal Card Content Spacing */
-        .card > * {
-            margin-bottom: 8px;
-        }
-        .card > *:last-child {
-            margin-bottom: 0;
-        }
-
-        /* Better Text Contrast for All Elements */
-        .menu-item, .cart-item, .order-card, .card {
-            text-rendering: optimizeLegibility;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
-
-        /* Ensure proper spacing in all containers */
-        .card input,
-        .card select,
-        .card textarea,
-        .card button {
-            margin-top: 4px;
+            .pos-container { grid-template-columns: 1fr; height: auto; display: block; }
+            .pos-left { height: 60vh; margin-bottom: 20px; }
+            .menu-area { grid-template-columns: 80px 1fr; }
+            .cart-panel { height: auto; }
+            .header-content h2 { font-size: 1.2rem; }
+            .item-grid { grid-template-columns: repeat(2, 1fr); }
+            .grid-4 { grid-template-columns: 1fr 1fr; }
         }
 /* KOT PRINT STYLES (2-inch / 58mm) */
 @media print {
@@ -1233,9 +335,9 @@ async function trackUserActivity(phone) {
     <div class="card">
         <h3>Sales Analytics</h3>
         <div class="flex gap-2" style="margin: 15px 0 5px 0;">
-    <button id="btnToday" class="btn btn-sm btn-secondary" onclick="setDashboardRange('today')">Today</button>
-    <button id="btnYesterday" class="btn btn-sm btn-secondary" onclick="setDashboardRange('yesterday')">Yesterday</button>
-    <button id="btnLast7" class="btn btn-sm btn-secondary" onclick="setDashboardRange('last7')">Last 7 Days</button>
+    <button class="btn btn-sm btn-secondary" onclick="setDashboardRange('today')">Today</button>
+    <button class="btn btn-sm btn-secondary" onclick="setDashboardRange('yesterday')">Yesterday</button>
+    <button class="btn btn-sm btn-secondary" onclick="setDashboardRange('last7')">Last 7 Days</button>
 </div>
         <div class="flex gap-2" style="margin: 15px 0; align-items: flex-end;">
             <div>
@@ -1246,7 +348,7 @@ async function trackUserActivity(phone) {
                 <label class="text-muted" style="font-size:0.8rem;">To</label>
                 <input type="date" id="dashEnd" class="input" style="margin:0;">
             </div>
-            <button class="btn btn-primary" onclick="resetDateButtons(); loadAnalytics();">Go</button>
+            <button class="btn btn-primary" onclick="loadAnalytics()">Go</button>
         </div>
 
         <div class="grid-4" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
@@ -2224,41 +1326,22 @@ function filterAdminMenu(catName) {
         </div>
     `).join('');
 }
-// Helper function to reset date filter buttons to secondary state
-function resetDateButtons() {
-    document.getElementById('btnToday').classList.remove('btn-primary');
-    document.getElementById('btnToday').classList.add('btn-secondary');
-    document.getElementById('btnYesterday').classList.remove('btn-primary');
-    document.getElementById('btnYesterday').classList.add('btn-secondary');
-    document.getElementById('btnLast7').classList.remove('btn-primary');
-    document.getElementById('btnLast7').classList.add('btn-secondary');
-}
-
 function setDashboardRange(type) {
     const startDate = new Date();
     const endDate = new Date();
 
-    // Reset all buttons to secondary state
-    resetDateButtons();
-
     if (type === 'today') {
         // Start = Today, End = Today
         // (No change needed, defaults are already Today)
-        document.getElementById('btnToday').classList.remove('btn-secondary');
-        document.getElementById('btnToday').classList.add('btn-primary');
     } 
     else if (type === 'yesterday') {
         // Start = Yesterday, End = Yesterday
         startDate.setDate(startDate.getDate() - 1);
         endDate.setDate(endDate.getDate() - 1);
-        document.getElementById('btnYesterday').classList.remove('btn-secondary');
-        document.getElementById('btnYesterday').classList.add('btn-primary');
     } 
     else if (type === 'last7') {
         // Start = 7 days ago, End = Today
         startDate.setDate(startDate.getDate() - 7);
-        document.getElementById('btnLast7').classList.remove('btn-secondary');
-        document.getElementById('btnLast7').classList.add('btn-primary');
     }
 
     // Update Input Fields
@@ -3670,19 +2753,15 @@ function filterCustomerMenu(text) {
             const cartItem = STATE.custCart.find(c => c.id === item.id);
             const qty = cartItem ? cartItem.qty : 0;
             
-            // Quantity Badge
-            const qtyBadge = qty > 0 
-                ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.8rem; box-shadow:0 2px 5px rgba(0,0,0,0.5); z-index:2;">${qty}</div>` 
-                : '';
-            
-            // Highlight if selected
-            const selectedStyle = qty > 0 ? 'border-color: var(--primary); background: rgba(255, 107, 53, 0.15);' : '';
+            // Badge & Styling
+            const qtyBadge = qty > 0 ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3); font-size:0.8rem;">${qty}</div>` : '';
+            const borderStyle = qty > 0 ? 'border: 1px solid var(--primary); background: rgba(255, 107, 53, 0.1);' : '';
 
             return `
-            <div class="menu-item" onclick="addToCart('${item.id}')" style="${selectedStyle}">
+            <div class="menu-item" onclick="addToCart('${item.id}')" style="position:relative; ${borderStyle}">
                 ${qtyBadge}
-                <div class="item-name-clamp" title="${item.name}">${item.name}</div>
-                <div class="item-price-tag">₹${item.price}</div>
+                <div style="font-weight:600; font-size: 0.9rem; padding-right:15px;">${item.name}</div>
+                <div style="color: var(--primary); margin-top:5px;">₹${item.price}</div>
             </div>
         `}).join('');
     }
@@ -4011,7 +3090,7 @@ if ('serviceWorker' in navigator) {
 }
 
 
-// 2. Listen for "Can be installed" event (Android/Chrome/Edge)
+// 2. Listen for "Can be installed" event
 window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent Chrome 67 and earlier from automatically showing the prompt
     e.preventDefault();
@@ -4036,164 +3115,6 @@ window.addEventListener('beforeinstallprompt', (e) => {
         });
     }
 });
-
-// iOS/Safari PWA Install Detection
-function isIOS() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-}
-
-function isInStandaloneMode() {
-    return ('standalone' in window.navigator) && (window.navigator.standalone);
-}
-
-// Show iOS install instructions if on iOS Safari and not installed
-if (isIOS() && !isInStandaloneMode()) {
-    // Wait a bit to not overwhelm user on first load
-    setTimeout(() => {
-        const btn = document.getElementById('pwaInstallBtn');
-        if(btn) {
-            btn.classList.remove('hidden');
-            btn.innerHTML = '📲 Install App';
-            
-            // Show instructions modal for iOS
-            btn.addEventListener('click', () => {
-                showIOSInstallInstructions();
-            });
-        }
-    }, 3000); // Show after 3 seconds
-}
-
-// Function to show iOS installation instructions
-function showIOSInstallInstructions() {
-    const modal = document.createElement('div');
-    modal.id = 'iosInstallModal';
-    modal.style.cssText = `
-        position: fixed;
-        inset: 0;
-        background: rgba(10, 14, 39, 0.95);
-        backdrop-filter: blur(10px);
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        animation: fadeIn 0.3s ease;
-    `;
-    
-    modal.innerHTML = `
-        <div style="
-            background: rgba(30, 33, 57, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 30px 24px;
-            max-width: 400px;
-            width: 100%;
-            border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-        ">
-            <div style="text-align: center; margin-bottom: 24px;">
-                <div style="font-size: 3.5rem; margin-bottom: 16px;">📲</div>
-                <h2 style="
-                    background: linear-gradient(135deg, #FF6B35, #FF8555);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                    font-size: 1.5rem;
-                    font-weight: 800;
-                    margin-bottom: 12px;
-                ">Install Juice Therapy</h2>
-                <p style="color: #9CA3AF; font-size: 0.95rem; line-height: 1.5;">
-                    Install this app on your iPhone for the best experience
-                </p>
-            </div>
-            
-            <div style="
-                background: rgba(255,255,255,0.05);
-                border-radius: 16px;
-                padding: 20px;
-                margin-bottom: 20px;
-                border: 1px solid rgba(255,255,255,0.1);
-            ">
-                <div style="margin-bottom: 16px;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <div style="
-                            width: 32px;
-                            height: 32px;
-                            border-radius: 8px;
-                            background: linear-gradient(135deg, #FF6B35, #FF8555);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 1.2rem;
-                            flex-shrink: 0;
-                        ">1</div>
-                        <p style="color: white; font-size: 0.95rem; margin: 0;">
-                            Tap the <strong>Share</strong> button 
-                            <span style="font-size: 1.3rem; vertical-align: middle;">⎋</span>
-                            in Safari
-                        </p>
-                    </div>
-                    <p style="color: #9CA3AF; font-size: 0.85rem; margin-left: 44px;">
-                        (Bottom of screen on iPhone, top on iPad)
-                    </p>
-                </div>
-                
-                <div style="margin-bottom: 16px;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                        <div style="
-                            width: 32px;
-                            height: 32px;
-                            border-radius: 8px;
-                            background: linear-gradient(135deg, #FF6B35, #FF8555);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 1.2rem;
-                            flex-shrink: 0;
-                        ">2</div>
-                        <p style="color: white; font-size: 0.95rem; margin: 0;">
-                            Scroll and tap <strong>"Add to Home Screen"</strong>
-                            <span style="font-size: 1.2rem; vertical-align: middle;">➕</span>
-                        </p>
-                    </div>
-                </div>
-                
-                <div>
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="
-                            width: 32px;
-                            height: 32px;
-                            border-radius: 8px;
-                            background: linear-gradient(135deg, #FF6B35, #FF8555);
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            font-size: 1.2rem;
-                            flex-shrink: 0;
-                        ">3</div>
-                        <p style="color: white; font-size: 0.95rem; margin: 0;">
-                            Tap <strong>"Add"</strong> to confirm
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <button onclick="document.getElementById('iosInstallModal').remove()" style="
-                width: 100%;
-                padding: 14px;
-                background: linear-gradient(135deg, #FF6B35, #E85525);
-                color: white;
-                border: none;
-                border-radius: 12px;
-                font-size: 1rem;
-                font-weight: 600;
-                cursor: pointer;
-                box-shadow: 0 0 20px rgba(255, 107, 53, 0.3);
-            ">Got It!</button>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-}
 
 // 3. Listen for "App Successfully Installed"
 window.addEventListener('appinstalled', () => {
@@ -4455,28 +3376,28 @@ async function loadActiveUsersReport() {
 }
     </script>
 
-<div id="orderDetailsModal" class="hidden" style="position: fixed; inset: 0; background: rgba(10, 14, 39, 0.95); backdrop-filter: blur(10px); z-index: 500; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s ease;">
-    <div class="card" style="width: 90%; max-width: 420px; max-height: 90vh; overflow-y: auto;">
+<div id="orderDetailsModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 500; display: flex; align-items: center; justify-content: center;">
+    <div class="card" style="width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto;">
         
-        <div class="flex justify-between items-center" style="margin-bottom: 20px; border-bottom: 2px solid rgba(255,107,53,0.2); padding-bottom: 12px;">
-            <h3 style="font-size: 1.3rem; font-weight: 700;">Order Details</h3>
-            <button class="btn btn-secondary btn-sm" onclick="closeDetailsModal()" style="width: 36px; height: 36px; padding: 0; border-radius: 50%;">✖</button>
+        <div class="flex justify-between items-center" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+            <h3>Order Details</h3>
+            <button class="btn btn-secondary btn-sm" onclick="closeDetailsModal()">✖</button>
         </div>
 
         <div id="billContent">
-            <div class="text-center" style="margin-bottom: 20px;">
-                <h2 id="viewStoreName" style="background: linear-gradient(135deg, var(--primary), var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 1.5rem; font-weight: 800;">Juice Therapy</h2>
-                <p class="text-muted" style="font-size:0.85rem; margin-top: 8px;" id="viewOrderId">#0000</p>
-                <p class="text-muted" style="font-size:0.85rem;" id="viewDate">...</p>
+            <div class="text-center" style="margin-bottom: 15px;">
+                <h2 id="viewStoreName" style="color:var(--primary);">Juice Therapy</h2>
+                <p class="text-muted" style="font-size:0.8rem;" id="viewOrderId">#0000</p>
+                <p class="text-muted" style="font-size:0.8rem;" id="viewDate">...</p>
             </div>
 
-            <div style="background: rgba(255,255,255,0.06); padding: 14px; border-radius: 12px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,0.1);">
-                <label class="text-muted" style="font-size:0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Customer</label>
-                <input id="editCustName" class="input" style="margin-bottom:8px; margin-top: 8px;" disabled>
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 10px;">
+                <label class="text-muted" style="font-size:0.75rem;">Customer</label>
+                <input id="editCustName" class="input" style="margin-bottom:5px;" disabled>
                 <input id="editCustPhone" class="input" style="margin-bottom:0;" disabled>
             </div>
 
-            <div id="viewItemsList" style="border-top: 2px dashed rgba(255,107,53,0.2); border-bottom: 2px dashed rgba(255,107,53,0.2); padding: 14px 0; margin-bottom: 14px;"></div>
+            <div id="viewItemsList" style="border-top: 1px dashed rgba(255,255,255,0.2); border-bottom: 1px dashed rgba(255,255,255,0.2); padding: 10px 0; margin-bottom: 10px;"></div>
 
 <div id="editItemsWrapper" class="hidden" style="margin-bottom: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 10px;">
     <div id="editItemsList" style="display:flex; flex-direction:column; gap:8px;"></div>
@@ -4488,13 +3409,13 @@ async function loadActiveUsersReport() {
     </div>
 </div>
 
-            <div class="grid-2" style="gap:12px;">
+            <div class="grid-2" style="gap:10px;">
                 <div>
-                    <label class="text-muted" style="font-size:0.8rem; font-weight: 600;">Total (₹)</label>
+                    <label class="text-muted" style="font-size:0.75rem;">Total (₹)</label>
                     <input type="number" id="editTotal" class="input" disabled>
                 </div>
                 <div>
-                    <label class="text-muted" style="font-size:0.8rem; font-weight: 600;">Payment Mode</label>
+                    <label class="text-muted" style="font-size:0.75rem;">Payment Mode</label>
                     <select id="editMode" class="input" disabled>
                         <option value="Cash">Cash</option>
                         <option value="Online">Online</option>
@@ -4503,7 +3424,7 @@ async function loadActiveUsersReport() {
             </div>
         </div>
 
-        <div id="detailsActions" class="flex gap-2" style="margin-top: 24px;">
+        <div id="detailsActions" class="flex gap-2" style="margin-top: 20px;">
             <button class="btn btn-secondary w-full" onclick="closeDetailsModal()">Close</button>
             <button id="btnAdminEdit" class="btn btn-warning w-full hidden" onclick="enableAdminEdit()">✏️ Edit</button>
             <button id="btnAdminSave" class="btn btn-success w-full hidden" onclick="saveAdminOrder()">💾 Save</button>
@@ -4513,28 +3434,28 @@ async function loadActiveUsersReport() {
 <div id="kot-receipt">
     </div>
 
-<div id="notificationModal" class="hidden" style="position: fixed; inset: 0; background: rgba(10, 14, 39, 0.95); backdrop-filter: blur(10px); z-index: 600; display: flex; align-items: center; justify-content: center; animation: fadeIn 0.3s ease;">
-    <div class="card" style="width: 90%; max-width: 420px; max-height: 80vh; display:flex; flex-direction:column;">
-        <div class="flex justify-between items-center" style="margin-bottom: 20px; border-bottom: 2px solid rgba(255,107,53,0.2); padding-bottom: 12px;">
-            <h3 style="font-size: 1.3rem; font-weight: 700;">📢 Offers & Updates</h3>
-            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('notificationModal').classList.add('hidden')" style="width: 36px; height: 36px; padding: 0; border-radius: 50%;">✖</button>
+<div id="notificationModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 600; display: flex; align-items: center; justify-content: center;">
+    <div class="card" style="width: 90%; max-width: 400px; max-height: 80vh; display:flex; flex-direction:column;">
+        <div class="flex justify-between items-center" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
+            <h3>📢 Offers & Updates</h3>
+            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('notificationModal').classList.add('hidden')">✖</button>
         </div>
-        <div id="custNotificationList" style="overflow-y:auto; flex:1; padding-right:8px;">
+        <div id="custNotificationList" style="overflow-y:auto; flex:1; padding-right:5px;">
             </div>
     </div>
 </div>
 
-<div id="notifBlockerModal" class="hidden" style="position: fixed; inset: 0; background: linear-gradient(135deg, rgba(10, 14, 39, 0.98), rgba(22, 33, 62, 0.98)); backdrop-filter: blur(20px); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
-    <div style="font-size: 5rem; margin-bottom: 30px; animation: pulse 2s ease-in-out infinite;">🔔</div>
-    <h2 style="background: linear-gradient(135deg, var(--primary), var(--primary-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 2rem; font-weight: 800; margin-bottom: 15px;">Notifications Required</h2>
-    <p style="color: var(--text-muted); max-width: 320px; margin-bottom: 40px; line-height: 1.6; font-size: 1.05rem;">
+<div id="notifBlockerModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
+    <div style="font-size: 4rem; margin-bottom: 20px;">🔔</div>
+    <h2 style="color: var(--primary); margin-bottom: 10px;">Notifications Required</h2>
+    <p style="color: #ccc; max-width: 300px; margin-bottom: 30px; line-height: 1.5;">
         To use this app, you must enable notifications for order updates.
     </p>
     
-    <button class="btn btn-primary" onclick="retryPermission()" style="padding: 16px 40px; font-size: 1.1rem;">Enable Notifications</button>
+    <button class="btn btn-primary" onclick="retryPermission()">Enable Notifications</button>
     
-    <p id="permInstruction" class="hidden" style="margin-top: 30px; font-size: 0.95rem; color: var(--warning); border: 2px solid var(--warning); padding: 16px 20px; border-radius: 12px; background: rgba(245, 158, 11, 0.1); max-width: 350px;">
-        ⚠️ <strong>Permission Blocked!</strong><br>
+    <p id="permInstruction" class="hidden" style="margin-top: 20px; font-size: 0.9rem; color: var(--warning); border: 1px solid var(--warning); padding: 10px; border-radius: 8px;">
+        ⚠️ Permission Blocked!<br>
         Please click the 🔒 Lock Icon in your browser address bar and select "Reset Permission" or "Allow".
     </p>
 </div>
