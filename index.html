@@ -344,7 +344,6 @@ async function trackUserActivity(phone) {
             display: flex; 
             flex-direction: column; 
             justify-content: space-between; 
-            height: 100%; 
             min-height: 140px;
             aspect-ratio: 1 / 1;
             border: 2px solid rgba(255,255,255,0.1);
@@ -673,7 +672,6 @@ async function trackUserActivity(phone) {
             /* Menu Item Cards - Mobile 3x3 Grid */
             .menu-item {
                 min-height: 0;
-                height: 100%;
                 aspect-ratio: 1 / 1;
                 padding: 0;
             }
@@ -894,7 +892,7 @@ async function trackUserActivity(phone) {
             }
             .menu-item {
                 min-height: 0;
-                height: 100%;
+                aspect-ratio: 1 / 1;
             }
             .item-name-clamp {
                 font-size: 0.7rem;
@@ -939,7 +937,7 @@ async function trackUserActivity(phone) {
             }
             .menu-item {
                 min-height: 0;
-                height: 100%;
+                aspect-ratio: 1 / 1;
             }
             .item-name-clamp {
                 font-size: 0.75rem;
@@ -964,7 +962,7 @@ async function trackUserActivity(phone) {
             }
             .menu-item {
                 min-height: 0;
-                height: 100%;
+                aspect-ratio: 1 / 1;
             }
             .item-name-clamp {
                 font-size: 0.8rem;
@@ -3667,15 +3665,19 @@ function filterCustomerMenu(text) {
             const cartItem = STATE.custCart.find(c => c.id === item.id);
             const qty = cartItem ? cartItem.qty : 0;
             
-            // Badge & Styling
-            const qtyBadge = qty > 0 ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.3); font-size:0.8rem;">${qty}</div>` : '';
-            const borderStyle = qty > 0 ? 'border: 1px solid var(--primary); background: rgba(255, 107, 53, 0.1);' : '';
+            // Quantity Badge
+            const qtyBadge = qty > 0 
+                ? `<div style="position:absolute; top:8px; right:8px; background:white; color:var(--primary); width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:0.8rem; box-shadow:0 2px 5px rgba(0,0,0,0.5); z-index:2;">${qty}</div>` 
+                : '';
+            
+            // Highlight if selected
+            const selectedStyle = qty > 0 ? 'border-color: var(--primary); background: rgba(255, 107, 53, 0.15);' : '';
 
             return `
-            <div class="menu-item" onclick="addToCart('${item.id}')" style="position:relative; ${borderStyle}">
+            <div class="menu-item" onclick="addToCart('${item.id}')" style="${selectedStyle}">
                 ${qtyBadge}
-                <div style="font-weight:600; font-size: 0.9rem; padding-right:15px;">${item.name}</div>
-                <div style="color: var(--primary); margin-top:5px;">₹${item.price}</div>
+                <div class="item-name-clamp" title="${item.name}">${item.name}</div>
+                <div class="item-price-tag">₹${item.price}</div>
             </div>
         `}).join('');
     }
