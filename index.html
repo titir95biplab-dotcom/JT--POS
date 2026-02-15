@@ -90,6 +90,39 @@ async function trackUserActivity(phone) {
         .font-bold { font-weight: bold; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        
+        /* Discount Styles */
+        .discount-applied {
+            border: 2px solid var(--success) !important;
+            background: rgba(76, 175, 80, 0.1) !important;
+        }
+        .discount-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: var(--success);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.5);
+        }
+        .coupon-input-wrapper {
+            position: relative;
+            margin-bottom: 10px;
+        }
+        .coupon-status {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .discount-line {
+            color: var(--success);
+            font-weight: 600;
+        }
 
         /* Components */
         .btn {
@@ -500,6 +533,52 @@ async function trackUserActivity(phone) {
     <button class="btn btn-primary w-full" onclick="saveStoreSettings()">💾 Save Settings</button>
 </div>
                 </div>
+
+                <!-- Discount Code Management -->
+                <div class="card" style="margin-top:20px;">
+                    <h3>🎫 Discount Coupons</h3>
+                    <p class="text-muted" style="margin-bottom:15px; font-size:0.9rem;">Create and manage discount codes</p>
+                    
+                    <div style="background:rgba(255,255,255,0.05); padding:15px; border-radius:8px; margin-bottom:15px;">
+                        <h4 style="margin-bottom:10px; font-size:1rem;">Create New Coupon</h4>
+                        
+                        <label class="text-muted" style="font-size:0.85rem;">Coupon Code</label>
+                        <input type="text" id="newCouponCode" class="input" placeholder="e.g. SAVE50" style="text-transform:uppercase; margin-bottom:10px;">
+                        
+                        <div class="grid-2" style="margin-bottom:10px;">
+                            <div>
+                                <label class="text-muted" style="font-size:0.85rem;">Discount Type</label>
+                                <select id="newCouponType" class="input" style="margin:0;" onchange="toggleDiscountInput()">
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="fixed">Fixed Amount (₹)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-muted" style="font-size:0.85rem;">Discount Value</label>
+                                <input type="number" id="newCouponValue" class="input" placeholder="e.g. 50" style="margin:0;" min="0">
+                            </div>
+                        </div>
+                        
+                        <div class="grid-2" style="margin-bottom:10px;">
+                            <div>
+                                <label class="text-muted" style="font-size:0.85rem;">Valid From</label>
+                                <input type="date" id="newCouponStart" class="input" style="margin:0;">
+                            </div>
+                            <div>
+                                <label class="text-muted" style="font-size:0.85rem;">Valid Until</label>
+                                <input type="date" id="newCouponEnd" class="input" style="margin:0;">
+                            </div>
+                        </div>
+                        
+                        <label class="text-muted" style="font-size:0.85rem;">Minimum Order Amount (₹)</label>
+                        <input type="number" id="newCouponMinOrder" class="input" placeholder="e.g. 200 (optional)" min="0">
+                        
+                        <button class="btn btn-success w-full" onclick="createCoupon()" style="margin-top:10px;">➕ Create Coupon</button>
+                    </div>
+                    
+                    <h4 style="margin:20px 0 10px 0; font-size:1rem;">Active Coupons</h4>
+                    <div id="couponsList"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -549,6 +628,22 @@ async function trackUserActivity(phone) {
                     </div>
                     <div class="cart-items" id="cartItemsList"></div>
                     <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                        <!-- Discount Coupon Section -->
+                        <div class="card" style="background: rgba(76, 175, 80, 0.05); border: 1px dashed rgba(76, 175, 80, 0.3); margin-bottom:10px;">
+                            <label class="text-muted" style="font-size:0.75rem; margin-bottom:6px; display:block;">🎫 Coupon Code</label>
+                            <div class="flex gap-2" style="margin-bottom:5px;">
+                                <input type="text" id="posCouponCode" class="input" placeholder="Enter code" style="margin:0; text-transform:uppercase; flex:1; padding:8px; font-size:0.85rem;">
+                                <button class="btn btn-success btn-sm" onclick="applyPosCoupon()" style="padding:8px 12px; font-size:0.85rem;">Apply</button>
+                            </div>
+                            <div id="posCouponStatus" class="coupon-status hidden"></div>
+                            <div id="posAppliedDiscount" class="hidden" style="margin-top:8px; padding:8px; background:rgba(76,175,80,0.1); border-radius:6px; font-size:0.8rem;">
+                                <div class="flex justify-between items-center">
+                                    <div style="color:var(--success); font-weight:600;">✓ <span id="posDiscountCodeLabel"></span></div>
+                                    <button class="btn btn-sm btn-danger" onclick="removePosCoupon()" style="padding:4px 8px; font-size:0.75rem;">Remove</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="flex justify-between font-bold" style="font-size: 1.2rem; margin-bottom: 10px;">
                             <span>Total</span>
                             <span id="cartTotal">₹0</span>
@@ -1016,6 +1111,7 @@ async function restoreCustomerSession(phone) {
     
     if(tab === 'menu') updateCategorySelects();
     if(tab === 'notify') loadAdminNotificationHistory();
+    if(tab === 'settings') loadCoupons(); // Load coupons when settings tab is opened
 }
 
 async function sendBroadcastNotification() {
@@ -1181,6 +1277,225 @@ END:VCARD`;
         a.click();
         URL.revokeObjectURL(url);
     }
+}
+
+// ==================== DISCOUNT COUPON FUNCTIONS ====================
+
+// Global variable to store applied discount
+let appliedDiscount = null;
+
+// Create new coupon
+async function createCoupon() {
+    const code = document.getElementById('newCouponCode').value.trim().toUpperCase();
+    const type = document.getElementById('newCouponType').value;
+    const value = parseFloat(document.getElementById('newCouponValue').value);
+    const startDate = document.getElementById('newCouponStart').value;
+    const endDate = document.getElementById('newCouponEnd').value;
+    const minOrder = parseFloat(document.getElementById('newCouponMinOrder').value) || 0;
+    
+    if (!code || !value || !startDate || !endDate) {
+        showToast('Please fill all required fields', 'error');
+        return;
+    }
+    
+    if (type === 'percentage' && (value < 0 || value > 100)) {
+        showToast('Percentage must be between 0 and 100', 'error');
+        return;
+    }
+    
+    try {
+        const { doc, setDoc } = window.firebaseModules;
+        await setDoc(doc(window.db, 'coupons', code), {
+            code: code,
+            type: type,
+            value: value,
+            startDate: startDate,
+            endDate: endDate,
+            minOrderAmount: minOrder,
+            isActive: true,
+            createdAt: new Date().toISOString()
+        });
+        
+        showToast('Coupon created successfully!');
+        
+        // Clear form
+        document.getElementById('newCouponCode').value = '';
+        document.getElementById('newCouponValue').value = '';
+        document.getElementById('newCouponStart').value = '';
+        document.getElementById('newCouponEnd').value = '';
+        document.getElementById('newCouponMinOrder').value = '';
+        
+        loadCoupons();
+    } catch (e) {
+        console.error('Error creating coupon:', e);
+        showToast('Error creating coupon', 'error');
+    }
+}
+
+// Load all coupons
+async function loadCoupons() {
+    const { collection, getDocs } = window.firebaseModules;
+    const snapshot = await getDocs(collection(window.db, 'coupons'));
+    
+    let html = '';
+    snapshot.forEach(doc => {
+        const coupon = doc.data();
+        const today = new Date().toISOString().split('T')[0];
+        const isValid = coupon.isActive && today >= coupon.startDate && today <= coupon.endDate;
+        const statusColor = isValid ? 'var(--success)' : 'var(--text-muted)';
+        const statusText = isValid ? 'Active' : 'Expired/Inactive';
+        
+        const discountText = coupon.type === 'percentage' 
+            ? `${coupon.value}% OFF` 
+            : `₹${coupon.value} OFF`;
+        
+        html += `
+            <div class="card" style="background:rgba(255,255,255,0.05); margin-bottom:10px;">
+                <div class="flex justify-between items-center" style="margin-bottom:8px;">
+                    <div>
+                        <strong style="font-size:1.1rem; color:var(--primary);">${coupon.code}</strong>
+                        <span style="margin-left:10px; color:${statusColor}; font-size:0.85rem;">${statusText}</span>
+                    </div>
+                    <button class="btn btn-danger btn-sm" onclick="deleteCoupon('${coupon.code}')">Delete</button>
+                </div>
+                <div style="font-size:0.9rem; color:var(--text-muted);">
+                    <div>💰 ${discountText}</div>
+                    <div>📅 Valid: ${coupon.startDate} to ${coupon.endDate}</div>
+                    ${coupon.minOrderAmount > 0 ? `<div>🛒 Min Order: ₹${coupon.minOrderAmount}</div>` : ''}
+                </div>
+            </div>
+        `;
+    });
+    
+    document.getElementById('couponsList').innerHTML = html || '<p class="text-muted text-center">No coupons yet</p>';
+}
+
+// Delete coupon
+async function deleteCoupon(code) {
+    if (!confirm(`Delete coupon ${code}?`)) return;
+    
+    try {
+        const { doc, deleteDoc } = window.firebaseModules;
+        await deleteDoc(doc(window.db, 'coupons', code));
+        showToast('Coupon deleted');
+        loadCoupons();
+    } catch (e) {
+        console.error('Error deleting coupon:', e);
+        showToast('Error deleting coupon', 'error');
+    }
+}
+
+// Validate and apply coupon in POS
+async function applyPosCoupon() {
+    const code = document.getElementById('posCouponCode').value.trim().toUpperCase();
+    if (!code) {
+        showToast('Please enter a coupon code', 'error');
+        return;
+    }
+    
+    const cartTotal = calculateCartTotal();
+    if (cartTotal === 0) {
+        showToast('Cart is empty', 'error');
+        return;
+    }
+    
+    try {
+        const { doc, getDoc } = window.firebaseModules;
+        const couponDoc = await getDoc(doc(window.db, 'coupons', code));
+        
+        if (!couponDoc.exists()) {
+            document.getElementById('posCouponStatus').innerHTML = '<span style="color:var(--danger);">❌ Invalid coupon code</span>';
+            document.getElementById('posCouponStatus').classList.remove('hidden');
+            return;
+        }
+        
+        const coupon = couponDoc.data();
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Validate coupon
+        if (!coupon.isActive) {
+            document.getElementById('posCouponStatus').innerHTML = '<span style="color:var(--danger);">❌ Coupon is inactive</span>';
+            document.getElementById('posCouponStatus').classList.remove('hidden');
+            return;
+        }
+        
+        if (today < coupon.startDate || today > coupon.endDate) {
+            document.getElementById('posCouponStatus').innerHTML = '<span style="color:var(--danger);">❌ Coupon expired or not yet valid</span>';
+            document.getElementById('posCouponStatus').classList.remove('hidden');
+            return;
+        }
+        
+        if (cartTotal < coupon.minOrderAmount) {
+            document.getElementById('posCouponStatus').innerHTML = `<span style="color:var(--danger);">❌ Minimum order ₹${coupon.minOrderAmount} required</span>`;
+            document.getElementById('posCouponStatus').classList.remove('hidden');
+            return;
+        }
+        
+        // Calculate discount
+        let discountAmount = 0;
+        if (coupon.type === 'percentage') {
+            discountAmount = Math.round((cartTotal * coupon.value) / 100);
+        } else {
+            discountAmount = coupon.value;
+        }
+        
+        // Don't allow discount to exceed cart total
+        if (discountAmount > cartTotal) {
+            discountAmount = cartTotal;
+        }
+        
+        // Apply discount
+        appliedDiscount = {
+            code: coupon.code,
+            type: coupon.type,
+            value: coupon.value,
+            amount: discountAmount
+        };
+        
+        // Show applied discount
+        document.getElementById('posDiscountCodeLabel').textContent = coupon.code;
+        document.getElementById('posAppliedDiscount').classList.remove('hidden');
+        document.getElementById('posCouponStatus').classList.add('hidden');
+        document.getElementById('posCouponCode').disabled = true;
+        
+        // Update cart display
+        updateCart();
+        
+        showToast(`Discount applied: ₹${discountAmount} OFF`);
+        
+    } catch (e) {
+        console.error('Error applying coupon:', e);
+        showToast('Error applying coupon', 'error');
+    }
+}
+
+// Remove applied coupon in POS
+function removePosCoupon() {
+    appliedDiscount = null;
+    document.getElementById('posAppliedDiscount').classList.add('hidden');
+    document.getElementById('posCouponCode').value = '';
+    document.getElementById('posCouponCode').disabled = false;
+    document.getElementById('posCouponStatus').classList.add('hidden');
+    updateCart();
+    showToast('Coupon removed');
+}
+
+// Toggle discount input placeholder
+function toggleDiscountInput() {
+    const type = document.getElementById('newCouponType').value;
+    const input = document.getElementById('newCouponValue');
+    if (type === 'percentage') {
+        input.placeholder = 'e.g. 10 (for 10%)';
+        input.max = 100;
+    } else {
+        input.placeholder = 'e.g. 50 (for ₹50)';
+        input.removeAttribute('max');
+    }
+}
+
+// Helper function to calculate cart total
+function calculateCartTotal() {
+    return STATE.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 }
 
 function callCustomer(phone, event) {
@@ -1572,12 +1887,16 @@ function renderSalesChart(dailyData) {
 
                 list.innerHTML = orders.map(o => {
                     const dateStr = o.timestamp ? new Date(o.timestamp.toDate()).toLocaleDateString() : 'N/A';
+                    const hasDiscount = o.discount && o.discount.amount > 0;
+                    const discountBadge = hasDiscount ? `<span class="discount-badge">🎫 ${o.discount.code}</span>` : '';
+                    
                     return `
-                    <div class="order-card" onclick="viewOrderDetails('${o.id}')" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+                    <div class="order-card ${hasDiscount ? 'discount-applied' : ''}" onclick="viewOrderDetails('${o.id}')" style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; position:relative;">
+                        ${discountBadge}
                         <div>
                             <div style="font-weight:bold; font-size:1.1rem;">${o.customerName || o.phone}</div>
                             <div class="text-muted" style="font-size:0.85rem;">${dateStr} • ₹${o.total} • ${o.paymentMode || 'Cash'}</div>
-                            <div class="text-muted" style="font-size:0.8rem;">${o.items.length} Items</div>
+                            <div class="text-muted" style="font-size:0.8rem;">${o.items.length} Items${hasDiscount ? ' • Discount Applied' : ''}</div>
                         </div>
                         <div>
                             <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); adminDeleteOrder('${o.id}')">Delete</button>
@@ -1660,7 +1979,31 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
                     <span>₹${i.price * i.qty}</span>
                 </div>
             `).join('');
-            document.getElementById('viewItemsList').innerHTML = itemsHtml;
+            
+            // Add discount info if present
+            let discountHtml = '';
+            if(data.discount && data.discount.amount > 0) {
+                const discountText = data.discount.type === 'percentage' 
+                    ? `${data.discount.value}% OFF` 
+                    : `₹${data.discount.value} OFF`;
+                discountHtml = `
+                    <div style="background:rgba(76,175,80,0.1); padding:8px; border-radius:6px; margin-top:8px; border:1px solid rgba(76,175,80,0.3);">
+                        <div style="font-size:0.85rem; color:var(--success); font-weight:600;">
+                            🎫 Coupon Applied: ${data.discount.code}
+                        </div>
+                        <div class="flex justify-between" style="font-size:0.85rem; margin-top:4px;">
+                            <span>Subtotal:</span>
+                            <span>₹${data.subtotal}</span>
+                        </div>
+                        <div class="flex justify-between" style="font-size:0.85rem; color:var(--success);">
+                            <span>Discount (${discountText}):</span>
+                            <span>-₹${data.discount.amount}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('viewItemsList').innerHTML = itemsHtml + discountHtml;
 
             // Populate Payment
             document.getElementById('editTotal').value = data.finalPaid || data.total;
@@ -2023,6 +2366,14 @@ function filterMenu(text) {
             document.getElementById('posPhone').value = '';
             document.getElementById('btnPlaceOrder').classList.remove('hidden');
             document.getElementById('btnUpdateOrder').classList.add('hidden');
+            
+            // Clear applied discount
+            appliedDiscount = null;
+            document.getElementById('posAppliedDiscount').classList.add('hidden');
+            document.getElementById('posCouponCode').value = '';
+            document.getElementById('posCouponCode').disabled = false;
+            document.getElementById('posCouponStatus').classList.add('hidden');
+            
             renderActiveCart();
         }
 
@@ -2059,7 +2410,18 @@ function filterMenu(text) {
                     </div>
                 `;
             }).join('');
-            totalEl.innerText = '₹' + total;
+            
+            // Apply discount if available (only for outlet cart, not customer cart)
+            let finalTotal = total;
+            if(appliedDiscount && container.id === 'cartItemsList') {
+                finalTotal = total - appliedDiscount.amount;
+                totalEl.innerHTML = `
+                    <div style="text-decoration:line-through; font-size:0.9rem; color:var(--text-muted);">₹${total}</div>
+                    <div style="color:var(--success);">₹${finalTotal}</div>
+                `;
+            } else {
+                totalEl.innerText = '₹' + total;
+            }
         }
 
         async function placeOrder() {
@@ -2099,12 +2461,28 @@ function filterMenu(text) {
             
             const total = items.reduce((s, i) => s + (i.price * i.qty), 0);
             
-            // 2. Save Order WITH Name
+            // Calculate final total with discount
+            let finalTotal = total;
+            let discountInfo = null;
+            
+            if(appliedDiscount) {
+                finalTotal = total - appliedDiscount.amount;
+                discountInfo = {
+                    code: appliedDiscount.code,
+                    type: appliedDiscount.type,
+                    value: appliedDiscount.value,
+                    amount: appliedDiscount.amount
+                };
+            }
+            
+            // 2. Save Order WITH Name and Discount Info
             await addDoc(collection(window.db, 'orders'), {
                 items: items, 
                 phone: phone, 
-                customerName: custName, // <--- Name restored here
-                total: total, 
+                customerName: custName,
+                subtotal: total,
+                discount: discountInfo,
+                total: finalTotal,
                 status: status, 
                 timestamp: serverTimestamp()
             });
@@ -2267,8 +2645,13 @@ const customerDisplay = o.customerName
           ${o.phone} ${callBtn}
        </div>`;
 
+                // Check for discount
+                const hasDiscount = o.discount && o.discount.amount > 0;
+                const discountBadge = hasDiscount ? `<span class="discount-badge">🎫 ${o.discount.code}</span>` : '';
+
                 return `
-                <div class="order-card">
+                <div class="order-card ${hasDiscount ? 'discount-applied' : ''}" style="position:relative;">
+                    ${discountBadge}
                     <div class="flex justify-between" style="align-items:flex-start; margin-bottom:8px;">
                         <div>
                             <div style="margin-bottom:5px;">${customerDisplay}</div>
@@ -2353,8 +2736,13 @@ function printKOT(orderId) {
                     ? `<div style="font-weight:bold; font-size:1rem; line-height:1.2;">${o.customerName}</div><div style="font-size:0.85rem; color:#aaa;">${o.phone}</div>`
                     : `<div style="font-weight:bold; font-size:1rem;">${o.phone}</div>`;
 
+                // Check for discount
+                const hasDiscount = o.discount && o.discount.amount > 0;
+                const discountBadge = hasDiscount ? `<span class="discount-badge">🎫 ${o.discount.code}</span>` : '';
+
                 return `
-                <div class="order-card" onclick="viewOrderDetails('${o.id}')" style="cursor:pointer;">
+                <div class="order-card ${hasDiscount ? 'discount-applied' : ''}" onclick="viewOrderDetails('${o.id}')" style="cursor:pointer; position:relative;">
+                    ${discountBadge}
                     <div class="flex justify-between" style="align-items:flex-start;">
                         <div>
                             <div style="margin-bottom:5px;">${customerDisplay}</div>
@@ -3015,6 +3403,18 @@ async function printBillDirect(orderId) {
 
         // TOTALS
         addCmd(0x1B, 0x61, 2); // Right Align
+        
+        // Show subtotal if discount applied
+        if(order.discount && order.discount.amount > 0) {
+            addText(`Subtotal:  ${order.subtotal}\n`);
+            
+            const discountLabel = order.discount.type === 'percentage' 
+                ? `Discount (${order.discount.code} ${order.discount.value}%): `
+                : `Discount (${order.discount.code}): `;
+            addText(`${discountLabel} -${order.discount.amount}\n`);
+            addText(`--------------------------------\n`);
+        }
+        
         addText(`Total:  ${order.total}\n`);
         
         if(order.redeemed > 0) {
