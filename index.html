@@ -759,7 +759,7 @@ async function trackUserActivity(phone) {
                     <span id="payBillTotal" class="font-bold" style="font-size: 1.2rem;">₹0</span>
                 </div>
 
-                <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <div id="bonusRedemptionSection" style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-bottom: 15px;">
                     <div class="flex justify-between items-center">
                         <span>Available Bonus:</span>
                         <span id="payAvailPoints" style="color: var(--primary); font-weight: bold;">0 pts</span>
@@ -768,16 +768,32 @@ async function trackUserActivity(phone) {
                         <input type="number" id="redeemInput" class="input" placeholder="0" style="margin:0; text-align: right;" oninput="updatePaymentCalc()">
                         <button class="btn btn-sm btn-secondary" onclick="useMaxPoints()">Max</button>
                     </div>
-                    <div class="text-muted" style="font-size: 0.8rem; margin-top: 5px;">1 Point = ₹1 | New bonus will add to balance.</div>
+                    <div id="bonusInfoText" class="text-muted" style="font-size: 0.8rem; margin-top: 5px;">1 Point = ₹1 | New bonus will add to balance.</div>
                 </div>
 
                 <div style="margin-bottom: 15px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.1);">
                     <label class="text-muted" style="font-size: 0.9rem; display: block; margin-bottom: 8px;">Payment Mode</label>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2" style="margin-bottom: 10px;">
                         <button id="btnModeCash" class="btn btn-sm btn-primary w-full" onclick="setPaymentMode('Cash')">💵 Cash</button>
-                        <button id="btnModeOnline" class="btn btn-sm btn-secondary w-full" onclick="setPaymentMode('Online')">📱 Online / UPI</button>
+                        <button id="btnModeOnline" class="btn btn-sm btn-secondary w-full" onclick="setPaymentMode('Online')">📱 Online</button>
+                        <button id="btnModePartial" class="btn btn-sm btn-secondary w-full" onclick="setPaymentMode('Partial')">💳 Both</button>
                     </div>
                     <input type="hidden" id="paymentModeInput" value="Cash">
+                    
+                    <!-- Partial Payment Breakdown -->
+                    <div id="partialPaymentSection" class="hidden" style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 10px;">
+                        <div style="margin-bottom: 10px;">
+                            <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">💵 Cash Amount</label>
+                            <input type="number" id="partialCashAmount" class="input" placeholder="₹0" style="margin:0; text-align: right;" oninput="calculatePartialPayment()">
+                        </div>
+                        <div>
+                            <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">📱 Online Amount</label>
+                            <input type="number" id="partialOnlineAmount" class="input" placeholder="₹0" style="margin:0; text-align: right;" oninput="calculatePartialPayment()">
+                        </div>
+                        <div class="text-muted" style="font-size: 0.75rem; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.2);">
+                            <span>Total Entered: </span><span id="partialTotal" style="font-weight: bold; color: var(--primary);">₹0</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex justify-between" style="margin-bottom: 20px; font-size: 1.3rem; font-weight: bold; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
@@ -1733,9 +1749,17 @@ const startInput = document.getElementById('dashStart').value;
                 count++;
                 bonusRedeemed += (data.redeemed || 0);
 
-                // Payment Mode Split
-                if (data.paymentMode === 'Online') onlineTotal += finalAmt;
-                else cashTotal += finalAmt; // Default to cash if undefined or 'Cash'
+                // Payment Mode Split - Handle Partial Payments
+                if (data.paymentMode === 'Partial') {
+                    // For partial payments, use the split amounts
+                    cashTotal += (data.cashAmount || 0);
+                    onlineTotal += (data.onlineAmount || 0);
+                } else if (data.paymentMode === 'Online') {
+                    onlineTotal += finalAmt;
+                } else {
+                    // Default to cash if undefined or 'Cash'
+                    cashTotal += finalAmt;
+                }
 
                 // Item Analysis
                 if (data.items && Array.isArray(data.items)) {
@@ -2890,20 +2914,33 @@ async function deletePendingOrder(orderId) {
             document.getElementById('paymentModeInput').value = mode;
             const btnCash = document.getElementById('btnModeCash');
             const btnOnline = document.getElementById('btnModeOnline');
+            const btnPartial = document.getElementById('btnModePartial');
             const cashSection = document.getElementById('cashCalcSection');
+            const partialSection = document.getElementById('partialPaymentSection');
+            
+            // Reset all buttons to secondary
+            btnCash.classList.remove('btn-primary');
+            btnCash.classList.add('btn-secondary');
+            btnOnline.classList.remove('btn-primary');
+            btnOnline.classList.add('btn-secondary');
+            btnPartial.classList.remove('btn-primary');
+            btnPartial.classList.add('btn-secondary');
             
             if(mode === 'Cash') {
                 btnCash.classList.add('btn-primary');
                 btnCash.classList.remove('btn-secondary');
-                btnOnline.classList.add('btn-secondary');
-                btnOnline.classList.remove('btn-primary');
                 cashSection.classList.remove('hidden');
-            } else {
+                partialSection.classList.add('hidden');
+            } else if(mode === 'Online') {
                 btnOnline.classList.add('btn-primary');
                 btnOnline.classList.remove('btn-secondary');
-                btnCash.classList.add('btn-secondary');
-                btnCash.classList.remove('btn-primary');
                 cashSection.classList.add('hidden');
+                partialSection.classList.add('hidden');
+            } else if(mode === 'Partial') {
+                btnPartial.classList.add('btn-primary');
+                btnPartial.classList.remove('btn-secondary');
+                cashSection.classList.add('hidden');
+                partialSection.classList.remove('hidden');
             }
         }
 
@@ -2923,6 +2960,26 @@ async function deletePendingOrder(orderId) {
             }
         }
 
+        function calculatePartialPayment() {
+            const cashAmt = parseInt(document.getElementById('partialCashAmount').value) || 0;
+            const onlineAmt = parseInt(document.getElementById('partialOnlineAmount').value) || 0;
+            const total = cashAmt + onlineAmt;
+            
+            const partialTotalEl = document.getElementById('partialTotal');
+            partialTotalEl.innerText = '₹' + total;
+            
+            const redeem = parseInt(document.getElementById('redeemInput').value) || 0;
+            const netPayable = PAYMENT_DATA.total - redeem;
+            
+            if(total === netPayable) {
+                partialTotalEl.style.color = 'var(--success)';
+            } else if(total > netPayable) {
+                partialTotalEl.style.color = 'var(--warning)';
+            } else {
+                partialTotalEl.style.color = 'var(--danger)';
+            }
+        }
+
         async function openPaymentModal(orderId, total, phone) {
             PAYMENT_DATA = { orderId, total, phone, maxPoints: 0 };
             
@@ -2934,6 +2991,9 @@ async function deletePendingOrder(orderId) {
             document.getElementById('payAvailPoints').innerText = 'Loading...';
             document.getElementById('cashGiven').value = '';
             document.getElementById('cashReturn').innerText = '₹0';
+            document.getElementById('partialCashAmount').value = '';
+            document.getElementById('partialOnlineAmount').value = '';
+            document.getElementById('partialTotal').innerText = '₹0';
             
             // SHOW Input Section, HIDE Success Section
             document.getElementById('paymentModal').classList.remove('hidden');
@@ -2942,8 +3002,19 @@ async function deletePendingOrder(orderId) {
 
             setPaymentMode('Cash');
 
-            // Fetch Customer Points
+            // Check if order has discount/coupon applied
             const { doc, getDoc } = window.firebaseModules;
+            const orderRef = doc(window.db, 'orders', orderId);
+            const orderSnap = await getDoc(orderRef);
+            
+            let hasCoupon = false;
+            if (orderSnap.exists()) {
+                const orderData = orderSnap.data();
+                hasCoupon = orderData.discount && orderData.discount.code;
+                PAYMENT_DATA.hasCoupon = hasCoupon;
+            }
+
+            // Fetch Customer Points
             const custRef = doc(window.db, 'customers', phone);
             const snap = await getDoc(custRef);
             
@@ -2953,6 +3024,32 @@ async function deletePendingOrder(orderId) {
                 document.getElementById('payAvailPoints').innerText = pts + ' pts';
             } else {
                 document.getElementById('payAvailPoints').innerText = '0 pts';
+            }
+
+            // Disable bonus redemption if coupon is applied
+            const bonusSection = document.getElementById('bonusRedemptionSection');
+            const redeemInput = document.getElementById('redeemInput');
+            const bonusInfoText = document.getElementById('bonusInfoText');
+            const maxButton = bonusSection.querySelector('button');
+            
+            if (hasCoupon) {
+                redeemInput.disabled = true;
+                redeemInput.style.opacity = '0.5';
+                redeemInput.style.cursor = 'not-allowed';
+                maxButton.disabled = true;
+                maxButton.style.opacity = '0.5';
+                maxButton.style.cursor = 'not-allowed';
+                bonusInfoText.innerHTML = '⚠️ Bonus redemption not available with coupon codes.';
+                bonusInfoText.style.color = 'var(--warning)';
+            } else {
+                redeemInput.disabled = false;
+                redeemInput.style.opacity = '1';
+                redeemInput.style.cursor = 'text';
+                maxButton.disabled = false;
+                maxButton.style.opacity = '1';
+                maxButton.style.cursor = 'pointer';
+                bonusInfoText.innerHTML = '1 Point = ₹1 | New bonus will add to balance.';
+                bonusInfoText.style.color = '';
             }
         }
 
@@ -2967,6 +3064,7 @@ async function deletePendingOrder(orderId) {
             document.getElementById('redeemInput').value = redeem > 0 ? redeem : '';
             document.getElementById('payNetTotal').innerText = '₹' + (bill - redeem);
             calculateChange();
+            calculatePartialPayment();
         }
 
         function useMaxPoints() {
@@ -2986,7 +3084,30 @@ async function deletePendingOrder(orderId) {
             const cashGiven = parseInt(document.getElementById('cashGiven').value) || 0;
             const changeReturn = cashGiven - netPayable;
 
-            if(!confirm(`Confirm Payment?\nMode: ${payMode}\nAmount: ₹${netPayable}`)) return;
+            // Handle partial payment
+            let partialCash = 0;
+            let partialOnline = 0;
+            
+            if(payMode === 'Partial') {
+                partialCash = parseInt(document.getElementById('partialCashAmount').value) || 0;
+                partialOnline = parseInt(document.getElementById('partialOnlineAmount').value) || 0;
+                const partialTotal = partialCash + partialOnline;
+                
+                if(partialTotal !== netPayable) {
+                    showToast(`Error: Partial payment total (₹${partialTotal}) must equal net payable (₹${netPayable})`, 'error');
+                    return;
+                }
+                
+                if(!confirm(`Confirm Partial Payment?\nCash: ₹${partialCash}\nOnline: ₹${partialOnline}\nTotal: ₹${netPayable}`)) return;
+            } else {
+                if(!confirm(`Confirm Payment?\nMode: ${payMode}\nAmount: ₹${netPayable}`)) return;
+            }
+
+            // Check if coupon applied and bonus used together (should not happen due to UI, but double-check)
+            if(PAYMENT_DATA.hasCoupon && redeem > 0) {
+                showToast('Error: Cannot use bonus points with coupon codes', 'error');
+                return;
+            }
 
             const { doc, runTransaction } = window.firebaseModules;
 
@@ -3013,16 +3134,35 @@ async function deletePendingOrder(orderId) {
                         transaction.update(custRef, { points: (currentPoints - redeem) + newBonus });
                     }
 
-                    // Update Order
-                    transaction.update(orderRef, { 
+                    // Prepare order update data
+                    const orderUpdate = {
                         status: 'completed',
                         redeemed: redeem,
                         finalPaid: netPayable,
                         bonusEarned: newBonus,
-                        paymentMode: payMode,
-                        cashGiven: (payMode === 'Cash' ? cashGiven : 0),
-                        changeReturn: (payMode === 'Cash' ? changeReturn : 0)
-                    });
+                        paymentMode: payMode
+                    };
+
+                    // Add payment details based on mode
+                    if(payMode === 'Cash') {
+                        orderUpdate.cashGiven = cashGiven;
+                        orderUpdate.changeReturn = changeReturn;
+                        orderUpdate.cashAmount = netPayable;
+                        orderUpdate.onlineAmount = 0;
+                    } else if(payMode === 'Online') {
+                        orderUpdate.cashGiven = 0;
+                        orderUpdate.changeReturn = 0;
+                        orderUpdate.cashAmount = 0;
+                        orderUpdate.onlineAmount = netPayable;
+                    } else if(payMode === 'Partial') {
+                        orderUpdate.cashGiven = 0;
+                        orderUpdate.changeReturn = 0;
+                        orderUpdate.cashAmount = partialCash;
+                        orderUpdate.onlineAmount = partialOnline;
+                    }
+
+                    // Update Order
+                    transaction.update(orderRef, orderUpdate);
 
                     // Store Data for Bill
                     PAYMENT_DATA.finalPaid = netPayable;
@@ -3031,6 +3171,8 @@ async function deletePendingOrder(orderId) {
                     PAYMENT_DATA.cashGiven = cashGiven;
                     PAYMENT_DATA.change = changeReturn;
                     PAYMENT_DATA.mode = payMode;
+                    PAYMENT_DATA.partialCash = partialCash;
+                    PAYMENT_DATA.partialOnline = partialOnline;
                 });
 
                 // Show Success Screen
@@ -3070,6 +3212,9 @@ async function deletePendingOrder(orderId) {
             if(d.mode === 'Cash') {
                 text += `Cash Given:     ₹${d.cashGiven}\n`;
                 text += `Return Change:  ₹${d.change}\n`;
+            } else if(d.mode === 'Partial') {
+                text += `  💵 Cash:      ₹${d.partialCash}\n`;
+                text += `  📱 Online:    ₹${d.partialOnline}\n`;
             }
             
             text += `--------------------------------\n`;
@@ -3436,6 +3581,11 @@ async function printBillDirect(orderId) {
         if(order.paymentMode === 'Cash' && cashGiven) {
             addText(`Cash Given:  ${cashGiven}\n`);
             addText(`Change:  ${change}\n`);
+        } else if(order.paymentMode === 'Partial') {
+            const partialCash = order.cashAmount || PAYMENT_DATA.partialCash || 0;
+            const partialOnline = order.onlineAmount || PAYMENT_DATA.partialOnline || 0;
+            addText(`  Cash:  ${partialCash}\n`);
+            addText(`  Online:  ${partialOnline}\n`);
         }
 
         addText("--------------------------------\n");
@@ -3819,6 +3969,7 @@ async function loadActiveUsersReport() {
                     <select id="editMode" class="input" disabled>
                         <option value="Cash">Cash</option>
                         <option value="Online">Online</option>
+                        <option value="Partial">Partial (Both)</option>
                     </select>
                 </div>
             </div>
