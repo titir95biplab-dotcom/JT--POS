@@ -892,6 +892,7 @@ async function trackUserActivity(phone) {
             storeSettings: { name: 'Juice Therapy', address: '', footer: 'Thank you!', link: '' }
         };
 let TEMP_EDIT_ITEMS = [];
+let TEMP_EDIT_DISCOUNT = null; // Store discount info during editing
 let SALES_CHART_INSTANCE = null;
         window.onload = () => {
            
@@ -1983,6 +1984,9 @@ function renderSalesChart(dailyData) {
 // 1. Load items into temporary state
 TEMP_EDIT_ITEMS = JSON.parse(JSON.stringify(data.items)); // Deep copy to avoid reference issues
 
+// Store discount info for editing
+TEMP_EDIT_DISCOUNT = data.discount ? JSON.parse(JSON.stringify(data.discount)) : null;
+
 // 2. Populate the "Add Item" dropdown
 const itemSelect = document.getElementById('adminAddItemSelect');
 itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` + 
@@ -2063,6 +2067,18 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
     document.getElementById('editItemsWrapper').classList.remove('hidden'); // Show dynamic
     
     renderEditItems(); // Draw the editable list
+    
+    // Handle coupon UI visibility
+    if(TEMP_EDIT_DISCOUNT) {
+        document.getElementById('editCouponCodeLabel').textContent = TEMP_EDIT_DISCOUNT.code;
+        document.getElementById('editAppliedCoupon').classList.remove('hidden');
+        document.getElementById('editCouponInput').classList.add('hidden');
+    } else {
+        document.getElementById('editAppliedCoupon').classList.add('hidden');
+        document.getElementById('editCouponInput').classList.remove('hidden');
+        document.getElementById('editCouponCode').value = '';
+        document.getElementById('editCouponStatus').classList.add('hidden');
+    }
           
             // Toggle Buttons
             document.getElementById('btnAdminEdit').classList.add('hidden');
@@ -2142,11 +2158,16 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
             }
 
             // C. Update the Order Document
+            // Calculate subtotal (sum of all items before discount)
+            const subtotal = newItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+            
             transaction.update(orderRef, {
                 customerName: newName,
                 phone: newPhone,
                 finalPaid: newTotal,
                 total: newTotal,
+                subtotal: subtotal,
+                discount: TEMP_EDIT_DISCOUNT, // Save discount info (null if no discount)
                 paymentMode: newMode,
                 items: newItems,
                 bonusEarned: newBonus // Save the new bonus amount so next time it's accurate
@@ -2225,8 +2246,118 @@ function adminAddNewItem(selectEl) {
 
 // 5. Auto-Calculate Total
 function recalcEditTotal() {
-    const total = TEMP_EDIT_ITEMS.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    document.getElementById('editTotal').value = total;
+    const subtotal = TEMP_EDIT_ITEMS.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    
+    // Apply discount if available
+    let finalTotal = subtotal;
+    if(TEMP_EDIT_DISCOUNT && TEMP_EDIT_DISCOUNT.amount > 0) {
+        // Recalculate discount based on new subtotal
+        if(TEMP_EDIT_DISCOUNT.type === 'percentage') {
+            TEMP_EDIT_DISCOUNT.amount = Math.round((subtotal * TEMP_EDIT_DISCOUNT.value) / 100);
+        }
+        // For fixed amount, keep the same discount (but don't exceed subtotal)
+        if(TEMP_EDIT_DISCOUNT.amount > subtotal) {
+            TEMP_EDIT_DISCOUNT.amount = subtotal;
+        }
+        finalTotal = subtotal - TEMP_EDIT_DISCOUNT.amount;
+    }
+    
+    document.getElementById('editTotal').value = finalTotal;
+}
+
+// Apply Coupon During Editing
+async function applyEditCoupon() {
+    const code = document.getElementById('editCouponCode').value.trim().toUpperCase();
+    if (!code) {
+        showToast('Please enter a coupon code', 'error');
+        return;
+    }
+    
+    const subtotal = TEMP_EDIT_ITEMS.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    if (subtotal === 0) {
+        showToast('Add items first', 'error');
+        return;
+    }
+    
+    try {
+        const { doc, getDoc } = window.firebaseModules;
+        const couponDoc = await getDoc(doc(window.db, 'coupons', code));
+        
+        if (!couponDoc.exists()) {
+            document.getElementById('editCouponStatus').innerHTML = '<span style="color:var(--danger);">❌ Invalid coupon code</span>';
+            document.getElementById('editCouponStatus').classList.remove('hidden');
+            return;
+        }
+        
+        const coupon = couponDoc.data();
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Validate coupon
+        if (!coupon.isActive) {
+            document.getElementById('editCouponStatus').innerHTML = '<span style="color:var(--danger);">❌ Coupon is inactive</span>';
+            document.getElementById('editCouponStatus').classList.remove('hidden');
+            return;
+        }
+        
+        if (today < coupon.startDate || today > coupon.endDate) {
+            document.getElementById('editCouponStatus').innerHTML = '<span style="color:var(--danger);">❌ Coupon expired or not yet valid</span>';
+            document.getElementById('editCouponStatus').classList.remove('hidden');
+            return;
+        }
+        
+        if (subtotal < coupon.minOrderAmount) {
+            document.getElementById('editCouponStatus').innerHTML = `<span style="color:var(--danger);">❌ Minimum order ₹${coupon.minOrderAmount} required</span>`;
+            document.getElementById('editCouponStatus').classList.remove('hidden');
+            return;
+        }
+        
+        // Calculate discount
+        let discountAmount = 0;
+        if (coupon.type === 'percentage') {
+            discountAmount = Math.round((subtotal * coupon.value) / 100);
+        } else {
+            discountAmount = coupon.value;
+        }
+        
+        // Don't allow discount to exceed subtotal
+        if (discountAmount > subtotal) {
+            discountAmount = subtotal;
+        }
+        
+        // Apply discount
+        TEMP_EDIT_DISCOUNT = {
+            code: coupon.code,
+            type: coupon.type,
+            value: coupon.value,
+            amount: discountAmount
+        };
+        
+        // Show applied discount
+        document.getElementById('editCouponCodeLabel').textContent = coupon.code;
+        document.getElementById('editAppliedCoupon').classList.remove('hidden');
+        document.getElementById('editCouponInput').classList.add('hidden');
+        document.getElementById('editCouponStatus').classList.add('hidden');
+        
+        // Update total
+        recalcEditTotal();
+        
+        showToast(`Discount applied: ₹${discountAmount} OFF`);
+        
+    } catch (e) {
+        console.error('Error applying coupon:', e);
+        showToast('Error applying coupon', 'error');
+    }
+}
+
+// Remove Coupon During Editing
+function removeEditCoupon() {
+    TEMP_EDIT_DISCOUNT = null;
+    document.getElementById('editAppliedCoupon').classList.add('hidden');
+    document.getElementById('editCouponInput').classList.remove('hidden');
+    document.getElementById('editCouponCode').value = '';
+    document.getElementById('editCouponStatus').classList.add('hidden');
+    recalcEditTotal();
+    showToast('Coupon removed');
 }
 
         function filterAdminOrders(val) {
@@ -3956,6 +4087,24 @@ async function loadActiveUsersReport() {
         <select id="adminAddItemSelect" class="input" style="margin:0;" onchange="adminAddNewItem(this)">
             <option value="">+ Add Menu Item</option>
         </select>
+    </div>
+    
+    <!-- Coupon Section for Editing -->
+    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2);">
+        <label class="text-muted" style="font-size:0.75rem; margin-bottom:6px; display:block;">🎫 Discount Coupon</label>
+        <div id="editAppliedCoupon" class="hidden" style="background:rgba(76,175,80,0.1); padding:8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(76,175,80,0.3);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.85rem; color:var(--success); font-weight:600;" id="editCouponCodeLabel">SAVE50</span>
+                <button class="btn btn-sm btn-danger" onclick="removeEditCoupon()" style="padding:4px 8px; font-size:0.75rem;">Remove</button>
+            </div>
+        </div>
+        <div id="editCouponInput" class="coupon-input-wrapper">
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="editCouponCode" class="input" placeholder="Enter code" style="margin:0; text-transform:uppercase; flex:1; padding:8px; font-size:0.85rem;">
+                <button class="btn btn-success btn-sm" onclick="applyEditCoupon()" style="padding:8px 12px; font-size:0.85rem;">Apply</button>
+            </div>
+            <div id="editCouponStatus" class="coupon-status hidden"></div>
+        </div>
     </div>
 </div>
 
