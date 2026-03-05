@@ -1475,7 +1475,7 @@ async function applyPosCoupon() {
         document.getElementById('posCouponCode').disabled = true;
         
         // Update cart display
-        updateCart();
+        renderActiveCart();
         
         showToast(`Discount applied: ₹${discountAmount} OFF`);
         
@@ -1492,7 +1492,7 @@ function removePosCoupon() {
     document.getElementById('posCouponCode').value = '';
     document.getElementById('posCouponCode').disabled = false;
     document.getElementById('posCouponStatus').classList.add('hidden');
-    updateCart();
+    renderActiveCart();
     showToast('Coupon removed');
 }
 
