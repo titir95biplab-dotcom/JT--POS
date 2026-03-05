@@ -2569,7 +2569,21 @@ function filterMenu(text) {
             // Apply discount if available (only for outlet cart, not customer cart)
             let finalTotal = total;
             if(appliedDiscount && container.id === 'cartItemsList') {
-                finalTotal = total - appliedDiscount.amount;
+                // Recalculate discount amount based on current cart total
+                let discountAmount = 0;
+                if(appliedDiscount.type === 'percentage') {
+                    discountAmount = Math.round((total * appliedDiscount.value) / 100);
+                } else {
+                    discountAmount = appliedDiscount.value;
+                }
+                // Don't allow discount to exceed cart total
+                if(discountAmount > total) {
+                    discountAmount = total;
+                }
+                // Update the appliedDiscount amount
+                appliedDiscount.amount = discountAmount;
+                
+                finalTotal = total - discountAmount;
                 totalEl.innerHTML = `
                     <div style="text-decoration:line-through; font-size:0.9rem; color:var(--text-muted);">₹${total}</div>
                     <div style="color:var(--success);">₹${finalTotal}</div>
@@ -2965,6 +2979,29 @@ function printKOT(orderId) {
                     const data = snap.data();
                     STATE.cart = data.items;
                     STATE.editingOrderId = orderId;
+                    
+                    // Load discount if exists
+                    if(data.discount && data.discount.code) {
+                        appliedDiscount = {
+                            code: data.discount.code,
+                            type: data.discount.type,
+                            value: data.discount.value,
+                            amount: data.discount.amount
+                        };
+                        // Show applied discount in UI
+                        document.getElementById('posDiscountCodeLabel').textContent = data.discount.code;
+                        document.getElementById('posAppliedDiscount').classList.remove('hidden');
+                        document.getElementById('posCouponCode').disabled = true;
+                        document.getElementById('posCouponStatus').classList.add('hidden');
+                    } else {
+                        // Clear discount if none exists
+                        appliedDiscount = null;
+                        document.getElementById('posAppliedDiscount').classList.add('hidden');
+                        document.getElementById('posCouponCode').value = '';
+                        document.getElementById('posCouponCode').disabled = false;
+                        document.getElementById('posCouponStatus').classList.add('hidden');
+                    }
+                    
                     switchOutletTab('pos');
                     document.getElementById('posPhone').value = data.phone;
                     document.getElementById('btnPlaceOrder').classList.add('hidden');
@@ -3005,6 +3042,31 @@ async function deletePendingOrder(orderId) {
 
             const total = STATE.cart.reduce((s, i) => s + (i.price * i.qty), 0);
             
+            // Calculate final total with discount
+            let finalTotal = total;
+            let discountInfo = null;
+            
+            if(appliedDiscount) {
+                // Recalculate discount amount based on current cart total
+                let discountAmount = 0;
+                if(appliedDiscount.type === 'percentage') {
+                    discountAmount = Math.round((total * appliedDiscount.value) / 100);
+                } else {
+                    discountAmount = appliedDiscount.value;
+                }
+                // Don't allow discount to exceed cart total
+                if(discountAmount > total) {
+                    discountAmount = total;
+                }
+                finalTotal = total - discountAmount;
+                discountInfo = {
+                    code: appliedDiscount.code,
+                    type: appliedDiscount.type,
+                    value: appliedDiscount.value,
+                    amount: discountAmount
+                };
+            }
+            
             const { doc, updateDoc, getDoc, setDoc, serverTimestamp } = window.firebaseModules;
 
             try {
@@ -3023,7 +3085,9 @@ async function deletePendingOrder(orderId) {
                 // 3. Update the Order with New Items AND New Phone/Name
                 await updateDoc(doc(window.db, 'orders', STATE.editingOrderId), {
                     items: STATE.cart, 
-                    total: total,
+                    subtotal: total,
+                    discount: discountInfo,
+                    total: finalTotal,
                     phone: newPhone,       // Update Phone
                     customerName: custName // Update Name associated with that phone
                 });
