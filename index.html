@@ -340,6 +340,7 @@ async function trackUserActivity(phone) {
                 <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('orders')" id="btn-adm-orders">📜 Orders</button>
                 <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('settings')" id="btn-adm-settings">⚙️ Settings</button>
 <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('notify')" id="btn-adm-notify">📢 Notify</button>
+<button class="btn btn-secondary tab-btn" onclick="switchAdminTab('inventory')" id="btn-adm-inventory">🏪 Inventory</button>
             </div>
 
 <div id="adm-view-notify" class="hidden">
@@ -364,6 +365,58 @@ async function trackUserActivity(phone) {
         <div id="adminNotifHistory"></div>
     </div>
 </div>
+<!-- ADMIN INVENTORY VIEW -->
+<div id="adm-view-inventory" class="hidden">
+    <div class="card">
+        <div class="flex justify-between items-center" style="margin-bottom:15px;">
+            <h3>🏪 Ingredient Stock</h3>
+            <button class="btn btn-primary btn-sm" onclick="showAddIngredientModal()">➕ Add Ingredient</button>
+        </div>
+        <p class="text-muted" style="font-size:0.85rem; margin-bottom:15px;">Manage raw ingredients and their current stock levels.</p>
+        <div id="adminIngredientsList"></div>
+    </div>
+
+    <div class="card" style="margin-top:20px;">
+        <h3>🔗 Item Ingredients (Recipe)</h3>
+        <p class="text-muted" style="font-size:0.85rem; margin-bottom:15px;">Assign ingredients to menu items. When an order is placed, stock will be deducted automatically.</p>
+        <div style="margin-bottom:15px;">
+            <label class="text-muted" style="font-size:0.85rem;">Select Menu Item</label>
+            <select id="recipeItemSelect" class="input" onchange="loadItemRecipe(this.value)">
+                <option value="">-- Select an item --</option>
+            </select>
+        </div>
+        <div id="recipeSection" class="hidden">
+            <div id="recipeIngredientsList" style="margin-bottom:15px;"></div>
+            <div class="flex gap-2" style="flex-wrap:wrap;">
+                <select id="recipeAddIngredientSelect" class="input" style="flex:2; margin:0;">
+                    <option value="">-- Add Ingredient --</option>
+                </select>
+                <input type="number" id="recipeAddQty" class="input" placeholder="Qty" style="flex:1; margin:0; max-width:80px;" min="0.01" step="0.01">
+                <input type="text" id="recipeAddUnit" class="input" placeholder="Unit (e.g. pcs, g)" style="flex:1; margin:0; max-width:100px;">
+                <button class="btn btn-success btn-sm" onclick="addRecipeIngredient()">Add</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ADD INGREDIENT MODAL -->
+<div id="addIngredientModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:300; display:flex; align-items:center; justify-content:center;">
+    <div class="card" style="width:90%; max-width:380px;">
+        <h3 id="ingredientModalTitle">Add Ingredient</h3>
+        <input type="hidden" id="editingIngredientId">
+        <label class="text-muted" style="font-size:0.85rem;">Ingredient Name</label>
+        <input type="text" id="ingredientName" class="input" placeholder="e.g. Bread, Milk, Sugar">
+        <label class="text-muted" style="font-size:0.85rem;">Current Stock Quantity</label>
+        <input type="number" id="ingredientStock" class="input" placeholder="e.g. 100" min="0" step="0.01">
+        <label class="text-muted" style="font-size:0.85rem;">Unit</label>
+        <input type="text" id="ingredientUnit" class="input" placeholder="e.g. pcs, grams, litres">
+        <div class="flex gap-2" style="margin-top:10px;">
+            <button class="btn btn-secondary w-full" onclick="document.getElementById('addIngredientModal').classList.add('hidden')">Cancel</button>
+            <button class="btn btn-primary w-full" onclick="saveIngredient()">Save</button>
+        </div>
+    </div>
+</div>
+
             <div id="adm-view-dashboard">
     <div class="card">
         <h3>Sales Analytics</h3>
@@ -608,6 +661,7 @@ async function trackUserActivity(phone) {
     
     <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('current')" id="tab-current" title="Current">⏳</button>
     <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('completed')" id="tab-completed" title="Completed">✅</button>
+    <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('stock')" id="tab-stock" title="Stock">📦</button>
 </div>
 
             <div id="view-pos" class="pos-container">
@@ -664,6 +718,17 @@ async function trackUserActivity(phone) {
 
             <div id="view-completed" class="hidden">
                 <div id="completedOrdersList"></div>
+            </div>
+
+            <div id="view-stock" class="hidden">
+                <div class="card">
+                    <div class="flex justify-between items-center" style="margin-bottom:15px;">
+                        <h3>📦 Current Stock</h3>
+                        <button class="btn btn-secondary btn-sm" onclick="loadStockView()">🔄 Refresh</button>
+                    </div>
+                    <p class="text-muted" style="font-size:0.8rem; margin-bottom:15px;">Calculated stock may differ from actual. You can manually edit.</p>
+                    <div id="outletStockList"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1097,7 +1162,7 @@ async function restoreCustomerSession(phone) {
 
         // --- ADMIN SETTINGS & TABS ---
         function switchAdminTab(tab) {
-            ['dashboard', 'menu', 'orders', 'settings', 'notify'].forEach(t => {
+            ['dashboard', 'menu', 'orders', 'settings', 'notify', 'inventory'].forEach(t => {
                 const btn = document.getElementById(`btn-adm-${t}`);
                 const view = document.getElementById(`adm-view-${t}`);
                 if(btn) btn.classList.remove('active');
@@ -1129,6 +1194,11 @@ async function restoreCustomerSession(phone) {
     if(tab === 'menu') updateCategorySelects();
     if(tab === 'notify') loadAdminNotificationHistory();
     if(tab === 'settings') loadCoupons(); // Load coupons when settings tab is opened
+    if(tab === 'inventory') {
+        loadAdminIngredients();
+        loadRecipeItemDropdown();
+        loadRecipeIngredientDropdown();
+    }
 }
 
 async function sendBroadcastNotification() {
@@ -1613,7 +1683,7 @@ function filterAdminMenu(catName) {
             const { collection, onSnapshot, query, orderBy } = window.firebaseModules;
             onSnapshot(query(collection(window.db, 'menu'), orderBy('name')), (snap) => {
                 STATE.menu = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                if (STATE.role === 'admin') renderAdminMenu();
+                if (STATE.role === 'admin') { renderAdminMenu(); loadRecipeItemDropdown(); }
                 if (STATE.role === 'staff') renderOutletMenu();
                 if (STATE.role === 'customer') renderCustomerMenu();
             });
@@ -1934,9 +2004,14 @@ function renderSalesChart(dailyData) {
         async function adminDeleteOrder(id) {
             if(!confirm('Delete this record? Warning: 5% Bonus points awarded will be deducted from the customer.')) return;
             
-            const { doc, runTransaction } = window.firebaseModules;
+            const { doc, runTransaction, getDoc } = window.firebaseModules;
             
             try {
+                // Pre-fetch order data before transaction (so we can restore stock after)
+                let orderDataCache = null;
+                const preFetch = await getDoc(doc(window.db, 'orders', id));
+                if (preFetch.exists()) orderDataCache = preFetch.data();
+
                 await runTransaction(window.db, async (transaction) => {
                     // 1. Get Order
                     const orderRef = doc(window.db, 'orders', id);
@@ -1961,6 +2036,11 @@ function renderSalesChart(dailyData) {
                     // 3. Delete Order
                     transaction.delete(orderRef);
                 });
+
+                // 4. Restore ingredient stock (only for completed orders — cancelled already released)
+                if (orderDataCache && orderDataCache.status === 'completed' && orderDataCache.items) {
+                    await restoreIngredientStock(orderDataCache.items);
+                }
                 
                 showToast('Order deleted & points reversed');
                 loadAdminOrders(); 
@@ -2406,8 +2486,9 @@ function removeEditCoupon() {
         function switchOutletTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
-            ['view-pos', 'view-incoming', 'view-current', 'view-completed'].forEach(v => document.getElementById(v).classList.add('hidden'));
+            ['view-pos', 'view-incoming', 'view-current', 'view-completed', 'view-stock'].forEach(v => document.getElementById(v).classList.add('hidden'));
             document.getElementById(`view-${tab}`).classList.remove('hidden');
+            if(tab === 'stock') loadStockView();
         }
 
 function filterMenu(text) {
@@ -2645,7 +2726,7 @@ function filterMenu(text) {
             }
             
             // 2. Save Order WITH Name and Discount Info
-            await addDoc(collection(window.db, 'orders'), {
+            const orderRef = await addDoc(collection(window.db, 'orders'), {
                 items: items, 
                 phone: phone, 
                 customerName: custName,
@@ -2655,6 +2736,9 @@ function filterMenu(text) {
                 status: status, 
                 timestamp: serverTimestamp()
             });
+
+            // 3. Block ingredient stock for this order
+            await blockIngredientStock(items);
         }
 
         function loadOrders() {
@@ -2969,7 +3053,15 @@ function printKOT(orderId) {
         }
 
         async function updateOrderStatus(id, status) {
-            await window.firebaseModules.updateDoc(window.firebaseModules.doc(window.db, 'orders', id), { status });
+            const { doc, updateDoc, getDoc } = window.firebaseModules;
+            // If cancelling, release blocked stock
+            if (status === 'cancelled') {
+                try {
+                    const snap = await getDoc(doc(window.db, 'orders', id));
+                    if (snap.exists()) await releaseIngredientStock(snap.data().items);
+                } catch(e) { console.error('Stock release error:', e); }
+            }
+            await updateDoc(doc(window.db, 'orders', id), { status });
         }
 
         function editOrder(orderId) {
@@ -3015,10 +3107,12 @@ async function deletePendingOrder(orderId) {
             if(!confirm('Are you sure you want to cancel this order?')) return;
             
             try {
-                // FIX: Use updateDoc instead of deleteDoc to avoid Permission Errors.
-                // Marking as 'cancelled' removes it from the Pending list essentially "deleting" it from view.
-                const { doc, updateDoc } = window.firebaseModules;
+                const { doc, updateDoc, getDoc } = window.firebaseModules;
                 
+                // Release blocked stock before cancelling
+                const snap = await getDoc(doc(window.db, 'orders', orderId));
+                if (snap.exists()) await releaseIngredientStock(snap.data().items);
+
                 await updateDoc(doc(window.db, 'orders', orderId), {
                     status: 'cancelled'
                 });
@@ -3375,6 +3469,9 @@ async function deletePendingOrder(orderId) {
                 document.getElementById('paymentSuccessSection').classList.remove('hidden');
                 document.getElementById('billSerial').innerText = PAYMENT_DATA.serial;
                 showToast(`Paid! Earned ${PAYMENT_DATA.bonusEarned} pts`);
+
+                // Deduct blocked stock (moves blocked -> fully consumed)
+                if (PAYMENT_DATA.items) await deductBlockedStock(PAYMENT_DATA.items);
             } catch (e) {
                 console.error(e);
                 showToast('Payment Failed: ' + e, 'error');
@@ -4092,6 +4189,302 @@ async function resendCampaign(docId) {
         document.getElementById('notifTitle').focus();
     }
 }
+// ==================== INVENTORY MANAGEMENT ====================
+
+// Helper: deduct/block/release ingredient stock
+async function adjustIngredientStock(items, action, transaction) {
+    // action: 'block' (pending/requested), 'release' (cancel), 'deduct' (complete), 'restore' (delete completed)
+    const { collection, getDocs, doc, updateDoc, runTransaction } = window.firebaseModules;
+    
+    // Load all ingredients
+    const ingSnap = await getDocs(collection(window.db, 'ingredients'));
+    const ingredients = {};
+    ingSnap.forEach(d => { ingredients[d.id] = { id: d.id, ...d.data() }; });
+
+    // Load recipes for all item IDs in this order
+    const itemIds = [...new Set(items.map(i => i.id))];
+    const allRecipes = {};
+    for (const itemId of itemIds) {
+        const recipeSnap = await getDocs(collection(window.db, `menu/${itemId}/recipe`));
+        allRecipes[itemId] = [];
+        recipeSnap.forEach(d => allRecipes[itemId].push({ ingredientId: d.id, ...d.data() }));
+    }
+
+    // Calculate total ingredient usage for this order
+    const usageMap = {}; // ingredientId -> total qty needed
+    for (const orderItem of items) {
+        const recipe = allRecipes[orderItem.id] || [];
+        for (const ri of recipe) {
+            usageMap[ri.ingredientId] = (usageMap[ri.ingredientId] || 0) + (ri.qty * orderItem.qty);
+        }
+    }
+
+    // Apply adjustments
+    for (const [ingId, qty] of Object.entries(usageMap)) {
+        if (!ingredients[ingId]) continue;
+        const ingRef = doc(window.db, 'ingredients', ingId);
+        const ing = ingredients[ingId];
+        let newStock = ing.stock;
+        let newBlocked = ing.blockedStock || 0;
+
+        if (action === 'block') {
+            // Reduce available, increase blocked
+            newStock = Math.max(0, ing.stock - qty);
+            newBlocked = newBlocked + qty;
+        } else if (action === 'release') {
+            // Cancel: restore available, reduce blocked
+            newStock = ing.stock + qty;
+            newBlocked = Math.max(0, newBlocked - qty);
+        } else if (action === 'deduct') {
+            // Complete payment: blocked qty gets fully deducted (already removed from stock at block time)
+            newBlocked = Math.max(0, newBlocked - qty);
+            // stock already reduced at block time, no change needed
+        } else if (action === 'restore') {
+            // Delete completed order: restore stock (it was deducted at block, not reversed since)
+            newStock = ing.stock + qty;
+        }
+
+        if (transaction) {
+            transaction.update(ingRef, { stock: newStock, blockedStock: newBlocked });
+        } else {
+            await updateDoc(ingRef, { stock: newStock, blockedStock: newBlocked });
+        }
+    }
+}
+
+// Standalone wrapper for non-transaction calls
+async function blockIngredientStock(items) {
+    try { await adjustIngredientStock(items, 'block', null); } catch(e) { console.error('Stock block error:', e); }
+}
+async function releaseIngredientStock(items) {
+    try { await adjustIngredientStock(items, 'release', null); } catch(e) { console.error('Stock release error:', e); }
+}
+async function restoreIngredientStock(items) {
+    try { await adjustIngredientStock(items, 'restore', null); } catch(e) { console.error('Stock restore error:', e); }
+}
+async function deductBlockedStock(items) {
+    try { await adjustIngredientStock(items, 'deduct', null); } catch(e) { console.error('Stock deduct error:', e); }
+}
+
+// ---- Admin: Ingredient CRUD ----
+async function loadAdminIngredients() {
+    const { collection, getDocs, query, orderBy } = window.firebaseModules;
+    const snap = await getDocs(query(collection(window.db, 'ingredients'), orderBy('name')));
+    const container = document.getElementById('adminIngredientsList');
+    if (snap.empty) {
+        container.innerHTML = '<p class="text-muted text-center">No ingredients yet. Add your first ingredient.</p>';
+        return;
+    }
+    container.innerHTML = snap.docs.map(d => {
+        const ing = d.data();
+        const blocked = ing.blockedStock || 0;
+        const available = (ing.stock || 0) - blocked;
+        return `
+        <div class="card" style="background:rgba(255,255,255,0.05); margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <div style="font-weight:bold; font-size:1rem;">${ing.name}</div>
+                <div style="font-size:0.8rem; color:var(--text-muted);">
+                    Total: <strong style="color:var(--text)">${ing.stock || 0} ${ing.unit}</strong> &nbsp;|&nbsp;
+                    Blocked: <strong style="color:var(--warning)">${blocked} ${ing.unit}</strong> &nbsp;|&nbsp;
+                    Available: <strong style="color:var(--success)">${available.toFixed(2)} ${ing.unit}</strong>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button class="btn btn-warning btn-sm" onclick="editIngredient('${d.id}')">✏️</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteIngredient('${d.id}')">🗑️</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function showAddIngredientModal() {
+    document.getElementById('ingredientModalTitle').innerText = 'Add Ingredient';
+    document.getElementById('editingIngredientId').value = '';
+    document.getElementById('ingredientName').value = '';
+    document.getElementById('ingredientStock').value = '';
+    document.getElementById('ingredientUnit').value = '';
+    document.getElementById('addIngredientModal').classList.remove('hidden');
+}
+
+async function editIngredient(id) {
+    const { doc, getDoc } = window.firebaseModules;
+    const snap = await getDoc(doc(window.db, 'ingredients', id));
+    if (!snap.exists()) return;
+    const ing = snap.data();
+    document.getElementById('ingredientModalTitle').innerText = 'Edit Ingredient';
+    document.getElementById('editingIngredientId').value = id;
+    document.getElementById('ingredientName').value = ing.name;
+    document.getElementById('ingredientStock').value = ing.stock || 0;
+    document.getElementById('ingredientUnit').value = ing.unit || '';
+    document.getElementById('addIngredientModal').classList.remove('hidden');
+}
+
+async function saveIngredient() {
+    const id = document.getElementById('editingIngredientId').value;
+    const name = document.getElementById('ingredientName').value.trim();
+    const stock = parseFloat(document.getElementById('ingredientStock').value) || 0;
+    const unit = document.getElementById('ingredientUnit').value.trim();
+
+    if (!name) return showToast('Please enter ingredient name', 'error');
+
+    const { collection, addDoc, doc, updateDoc, setDoc } = window.firebaseModules;
+    try {
+        if (id) {
+            await updateDoc(doc(window.db, 'ingredients', id), { name, stock, unit });
+        } else {
+            await addDoc(collection(window.db, 'ingredients'), { name, stock, unit, blockedStock: 0 });
+        }
+        document.getElementById('addIngredientModal').classList.add('hidden');
+        showToast('Ingredient saved!');
+        loadAdminIngredients();
+        loadRecipeIngredientDropdown();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteIngredient(id) {
+    if (!confirm('Delete this ingredient? It will also be removed from all recipes.')) return;
+    const { doc, deleteDoc, collection, getDocs, query, collectionGroup } = window.firebaseModules;
+    try {
+        await deleteDoc(doc(window.db, 'ingredients', id));
+        showToast('Ingredient deleted');
+        loadAdminIngredients();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ---- Admin: Recipe Management ----
+async function loadRecipeItemDropdown() {
+    const sel = document.getElementById('recipeItemSelect');
+    sel.innerHTML = '<option value="">-- Select an item --</option>' +
+        STATE.menu.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+}
+
+async function loadRecipeIngredientDropdown() {
+    const { collection, getDocs, query, orderBy } = window.firebaseModules;
+    const snap = await getDocs(query(collection(window.db, 'ingredients'), orderBy('name')));
+    const sel = document.getElementById('recipeAddIngredientSelect');
+    sel.innerHTML = '<option value="">-- Add Ingredient --</option>' +
+        snap.docs.map(d => `<option value="${d.id}">${d.data().name} (${d.data().unit})</option>`).join('');
+}
+
+async function loadItemRecipe(itemId) {
+    const sec = document.getElementById('recipeSection');
+    if (!itemId) { sec.classList.add('hidden'); return; }
+    sec.classList.remove('hidden');
+
+    const { collection, getDocs } = window.firebaseModules;
+    const snap = await getDocs(collection(window.db, `menu/${itemId}/recipe`));
+    
+    const container = document.getElementById('recipeIngredientsList');
+    if (snap.empty) {
+        container.innerHTML = '<p class="text-muted" style="font-size:0.85rem; margin-bottom:10px;">No ingredients assigned yet.</p>';
+        return;
+    }
+
+    // Load ingredient names
+    const { doc, getDoc } = window.firebaseModules;
+    let html = '';
+    for (const d of snap.docs) {
+        const r = d.data();
+        let ingName = r.ingredientId || d.id;
+        try {
+            const ingDoc = await getDoc(doc(window.db, 'ingredients', d.id));
+            if (ingDoc.exists()) ingName = ingDoc.data().name;
+        } catch(e) {}
+        html += `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:8px; border-radius:6px; margin-bottom:6px;">
+            <span style="font-size:0.9rem;">${ingName}</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="color:var(--primary); font-weight:bold;">${r.qty} ${r.unit}</span>
+                <button class="btn btn-danger btn-sm" onclick="removeRecipeIngredient('${itemId}', '${d.id}')">🗑️</button>
+            </div>
+        </div>`;
+    }
+    container.innerHTML = html;
+}
+
+async function addRecipeIngredient() {
+    const itemId = document.getElementById('recipeItemSelect').value;
+    const ingId = document.getElementById('recipeAddIngredientSelect').value;
+    const qty = parseFloat(document.getElementById('recipeAddQty').value);
+    const unit = document.getElementById('recipeAddUnit').value.trim();
+
+    if (!itemId || !ingId || !qty || qty <= 0) return showToast('Fill all fields', 'error');
+
+    const { doc, setDoc } = window.firebaseModules;
+    try {
+        await setDoc(doc(window.db, `menu/${itemId}/recipe`, ingId), { qty, unit });
+        showToast('Recipe updated!');
+        document.getElementById('recipeAddIngredientSelect').value = '';
+        document.getElementById('recipeAddQty').value = '';
+        document.getElementById('recipeAddUnit').value = '';
+        loadItemRecipe(itemId);
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function removeRecipeIngredient(itemId, ingId) {
+    if (!confirm('Remove this ingredient from recipe?')) return;
+    const { doc, deleteDoc } = window.firebaseModules;
+    try {
+        await deleteDoc(doc(window.db, `menu/${itemId}/recipe`, ingId));
+        showToast('Removed');
+        loadItemRecipe(itemId);
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ---- Outlet: Stock View ----
+async function loadStockView() {
+    const { collection, getDocs, query, orderBy } = window.firebaseModules;
+    const container = document.getElementById('outletStockList');
+    container.innerHTML = '<p class="text-muted text-center">Loading...</p>';
+    
+    try {
+        const snap = await getDocs(query(collection(window.db, 'ingredients'), orderBy('name')));
+        if (snap.empty) {
+            container.innerHTML = '<p class="text-muted text-center">No ingredients set up. Ask admin to add ingredients.</p>';
+            return;
+        }
+        container.innerHTML = snap.docs.map(d => {
+            const ing = d.data();
+            const blocked = ing.blockedStock || 0;
+            const available = (ing.stock || 0) - blocked;
+            const stockColor = available < 5 ? 'var(--danger)' : available < 20 ? 'var(--warning)' : 'var(--success)';
+            return `
+            <div class="card" style="background:rgba(255,255,255,0.05); margin-bottom:10px;">
+                <div class="flex justify-between items-center" style="margin-bottom:8px;">
+                    <div>
+                        <div style="font-weight:bold;">${ing.name}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted);">Blocked (orders): ${blocked} ${ing.unit}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-weight:bold; font-size:1.2rem; color:${stockColor};">${(ing.stock || 0)} ${ing.unit}</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted);">Total Stock</div>
+                    </div>
+                </div>
+                <div class="flex gap-2" style="margin-top:8px;">
+                    <input type="number" id="stockEdit_${d.id}" class="input" value="${ing.stock || 0}" style="margin:0; flex:1;" step="0.01" min="0">
+                    <button class="btn btn-primary btn-sm" onclick="saveOutletStock('${d.id}', '${ing.unit}')">Update</button>
+                </div>
+            </div>`;
+        }).join('');
+    } catch(e) { 
+        container.innerHTML = `<p class="text-danger text-center">Error: ${e.message}</p>`; 
+    }
+}
+
+async function saveOutletStock(ingId, unit) {
+    const newStock = parseFloat(document.getElementById(`stockEdit_${ingId}`).value);
+    if (isNaN(newStock) || newStock < 0) return showToast('Invalid stock value', 'error');
+    
+    const { doc, updateDoc } = window.firebaseModules;
+    try {
+        await updateDoc(doc(window.db, 'ingredients', ingId), { stock: newStock });
+        showToast('Stock updated!');
+        loadStockView();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ==================== END INVENTORY ====================
+
 // --- NEW REPORT FUNCTION ---
 async function loadActiveUsersReport() {
     const { collection, query, where, getCountFromServer, Timestamp } = window.firebaseModules;
