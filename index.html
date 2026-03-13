@@ -4193,55 +4193,54 @@ async function resendCampaign(docId) {
 
 // Helper: deduct/block/release ingredient stock
 async function adjustIngredientStock(items, action, transaction) {
-    // action: 'block' (pending/requested), 'release' (cancel), 'deduct' (complete), 'restore' (delete completed)
-    const { collection, getDocs, doc, updateDoc, runTransaction } = window.firebaseModules;
-    
-    // Load all ingredients
-    const ingSnap = await getDocs(collection(window.db, 'ingredients'));
-    const ingredients = {};
-    ingSnap.forEach(d => { ingredients[d.id] = { id: d.id, ...d.data() }; });
+    // action: 'block' (order placed), 'release' (cancelled), 'deduct' (payment done), 'restore' (completed order deleted)
+    const { collection, getDocs, doc, getDoc, updateDoc } = window.firebaseModules;
 
-    // Load recipes for all item IDs in this order
+    // Load recipes: each recipe doc ID IS the ingredient ID
     const itemIds = [...new Set(items.map(i => i.id))];
-    const allRecipes = {};
+    const allRecipes = {}; // itemId -> [ { ingId, qty } ]
     for (const itemId of itemIds) {
         const recipeSnap = await getDocs(collection(window.db, `menu/${itemId}/recipe`));
         allRecipes[itemId] = [];
-        recipeSnap.forEach(d => allRecipes[itemId].push({ ingredientId: d.id, ...d.data() }));
+        recipeSnap.forEach(d => {
+            allRecipes[itemId].push({ ingId: d.id, qty: d.data().qty });
+        });
     }
 
-    // Calculate total ingredient usage for this order
-    const usageMap = {}; // ingredientId -> total qty needed
+    // Build usage map: ingId -> total qty for this order
+    const usageMap = {};
     for (const orderItem of items) {
         const recipe = allRecipes[orderItem.id] || [];
         for (const ri of recipe) {
-            usageMap[ri.ingredientId] = (usageMap[ri.ingredientId] || 0) + (ri.qty * orderItem.qty);
+            if (!ri.ingId || !ri.qty) continue;
+            usageMap[ri.ingId] = (usageMap[ri.ingId] || 0) + (ri.qty * orderItem.qty);
         }
     }
 
-    // Apply adjustments
+    if (Object.keys(usageMap).length === 0) return; // No recipes configured, skip
+
+    // Apply adjustments - fetch fresh values per ingredient to avoid stale reads
     for (const [ingId, qty] of Object.entries(usageMap)) {
-        if (!ingredients[ingId]) continue;
         const ingRef = doc(window.db, 'ingredients', ingId);
-        const ing = ingredients[ingId];
-        let newStock = ing.stock;
+        const ingSnap = await getDoc(ingRef);
+        if (!ingSnap.exists()) continue;
+
+        const ing = ingSnap.data();
+        let newStock = ing.stock || 0;
         let newBlocked = ing.blockedStock || 0;
 
         if (action === 'block') {
-            // Reduce available, increase blocked
-            newStock = Math.max(0, ing.stock - qty);
+            newStock = Math.max(0, newStock - qty);
             newBlocked = newBlocked + qty;
         } else if (action === 'release') {
-            // Cancel: restore available, reduce blocked
-            newStock = ing.stock + qty;
+            newStock = newStock + qty;
             newBlocked = Math.max(0, newBlocked - qty);
         } else if (action === 'deduct') {
-            // Complete payment: blocked qty gets fully deducted (already removed from stock at block time)
+            // Stock already reduced at block time; just clear the blocked counter
             newBlocked = Math.max(0, newBlocked - qty);
-            // stock already reduced at block time, no change needed
         } else if (action === 'restore') {
-            // Delete completed order: restore stock (it was deducted at block, not reversed since)
-            newStock = ing.stock + qty;
+            // Completed order deleted: put stock back
+            newStock = newStock + qty;
         }
 
         if (transaction) {
