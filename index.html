@@ -2191,6 +2191,10 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
     try {
         const { doc, runTransaction, serverTimestamp } = window.firebaseModules;
         
+        // পুরনো ডেটা সেভ রাখার জন্য ভেরিয়েবল
+        let oldItems = [];
+        let oldStatus = '';
+        
         // 2. Run a Transaction (Ensures points & order update together)
         await runTransaction(window.db, async (transaction) => {
             
@@ -2201,6 +2205,10 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
 
             const oldOrderData = orderDoc.data();
             const isCompleted = oldOrderData.status === 'completed';
+            
+            // ইনভেন্টরি অ্যাডজাস্ট করার জন্য পুরনো ডেটা স্টোর করে রাখা
+            oldItems = oldOrderData.items || [];
+            oldStatus = oldOrderData.status;
 
             // B. Calculate Point Adjustments (Only if order is completed)
             let newBonus = 0;
@@ -2217,7 +2225,6 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
                 const pointDifference = newBonus - oldBonus;
 
                 // Update Customer Points
-                // Note: We use the OLD phone to find the customer in case you changed the number
                 const custPhone = oldOrderData.phone; 
                 const custRef = doc(window.db, 'customers', custPhone);
                 const custDoc = await transaction.get(custRef);
@@ -2226,10 +2233,7 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
                     const currentPoints = custDoc.data().points || 0;
                     const newBalance = currentPoints + pointDifference;
                     
-                    // Prevent negative points (optional, but good practice)
                     if (newBalance < 0) {
-                        // You can throw an error here if you want to block the edit, 
-                        // or just set it to 0. We'll allow it but warn in console.
                         console.warn("Customer points dropped below zero.");
                     }
 
@@ -2238,7 +2242,6 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
             }
 
             // C. Update the Order Document
-            // Calculate subtotal (sum of all items before discount)
             const subtotal = newItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
             
             transaction.update(orderRef, {
@@ -2247,12 +2250,27 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
                 finalPaid: newTotal,
                 total: newTotal,
                 subtotal: subtotal,
-                discount: TEMP_EDIT_DISCOUNT, // Save discount info (null if no discount)
+                discount: TEMP_EDIT_DISCOUNT, 
                 paymentMode: newMode,
                 items: newItems,
-                bonusEarned: newBonus // Save the new bonus amount so next time it's accurate
+                bonusEarned: newBonus 
             });
         });
+        
+        // --- INVENTORY FIX FOR ADMIN EDIT START ---
+        if (oldStatus === 'completed') {
+            // ১. পুরনো আইটেমের স্টক ইনভেন্টরিতে ফেরত দেওয়া (Restore)
+            await restoreIngredientStock(oldItems);
+            // ২. নতুন আইটেমের স্টক সরাসরি মাইনাস করা (Block + Deduct = Direct Minus)
+            await blockIngredientStock(newItems);
+            await deductBlockedStock(newItems);
+        } else if (oldStatus === 'pending' || oldStatus === 'requested') {
+            // ১. পুরনো ব্লক হওয়া স্টক রিলিজ করা
+            await releaseIngredientStock(oldItems);
+            // ২. নতুন স্টক ব্লক করা
+            await blockIngredientStock(newItems);
+        }
+        // --- INVENTORY FIX FOR ADMIN EDIT END ---
         
         // 3. Success UI Updates
         showToast('Order & Points Updated Successfully');
@@ -3176,8 +3194,22 @@ async function deletePendingOrder(orderId) {
                     custName = custSnap.data().name || '';
                 }
 
+                // --- INVENTORY FIX START ---
+                const orderRef = doc(window.db, 'orders', STATE.editingOrderId);
+                const oldOrderSnap = await getDoc(orderRef);
+                
+                // ৩(ক). পুরনো অর্ডার ডেটা থেকে আগের ব্লক করা স্টক রিলিজ করা
+                if (oldOrderSnap.exists()) {
+                    const oldItems = oldOrderSnap.data().items || [];
+                    await releaseIngredientStock(oldItems);
+                }
+                
+                // ৩(খ). নতুন আপডেট হওয়া কার্টের আইটেম অনুযায়ী স্টক আবার ব্লক করা
+                await blockIngredientStock(STATE.cart);
+                // --- INVENTORY FIX END ---
+
                 // 3. Update the Order with New Items AND New Phone/Name
-                await updateDoc(doc(window.db, 'orders', STATE.editingOrderId), {
+                await updateDoc(orderRef, {
                     items: STATE.cart, 
                     subtotal: total,
                     discount: discountInfo,
