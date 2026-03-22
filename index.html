@@ -959,6 +959,7 @@ async function trackUserActivity(phone) {
 let TEMP_EDIT_ITEMS = [];
 let TEMP_EDIT_DISCOUNT = null; // Store discount info during editing
 let SALES_CHART_INSTANCE = null;
+let isSubmitting = false; // Guard against duplicate order submissions
         window.onload = () => {
            
             const checkFirebase = setInterval(() => {
@@ -2693,41 +2694,58 @@ function filterMenu(text) {
         }
 
         async function placeOrder() {
+            if (isSubmitting) return showToast('Order is being placed, please wait...', 'error');
             const phone = document.getElementById('posPhone').value;
             if(phone.length !== 10) return showToast('Enter 10-digit Phone', 'error');
             if(STATE.cart.length === 0) return showToast('Cart is empty', 'error');
-            await submitOrder(phone, STATE.cart, 'pending');
-            clearCart();
-            switchOutletTab('current');
+            isSubmitting = true;
+            const btn = document.getElementById('btnPlaceOrder');
+            if (btn) { btn.disabled = true; btn.innerText = 'Placing...'; }
+            try {
+                await submitOrder(phone, STATE.cart, 'pending');
+                clearCart();
+                switchOutletTab('current');
+            } finally {
+                isSubmitting = false;
+                if (btn) { btn.disabled = false; btn.innerText = '✅ Place Order'; }
+            }
         }
 
         async function placeCustomerOrder() {
+            if (isSubmitting) return showToast('Order is being placed, please wait...', 'error');
             if(STATE.custCart.length === 0) return showToast('Cart is empty', 'error');
-            await submitOrder(STATE.user.phone, STATE.custCart, 'requested');
-            STATE.custCart = [];
-            renderActiveCart();
-            showToast('Order Request Sent');
-            switchCustTab('history');
+            isSubmitting = true;
+            try {
+                await submitOrder(STATE.user.phone, STATE.custCart, 'requested');
+                STATE.custCart = [];
+                renderActiveCart();
+                showToast('Order Request Sent');
+                switchCustTab('history');
+            } finally {
+                isSubmitting = false;
+            }
         }
 
         async function submitOrder(phone, items, status) {
             const { addDoc, collection, serverTimestamp, doc, setDoc, getDoc } = window.firebaseModules;
             
+            // IMPORTANT: Deep-copy items immediately so clearing the cart later
+            // cannot mutate the array we're about to write to Firestore.
+            const itemsSnapshot = JSON.parse(JSON.stringify(items));
+            
             // 1. Fetch Customer Details
             const custRef = doc(window.db, 'customers', phone);
             const custSnap = await getDoc(custRef);
             
-            let custName = ''; // Default if name not found
+            let custName = '';
 
             if (!custSnap.exists()) {
-                // Create new customer if they don't exist
                 await setDoc(custRef, { phone, points: 0, joined: serverTimestamp() });
             } else {
-                // Get existing name
                 custName = custSnap.data().name || '';
             }
             
-            const total = items.reduce((s, i) => s + (i.price * i.qty), 0);
+            const total = itemsSnapshot.reduce((s, i) => s + (i.price * i.qty), 0);
             
             // Calculate final total with discount
             let finalTotal = total;
@@ -2743,20 +2761,21 @@ function filterMenu(text) {
                 };
             }
             
-            // 2. Save Order WITH Name and Discount Info
-            const orderRef = await addDoc(collection(window.db, 'orders'), {
-                items: items, 
+            // 2. Save Order — stockBlocked flag tracks whether inventory has been blocked
+            await addDoc(collection(window.db, 'orders'), {
+                items: itemsSnapshot, 
                 phone: phone, 
                 customerName: custName,
                 subtotal: total,
                 discount: discountInfo,
                 total: finalTotal,
                 status: status, 
-                timestamp: serverTimestamp()
+                timestamp: serverTimestamp(),
+                stockBlocked: true
             });
 
             // 3. Block ingredient stock for this order
-            await blockIngredientStock(items);
+            await blockIngredientStock(itemsSnapshot);
         }
 
         function loadOrders() {
@@ -3072,14 +3091,19 @@ function printKOT(orderId) {
 
         async function updateOrderStatus(id, status) {
             const { doc, updateDoc, getDoc } = window.firebaseModules;
-            // If cancelling, release blocked stock
+            // If cancelling, only release blocked stock if it was actually blocked
             if (status === 'cancelled') {
                 try {
                     const snap = await getDoc(doc(window.db, 'orders', id));
-                    if (snap.exists()) await releaseIngredientStock(snap.data().items);
+                    if (snap.exists() && snap.data().stockBlocked) {
+                        await releaseIngredientStock(snap.data().items);
+                    }
                 } catch(e) { console.error('Stock release error:', e); }
             }
-            await updateDoc(doc(window.db, 'orders', id), { status });
+            await updateDoc(doc(window.db, 'orders', id), { 
+                status,
+                ...(status === 'cancelled' ? { stockBlocked: false } : {})
+            });
         }
 
         function editOrder(orderId) {
@@ -3127,12 +3151,15 @@ async function deletePendingOrder(orderId) {
             try {
                 const { doc, updateDoc, getDoc } = window.firebaseModules;
                 
-                // Release blocked stock before cancelling
                 const snap = await getDoc(doc(window.db, 'orders', orderId));
-                if (snap.exists()) await releaseIngredientStock(snap.data().items);
+                // Only release stock if it was actually blocked — prevents phantom releases
+                if (snap.exists() && snap.data().stockBlocked) {
+                    await releaseIngredientStock(snap.data().items);
+                }
 
                 await updateDoc(doc(window.db, 'orders', orderId), {
-                    status: 'cancelled'
+                    status: 'cancelled',
+                    stockBlocked: false
                 });
                 
                 showToast('Order Cancelled Successfully');
@@ -3144,6 +3171,7 @@ async function deletePendingOrder(orderId) {
 
         async function updateExistingOrder() {
             if(!STATE.editingOrderId) return;
+            if (isSubmitting) return showToast('Update already in progress...', 'error');
             
             // 1. Capture the (potentially edited) Phone Number
             const newPhone = document.getElementById('posPhone').value;
@@ -3153,23 +3181,21 @@ async function deletePendingOrder(orderId) {
             }
 
             const total = STATE.cart.reduce((s, i) => s + (i.price * i.qty), 0);
+            // Deep-copy cart now so clearCart() cannot corrupt data mid-flight
+            const itemsSnapshot = JSON.parse(JSON.stringify(STATE.cart));
             
             // Calculate final total with discount
             let finalTotal = total;
             let discountInfo = null;
             
             if(appliedDiscount) {
-                // Recalculate discount amount based on current cart total
                 let discountAmount = 0;
                 if(appliedDiscount.type === 'percentage') {
                     discountAmount = Math.round((total * appliedDiscount.value) / 100);
                 } else {
                     discountAmount = appliedDiscount.value;
                 }
-                // Don't allow discount to exceed cart total
-                if(discountAmount > total) {
-                    discountAmount = total;
-                }
+                if(discountAmount > total) discountAmount = total;
                 finalTotal = total - discountAmount;
                 discountInfo = {
                     code: appliedDiscount.code,
@@ -3181,41 +3207,45 @@ async function deletePendingOrder(orderId) {
             
             const { doc, updateDoc, getDoc, setDoc, serverTimestamp } = window.firebaseModules;
 
+            isSubmitting = true;
+            const btn = document.getElementById('btnUpdateOrder');
+            if (btn) { btn.disabled = true; btn.innerText = 'Updating...'; }
+
             try {
-                // 2. Ensure Customer Exists (in case the number was changed to a new customer)
+                // 2. Ensure Customer Exists
                 const custRef = doc(window.db, 'customers', newPhone);
                 const custSnap = await getDoc(custRef);
                 
                 let custName = '';
                 if (!custSnap.exists()) {
-                    // Create new customer profile for the new number
                     await setDoc(custRef, { phone: newPhone, points: 0, joined: serverTimestamp() });
                 } else {
                     custName = custSnap.data().name || '';
                 }
 
-                // --- INVENTORY FIX START ---
+                // --- INVENTORY FIX ---
                 const orderRef = doc(window.db, 'orders', STATE.editingOrderId);
                 const oldOrderSnap = await getDoc(orderRef);
                 
-                // ৩(ক). পুরনো অর্ডার ডেটা থেকে আগের ব্লক করা স্টক রিলিজ করা
-                if (oldOrderSnap.exists()) {
+                // Only release if stock was actually blocked — prevents phantom releases
+                if (oldOrderSnap.exists() && oldOrderSnap.data().stockBlocked) {
                     const oldItems = oldOrderSnap.data().items || [];
                     await releaseIngredientStock(oldItems);
                 }
                 
-                // ৩(খ). নতুন আপডেট হওয়া কার্টের আইটেম অনুযায়ী স্টক আবার ব্লক করা
-                await blockIngredientStock(STATE.cart);
-                // --- INVENTORY FIX END ---
+                // Block stock for updated items
+                await blockIngredientStock(itemsSnapshot);
+                // --- END INVENTORY FIX ---
 
-                // 3. Update the Order with New Items AND New Phone/Name
+                // 3. Update the Order
                 await updateDoc(orderRef, {
-                    items: STATE.cart, 
+                    items: itemsSnapshot, 
                     subtotal: total,
                     discount: discountInfo,
                     total: finalTotal,
-                    phone: newPhone,       // Update Phone
-                    customerName: custName // Update Name associated with that phone
+                    phone: newPhone,
+                    customerName: custName,
+                    stockBlocked: true
                 });
                 
                 showToast('Order & Phone Updated');
@@ -3225,6 +3255,9 @@ async function deletePendingOrder(orderId) {
             } catch (e) {
                 console.error(e);
                 showToast('Update failed: ' + e.message, 'error');
+            } finally {
+                isSubmitting = false;
+                if (btn) { btn.disabled = false; btn.innerText = '🔄 Update Order'; }
             }
         }
 
@@ -3483,7 +3516,7 @@ async function deletePendingOrder(orderId) {
                     }
 
                     // Update Order
-                    transaction.update(orderRef, orderUpdate);
+                    transaction.update(orderRef, { ...orderUpdate, stockBlocked: false });
 
                     // Store Data for Bill
                     PAYMENT_DATA.finalPaid = netPayable;
@@ -4224,13 +4257,14 @@ async function resendCampaign(docId) {
 // ==================== INVENTORY MANAGEMENT ====================
 
 // Helper: deduct/block/release ingredient stock
-async function adjustIngredientStock(items, action, transaction) {
+async function adjustIngredientStock(items, action) {
     // action: 'block' (order placed), 'release' (cancelled), 'deduct' (payment done), 'restore' (completed order deleted)
-    const { collection, getDocs, doc, getDoc, updateDoc } = window.firebaseModules;
+    // Uses Firestore increment() for ATOMIC updates — eliminates read-modify-write race conditions
+    const { collection, getDocs, doc, updateDoc, increment } = window.firebaseModules;
 
-    // Load recipes: each recipe doc ID IS the ingredient ID
+    // Load recipes for all unique menu items
     const itemIds = [...new Set(items.map(i => i.id))];
-    const allRecipes = {}; // itemId -> [ { ingId, qty } ]
+    const allRecipes = {};
     for (const itemId of itemIds) {
         const recipeSnap = await getDocs(collection(window.db, `menu/${itemId}/recipe`));
         allRecipes[itemId] = [];
@@ -4251,51 +4285,45 @@ async function adjustIngredientStock(items, action, transaction) {
 
     if (Object.keys(usageMap).length === 0) return; // No recipes configured, skip
 
-    // Apply adjustments - fetch fresh values per ingredient to avoid stale reads
-    for (const [ingId, qty] of Object.entries(usageMap)) {
+    // Apply atomic increments — no read needed, no race condition possible
+    const updatePromises = Object.entries(usageMap).map(([ingId, qty]) => {
         const ingRef = doc(window.db, 'ingredients', ingId);
-        const ingSnap = await getDoc(ingRef);
-        if (!ingSnap.exists()) continue;
-
-        const ing = ingSnap.data();
-        let newStock = ing.stock || 0;
-        let newBlocked = ing.blockedStock || 0;
+        let update = {};
 
         if (action === 'block') {
-            newStock = Math.max(0, newStock - qty);
-            newBlocked = newBlocked + qty;
+            // Deduct from available stock, add to blocked counter
+            update = { stock: increment(-qty), blockedStock: increment(qty) };
         } else if (action === 'release') {
-            newStock = newStock + qty;
-            newBlocked = Math.max(0, newBlocked - qty);
+            // Return to available stock, subtract from blocked counter
+            update = { stock: increment(qty), blockedStock: increment(-qty) };
         } else if (action === 'deduct') {
-            // Stock already reduced at block time; just clear the blocked counter
-            newBlocked = Math.max(0, newBlocked - qty);
+            // Stock was already reduced at block-time; just clear the blocked counter
+            update = { blockedStock: increment(-qty) };
         } else if (action === 'restore') {
-            // Completed order deleted: put stock back
-            newStock = newStock + qty;
+            // Completed order was deleted: put consumed stock back
+            update = { stock: increment(qty) };
         }
 
-        if (transaction) {
-            transaction.update(ingRef, { stock: newStock, blockedStock: newBlocked });
-        } else {
-            await updateDoc(ingRef, { stock: newStock, blockedStock: newBlocked });
-        }
-    }
+        return updateDoc(ingRef, update).catch(e => console.error(`Stock update failed for ${ingId}:`, e));
+    });
+
+    await Promise.all(updatePromises);
 }
 
-// Standalone wrapper for non-transaction calls
+// Standalone wrapper functions
 async function blockIngredientStock(items) {
-    try { await adjustIngredientStock(items, 'block', null); } catch(e) { console.error('Stock block error:', e); }
+    try { await adjustIngredientStock(items, 'block'); } catch(e) { console.error('Stock block error:', e); }
 }
 async function releaseIngredientStock(items) {
-    try { await adjustIngredientStock(items, 'release', null); } catch(e) { console.error('Stock release error:', e); }
+    try { await adjustIngredientStock(items, 'release'); } catch(e) { console.error('Stock release error:', e); }
 }
 async function restoreIngredientStock(items) {
-    try { await adjustIngredientStock(items, 'restore', null); } catch(e) { console.error('Stock restore error:', e); }
+    try { await adjustIngredientStock(items, 'restore'); } catch(e) { console.error('Stock restore error:', e); }
 }
 async function deductBlockedStock(items) {
-    try { await adjustIngredientStock(items, 'deduct', null); } catch(e) { console.error('Stock deduct error:', e); }
+    try { await adjustIngredientStock(items, 'deduct'); } catch(e) { console.error('Stock deduct error:', e); }
 }
+
 
 // ---- Admin: Ingredient CRUD ----
 async function loadAdminIngredients() {
