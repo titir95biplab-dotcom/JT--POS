@@ -302,6 +302,41 @@ async function trackUserActivity(phone) {
     📲 Install App
 </button>
 
+    <!-- iOS / iPadOS install guide (beforeinstallprompt never fires in Safari) -->
+    <button id="iosInstallBtn" class="btn btn-primary hidden" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; box-shadow: 0 4px 20px rgba(255,107,53,0.45);" onclick="showIOSInstallModal()">
+    📲 Install App
+</button>
+    <div id="iosInstallModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:99999; display:flex; align-items:flex-end; justify-content:center; padding:12px;">
+        <div style="background:var(--secondary); border-radius:20px 20px 16px 16px; padding:20px; width:100%; max-width:440px; border:1px solid rgba(255,107,53,0.3); margin-bottom:8px; animation: slideUp 0.3s ease;">
+            <div style="text-align:center; margin-bottom:4px;">
+                <div style="display:inline-block; background:var(--primary); color:#000; font-size:0.7rem; font-weight:800; padding:3px 12px; border-radius:20px; letter-spacing:1px;">INSTALL THIS APP</div>
+            </div>
+            <div style="text-align:center; font-size:2.2rem; margin: 8px 0 4px;">📲</div>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,107,53,0.08); padding:11px 14px; border-radius:12px; border:1px solid rgba(255,107,53,0.15);">
+                    <span style="background:var(--primary); color:#000; font-weight:800; font-size:0.8rem; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</span>
+                    <span style="font-size:0.9rem; color:var(--text);">Tap the <strong style="color:var(--primary);">Share &#x2B06;</strong> icon at the bottom of Safari</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,107,53,0.08); padding:11px 14px; border-radius:12px; border:1px solid rgba(255,107,53,0.15);">
+                    <span style="background:var(--primary); color:#000; font-weight:800; font-size:0.8rem; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</span>
+                    <span style="font-size:0.9rem; color:var(--text);">Tap <strong style="color:var(--primary);">"Add to Home Screen"</strong></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,107,53,0.08); padding:11px 14px; border-radius:12px; border:1px solid rgba(255,107,53,0.15);">
+                    <span style="background:var(--primary); color:#000; font-weight:800; font-size:0.8rem; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</span>
+                    <span style="font-size:0.9rem; color:var(--text);">Tap <strong style="color:var(--primary);">"Add"</strong> &#8212; Done!</span>
+                </div>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button class="btn btn-secondary" onclick="hideIOSInstallModal()" style="flex:1; padding:11px;">Maybe Later</button>
+                <button class="btn btn-primary" onclick="hideIOSInstallModal()" style="flex:2; padding:11px;">Got it &#x2713;</button>
+            </div>
+            <p style="color:#888; font-size:0.7rem; margin-top:10px; text-align:center;">Only works in Safari &#8212; not Chrome on iPhone</p>
+        </div>
+    </div>
+    <style>
+        @keyframes slideUp { from { transform: translateY(60px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+    </style>
+
     <div id="loginScreen" class="login-container">
         <div class="login-box card">
             <img src="logo.png" alt="Juice Therapy" class="logo" onerror="this.style.display='none'">
@@ -341,6 +376,7 @@ async function trackUserActivity(phone) {
                 <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('settings')" id="btn-adm-settings">⚙️ Settings</button>
 <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('notify')" id="btn-adm-notify">📢 Notify</button>
 <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('inventory')" id="btn-adm-inventory">🏪 Inventory</button>
+<button class="btn btn-secondary tab-btn" onclick="switchAdminTab('cash')" id="btn-adm-cash">💰 Cash</button>
             </div>
 
 <div id="adm-view-notify" class="hidden">
@@ -366,11 +402,106 @@ async function trackUserActivity(phone) {
     </div>
 </div>
 <!-- ADMIN INVENTORY VIEW -->
+<div id="adm-view-cash" class="hidden">
+    <div class="flex justify-between items-center" style="margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <h3 style="margin:0;">💰 Cash Management</h3>
+        <div class="flex items-center gap-2">
+            <span id="mgmtStaffLabel" class="text-muted" style="font-size:0.8rem;"></span>
+            <button class="btn btn-secondary btn-sm" onclick="loadManagementData()">🔄 Refresh</button>
+        </div>
+    </div>
+    <div id="mgmtDateLabel" class="text-muted" style="font-size:0.8rem; margin-bottom:12px;"></div>
+
+    <!-- ── CASH BOX CALCULATOR ── -->
+    <div class="card" style="margin-bottom:16px;">
+        <h4 style="margin-bottom:12px;">🧮 Cash Box Calculator</h4>
+
+        <label class="text-muted" style="font-size:0.8rem;">Opening Balance (start of day)</label>
+        <div class="flex gap-2" style="margin-bottom:10px;">
+            <input type="number" id="mgmtOpening" class="input" placeholder="₹0" style="margin:0; text-align:right;">
+            <button class="btn btn-primary btn-sm" onclick="setOpeningBalance()" style="white-space:nowrap;">Set Opening</button>
+        </div>
+
+        <div style="border:1px solid rgba(255,107,53,0.2); border-radius:10px; padding:12px; margin-bottom:12px; background:rgba(255,107,53,0.05);">
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">Opening Balance</span><span id="calcOpening">₹0</span></div>
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Cash Sales (auto)</span><span id="calcCashSales" style="color:var(--success);">₹0</span></div>
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Manual Cash-In</span><span id="calcCashIn" style="color:var(--success);">₹0</span></div>
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">− Expenses (auto)</span><span id="calcExpenses" style="color:#FF6B6B;">₹0</span></div>
+            <div class="flex justify-between font-bold" style="font-size:1.05rem; border-top:1px solid rgba(255,255,255,0.12); padding-top:8px; margin-top:4px;"><span>Expected in Box</span><span id="calcExpected">₹0</span></div>
+        </div>
+
+        <label class="text-muted" style="font-size:0.8rem;">Actual Counted Cash (count the box now)</label>
+        <div class="flex gap-2" style="margin-bottom:10px;">
+            <input type="number" id="mgmtCounted" class="input" placeholder="₹0" style="margin:0; text-align:right;">
+            <button class="btn btn-success btn-sm" onclick="reconcileCashBox()" style="white-space:nowrap;">✓ Check Match</button>
+        </div>
+        <div id="mgmtMatchResult" style="display:none; padding:10px; border-radius:8px; font-weight:700; text-align:center; margin-bottom:6px;"></div>
+
+        <div style="border-top:1px dashed rgba(255,255,255,0.12); padding-top:12px; margin-top:6px;">
+            <label class="text-muted" style="font-size:0.8rem;">➕ Manual Cash-In (special reason)</label>
+            <div class="flex gap-2" style="margin-top:6px;">
+                <input type="number" id="mgmtCashInAmt" class="input" placeholder="₹" style="margin:0; text-align:right; max-width:110px;">
+                <input type="text" id="mgmtCashInReason" class="input" placeholder="Reason" style="margin:0; flex:1;">
+                <button class="btn btn-secondary btn-sm" onclick="addManualCashIn()" style="white-space:nowrap;">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── CASH EXPENSE TRACKER ── -->
+    <div class="card" style="margin-bottom:16px;">
+        <h4 style="margin-bottom:12px;">🧾 Cash Expense Tracker</h4>
+        <label class="text-muted" style="font-size:0.8rem;">Amount</label>
+        <input type="number" id="expAmount" class="input" placeholder="₹0" style="text-align:right;">
+        <label class="text-muted" style="font-size:0.8rem;">Category</label>
+        <select id="expCategory" class="input">
+            <option value="Local Market">Local Market</option>
+            <option value="Chicken">Chicken</option>
+            <option value="Vegetable">Vegetable</option>
+            <option value="Flipkart">Flipkart</option>
+            <option value="Amazon">Amazon</option>
+            <option value="Blinkit">Blinkit</option>
+            <option value="JioMart">JioMart</option>
+            <option value="Other">Other</option>
+        </select>
+        <label class="text-muted" style="font-size:0.8rem;">Note (optional)</label>
+        <input type="text" id="expNote" class="input" placeholder="e.g. 2kg chicken">
+        <button class="btn btn-danger w-full" onclick="addCashExpense()" style="margin-top:6px;">− Record Cash Out</button>
+
+        <div class="flex justify-between items-center" style="margin-top:16px; margin-bottom:8px;">
+            <h4 style="margin:0;">Today's Expenses</h4>
+            <strong id="expTodayTotal" style="color:#FF6B6B;">₹0</strong>
+        </div>
+        <div id="expTodayList"></div>
+    </div>
+
+    <!-- ── CASH BOX REPORT (any date) ── -->
+    <div class="card">
+        <div class="flex justify-between items-center" style="margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+            <h3 style="margin:0;">📒 Cash Box Report</h3>
+            <div class="flex items-center gap-2">
+                <input type="date" id="cashReportDate" class="input" style="margin:0; padding:6px 8px; font-size:0.85rem;">
+                <button class="btn btn-secondary btn-sm" onclick="loadCashReport()">Load</button>
+            </div>
+        </div>
+        <div id="cashReportSummary" style="border:1px solid rgba(255,107,53,0.2); border-radius:10px; padding:12px; margin-bottom:14px; background:rgba(255,107,53,0.05);">
+            <p class="text-muted text-center" style="font-size:0.85rem;">Select a date and tap Load.</p>
+        </div>
+        <h4 style="margin-bottom:8px;">🧾 Expenses</h4>
+        <div id="cashReportExpenses" style="margin-bottom:14px;"></div>
+        <h4 style="margin-bottom:8px;">➕ Manual Cash-Ins</h4>
+        <div id="cashReportCashIns" style="margin-bottom:14px;"></div>
+        <h4 style="margin-bottom:8px;">✓ Reconciliation Checks</h4>
+        <div id="cashReportChecks"></div>
+    </div>
+</div>
 <div id="adm-view-inventory" class="hidden">
     <div class="card">
         <div class="flex justify-between items-center" style="margin-bottom:15px;">
             <h3>🏪 Ingredient Stock</h3>
-            <button class="btn btn-primary btn-sm" onclick="showAddIngredientModal()">➕ Add Ingredient</button>
+            <div class="flex gap-2">
+                <button class="btn btn-secondary btn-sm" onclick="recalcBlockedStock()" title="Recompute blocked quantities from open orders">🔧 Recalc Blocked</button>
+                <button class="btn btn-primary btn-sm" onclick="showAddIngredientModal()">➕ Add Ingredient</button>
+            </div>
         </div>
         <p class="text-muted" style="font-size:0.85rem; margin-bottom:15px;">Manage raw ingredients and their current stock levels.</p>
         <div id="adminIngredientsList"></div>
@@ -587,6 +718,17 @@ async function trackUserActivity(phone) {
 </div>
                 </div>
 
+                <!-- Staff Roster Management -->
+                <div class="card" style="margin-top:20px;">
+                    <h3>👥 Staff Roster</h3>
+                    <p class="text-muted" style="margin-bottom:15px; font-size:0.9rem;">Staff names appear in the POS so you can track who took each order.</p>
+                    <div class="flex gap-2" style="margin-bottom:15px;">
+                        <input type="text" id="newStaffName" class="input" placeholder="Staff name" style="margin:0; flex:1;">
+                        <button class="btn btn-success" onclick="addStaffMember()">+ Add</button>
+                    </div>
+                    <div id="adminStaffList"></div>
+                </div>
+
                 <!-- Discount Code Management -->
                 <div class="card" style="margin-top:20px;">
                     <h3>🎫 Discount Coupons</h3>
@@ -679,6 +821,15 @@ async function trackUserActivity(phone) {
                     </div>
                     <div style="margin-top: 10px;">
                         <input type="tel" id="posPhone" class="input" placeholder="Customer Phone (Auto-create)" maxlength="10">
+                    </div>
+                    <div class="flex gap-2" style="margin-top: 8px;">
+                        <button id="btnTypeDineIn" class="btn btn-sm w-full btn-primary" onclick="setOrderType('dine-in')">🍽️ Dine-in</button>
+                        <button id="btnTypeDelivery" class="btn btn-sm w-full btn-secondary" onclick="setOrderType('delivery')">🚚 Delivery</button>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <select id="posStaffSelect" class="input" style="margin:0; padding:8px; font-size:0.85rem;" onchange="setActiveStaff(this.value)">
+                            <option value="">— Staff —</option>
+                        </select>
                     </div>
                     <div class="cart-items" id="cartItemsList"></div>
                     <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
@@ -950,6 +1101,9 @@ async function trackUserActivity(phone) {
             custCart: [], 
             orders: [],
             editingOrderId: null,
+            orderType: 'dine-in', // 'dine-in' | 'delivery' — set when taking an order
+            staffRoster: [],      // operational staff names (managed from admin panel)
+            activeStaff: '',      // currently selected staff handling the outlet POS
             activeCategory: 'All',
 	    adminActiveCategory: 'All',
             tempPhone: null,
@@ -960,6 +1114,454 @@ let TEMP_EDIT_ITEMS = [];
 let TEMP_EDIT_DISCOUNT = null; // Store discount info during editing
 let SALES_CHART_INSTANCE = null;
 let isSubmitting = false; // Guard against duplicate order submissions
+
+// ==========================================
+// LOYALTY POINTS — 7-DAY EXPIRY (LOT LEDGER)
+// ==========================================
+// Dine-in orders earn 5% bonus points that expire 7 days after they are earned.
+// Points are tracked as "lots" on the customer document: pointLots = [{ amount, expiresAt(ms) }].
+// The legacy single 'points' field is kept in sync (= sum of non-expired lots) for display.
+const POINT_VALIDITY_DAYS = 7;
+const POINT_LOT_LEGACY_EXPIRY = 4102444800000; // ~Jan 1 2100 — legacy points never expire
+
+// Normalize a lot's expiry to milliseconds (handles number, Firestore Timestamp, or {seconds})
+function lotExpiryMs(exp) {
+    if (exp == null) return POINT_LOT_LEGACY_EXPIRY;
+    if (typeof exp === 'number') return exp;
+    if (typeof exp.toMillis === 'function') return exp.toMillis();
+    if (typeof exp.seconds === 'number') return exp.seconds * 1000;
+    const n = Number(exp);
+    return isNaN(n) ? POINT_LOT_LEGACY_EXPIRY : n;
+}
+
+// Build a clean, non-expired lot list from a customer document.
+// Migrates a legacy single 'points' balance into one never-expiring lot.
+// Returns { available, lots } where lots = [{ amount, expiresAt(ms) }].
+function reconcilePointLots(custData) {
+    const now = Date.now();
+    let lots = (custData && Array.isArray(custData.pointLots)) ? custData.pointLots : null;
+    if (!lots) {
+        const legacy = (custData && custData.points) || 0;
+        lots = legacy > 0 ? [{ amount: legacy, expiresAt: POINT_LOT_LEGACY_EXPIRY }] : [];
+    }
+    const live = lots
+        .map(l => ({ amount: Number(l.amount) || 0, expiresAt: lotExpiryMs(l.expiresAt) }))
+        .filter(l => l.amount > 0 && l.expiresAt > now)
+        .sort((a, b) => a.expiresAt - b.expiresAt); // earliest-expiring first
+    const available = live.reduce((s, l) => s + l.amount, 0);
+    return { available, lots: live };
+}
+
+// Consume `amount` points from lots, earliest-expiring first. Returns the remaining lots.
+function consumePointLots(lots, amount) {
+    let remaining = Math.max(0, Math.floor(amount || 0));
+    const out = [];
+    for (const lot of lots) {
+        if (remaining <= 0) { out.push(lot); continue; }
+        if (lot.amount <= remaining) { remaining -= lot.amount; continue; }
+        out.push({ amount: lot.amount - remaining, expiresAt: lot.expiresAt });
+        remaining = 0;
+    }
+    return out;
+}
+
+// Adjust the balance by a signed delta (used by admin order edits). Positive adds a new lot;
+// negative consumes earliest-expiring first. Takes the raw customer document.
+function adjustPointLots(custData, delta, validityDays) {
+    const { lots } = reconcilePointLots(custData);
+    if (delta > 0) {
+        const days = (validityDays == null) ? POINT_VALIDITY_DAYS : validityDays;
+        const expiresAt = days >= 9000 ? POINT_LOT_LEGACY_EXPIRY : Date.now() + days * 86400000;
+        lots.push({ amount: Math.floor(delta), expiresAt });
+        return lots;
+    } else if (delta < 0) {
+        return consumePointLots(lots, -delta);
+    }
+    return lots;
+}
+
+function lotsTotal(lots) {
+    return (lots || []).reduce((s, l) => s + (Number(l.amount) || 0), 0);
+}
+
+// Strip to plain storable objects (numeric expiresAt) for Firestore.
+function serializeLots(lots) {
+    return (lots || [])
+        .filter(l => (Number(l.amount) || 0) > 0)
+        .map(l => ({ amount: Math.floor(Number(l.amount) || 0), expiresAt: lotExpiryMs(l.expiresAt) }));
+}
+
+// ==========================================
+// SMALL HELPERS
+// ==========================================
+function todayStr(d) {
+    const dt = d ? new Date(d) : new Date();
+    const y = dt.getFullYear(), m = String(dt.getMonth() + 1).padStart(2, '0'), day = String(dt.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+function escAttr(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+// Normalize a Firestore timestamp / number / {seconds} into milliseconds
+function tsMillis(ts) {
+    if (ts == null) return null;
+    if (typeof ts === 'number') return ts;
+    if (typeof ts.toMillis === 'function') return ts.toMillis();
+    if (typeof ts.toDate === 'function') return ts.toDate().getTime();
+    if (typeof ts.seconds === 'number') return ts.seconds * 1000;
+    return null;
+}
+function fmtClock(ms) {
+    if (ms == null) return '—';
+    return new Date(ms).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+let CASH_TODAY = null; // cached today's cash figures for reconciliation
+
+// ==========================================
+// ORDER TYPE (Dine-in / Delivery) + PARCEL SPLIT
+// ==========================================
+function setOrderType(type) {
+    STATE.orderType = (type === 'delivery') ? 'delivery' : 'dine-in';
+    if (STATE.orderType === 'delivery') {
+        // Delivery is fully to-go — clear any per-item parcel split
+        STATE.cart.forEach(it => { it.parcelQty = 0; });
+    }
+    updateOrderTypeButtons();
+    renderActiveCart();
+}
+function updateOrderTypeButtons() {
+    const btnDine = document.getElementById('btnTypeDineIn');
+    const btnDelivery = document.getElementById('btnTypeDelivery');
+    if (!btnDine || !btnDelivery) return;
+    const isDelivery = STATE.orderType === 'delivery';
+    btnDine.className = 'btn btn-sm w-full ' + (isDelivery ? 'btn-secondary' : 'btn-primary');
+    btnDelivery.className = 'btn btn-sm w-full ' + (isDelivery ? 'btn-primary' : 'btn-secondary');
+}
+function setItemParcel(itemId, delta) {
+    const item = STATE.cart.find(c => c.id === itemId);
+    if (!item) return;
+    let parcel = item.parcelQty || 0;
+    parcel += delta;
+    if (parcel < 0) parcel = 0;
+    if (parcel > item.qty) parcel = item.qty;
+    item.parcelQty = parcel;
+    renderActiveCart();
+}
+// Returns serve segments for a cart/order item: dine-in portion + parcel portion (or all delivery)
+function itemServeSegments(item, orderType) {
+    const total = item.qty || 0;
+    if (orderType === 'delivery') return [{ qty: total, tag: 'DELIVERY' }];
+    const parcel = Math.min(item.parcelQty || 0, total);
+    const dine = total - parcel;
+    const segs = [];
+    if (dine > 0) segs.push({ qty: dine, tag: 'DINE' });
+    if (parcel > 0) segs.push({ qty: parcel, tag: 'PARCEL' });
+    return segs;
+}
+function orderTypeLabel(orderType) {
+    return orderType === 'delivery' ? '🚚 Delivery' : '🍽️ Dine-in';
+}
+
+// ==========================================
+// STAFF ROSTER (who is handling the POS)
+// ==========================================
+function loadStaffRoster() {
+    const { collection, onSnapshot } = window.firebaseModules;
+    onSnapshot(collection(window.db, 'staffRoster'), (snap) => {
+        STATE.staffRoster = snap.docs.map(d => ({ id: d.id, name: d.data().name || d.id }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+        renderStaffSelect();
+        if (STATE.role === 'admin') renderAdminStaffList();
+    });
+}
+function renderStaffSelect() {
+    const sel = document.getElementById('posStaffSelect');
+    if (!sel) return;
+    const saved = STATE.activeStaff || localStorage.getItem('jt_active_staff') || '';
+    sel.innerHTML = '<option value="">— Staff —</option>' +
+        STATE.staffRoster.map(s => `<option value="${escAttr(s.name)}">${escAttr(s.name)}</option>`).join('');
+    if (saved && STATE.staffRoster.some(s => s.name === saved)) {
+        sel.value = saved;
+        STATE.activeStaff = saved;
+    } else {
+        STATE.activeStaff = '';
+    }
+    updateStaffLabel();
+}
+function setActiveStaff(name) {
+    STATE.activeStaff = name || '';
+    if (STATE.activeStaff) localStorage.setItem('jt_active_staff', STATE.activeStaff);
+    else localStorage.removeItem('jt_active_staff');
+    updateStaffLabel();
+}
+function getActiveStaff() {
+    return STATE.activeStaff || localStorage.getItem('jt_active_staff') || '';
+}
+function updateStaffLabel() {
+    const lbl = document.getElementById('mgmtStaffLabel');
+    if (lbl) lbl.innerText = getActiveStaff() ? ('Staff: ' + getActiveStaff()) : 'No staff selected';
+}
+async function addStaffMember() {
+    const input = document.getElementById('newStaffName');
+    const name = (input.value || '').trim();
+    if (!name) return showToast('Enter a staff name', 'error');
+    const { doc, setDoc } = window.firebaseModules;
+    try {
+        await setDoc(doc(window.db, 'staffRoster', name), { name });
+        input.value = '';
+        showToast('Staff added');
+    } catch (e) { showToast('Add failed: ' + e.message, 'error'); }
+}
+async function deleteStaffMember(id) {
+    if (!confirm('Remove this staff member?')) return;
+    const { doc, deleteDoc } = window.firebaseModules;
+    try {
+        await deleteDoc(doc(window.db, 'staffRoster', id));
+        showToast('Staff removed');
+    } catch (e) { showToast('Remove failed: ' + e.message, 'error'); }
+}
+function renderAdminStaffList() {
+    const container = document.getElementById('adminStaffList');
+    if (!container) return;
+    if (!STATE.staffRoster.length) {
+        container.innerHTML = '<p class="text-muted" style="font-size:0.85rem;">No staff added yet.</p>';
+        return;
+    }
+    container.innerHTML = STATE.staffRoster.map(s => `
+        <div class="flex justify-between items-center" style="background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:6px; margin-bottom:6px;">
+            <span>${escAttr(s.name)}</span>
+            <button class="btn btn-danger btn-sm" onclick="deleteStaffMember('${escAttr(s.id)}')">🗑️</button>
+        </div>`).join('');
+}
+
+// ==========================================
+// 💰 CASH MANAGEMENT (cash box, expenses, reconcile, report)
+// ==========================================
+// Sum of cash actually received for completed orders on a given date.
+async function computeCashSalesForDate(dateStr) {
+    const { collection, query, where, getDocs } = window.firebaseModules;
+    const start = new Date(dateStr + 'T00:00:00');
+    const end = new Date(dateStr + 'T23:59:59.999');
+    const q = query(collection(window.db, 'orders'),
+        where('timestamp', '>=', start), where('timestamp', '<=', end));
+    const snap = await getDocs(q);
+    let cash = 0;
+    snap.forEach(d => {
+        const o = d.data();
+        if (o.status !== 'completed') return;
+        if (typeof o.cashAmount === 'number') cash += o.cashAmount;
+        else if ((o.paymentMode || 'Cash') === 'Cash') cash += (o.finalPaid || o.total || 0);
+    });
+    return cash;
+}
+
+// Load today's cash box: opening + cash sales + manual cash-in − expenses = expected.
+async function loadManagementData() {
+    const date = todayStr();
+    updateStaffLabel();
+    const dl = document.getElementById('mgmtDateLabel');
+    if (dl) dl.innerText = `📅 Cash day: ${date}`;
+
+    const { collection, query, where, getDocs } = window.firebaseModules;
+    try {
+        const entriesSnap = await getDocs(query(collection(window.db, 'cashEntries'), where('date', '==', date)));
+        let opening = 0, cashInTotal = 0, expenseTotal = 0;
+        const expenses = [];
+        entriesSnap.forEach(d => {
+            const e = d.data();
+            if (e.type === 'opening') opening = e.amount || 0;
+            else if (e.type === 'in') cashInTotal += (e.amount || 0);
+            else if (e.type === 'out') { expenseTotal += (e.amount || 0); expenses.push({ id: d.id, ...e }); }
+        });
+
+        const cashSales = await computeCashSalesForDate(date);
+        const expected = opening + cashSales + cashInTotal - expenseTotal;
+
+        CASH_TODAY = { date, opening, cashSales, cashInTotal, expenseTotal, expected };
+
+        document.getElementById('mgmtOpening').placeholder = '₹' + opening;
+        document.getElementById('calcOpening').innerText = '₹' + opening;
+        document.getElementById('calcCashSales').innerText = '₹' + cashSales;
+        document.getElementById('calcCashIn').innerText = '₹' + cashInTotal;
+        document.getElementById('calcExpenses').innerText = '₹' + expenseTotal;
+        document.getElementById('calcExpected').innerText = '₹' + expected;
+
+        expenses.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
+        document.getElementById('expTodayTotal').innerText = '₹' + expenseTotal;
+        const list = document.getElementById('expTodayList');
+        list.innerHTML = expenses.length ? expenses.map(e => `
+            <div class="flex justify-between items-center" style="padding:8px 10px; border:1px solid rgba(255,255,255,0.1); border-radius:8px; margin-bottom:6px;">
+                <div>
+                    <div style="font-size:0.9rem;">${escAttr(e.category)} ${e.note ? `<span class="text-muted">· ${escAttr(e.note)}</span>` : ''}</div>
+                    <div class="text-muted" style="font-size:0.72rem;">${fmtClock(tsMillis(e.createdAt))} ${e.staffName ? '· 👤 ' + escAttr(e.staffName) : ''}</div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <strong style="color:#FF6B6B;">₹${e.amount}</strong>
+                    <button class="btn btn-danger btn-sm" onclick="deleteCashEntry('${e.id}')" style="padding:2px 7px; font-size:0.7rem;">✕</button>
+                </div>
+            </div>`).join('') : '<p class="text-muted" style="font-size:0.85rem;">No expenses recorded today.</p>';
+    } catch (e) {
+        console.error(e);
+        showToast('Cash load error: ' + e.message, 'error');
+    }
+}
+
+async function setOpeningBalance() {
+    const amt = parseInt(document.getElementById('mgmtOpening').value);
+    if (isNaN(amt) || amt < 0) return showToast('Enter a valid opening balance', 'error');
+    const date = todayStr();
+    const { doc, setDoc, serverTimestamp } = window.firebaseModules;
+    try {
+        await setDoc(doc(window.db, 'cashEntries', 'open_' + date), {
+            type: 'opening', amount: amt, date,
+            staffName: getActiveStaff(), updatedAt: serverTimestamp()
+        }, { merge: true });
+        document.getElementById('mgmtOpening').value = '';
+        showToast('Opening balance set', 'success');
+        loadManagementData();
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function addManualCashIn() {
+    const amt = parseInt(document.getElementById('mgmtCashInAmt').value);
+    const reason = (document.getElementById('mgmtCashInReason').value || '').trim();
+    if (isNaN(amt) || amt <= 0) return showToast('Enter a valid amount', 'error');
+    const { collection, addDoc, serverTimestamp } = window.firebaseModules;
+    try {
+        await addDoc(collection(window.db, 'cashEntries'), {
+            type: 'in', amount: amt, note: reason, date: todayStr(),
+            staffName: getActiveStaff(), createdAt: serverTimestamp()
+        });
+        document.getElementById('mgmtCashInAmt').value = '';
+        document.getElementById('mgmtCashInReason').value = '';
+        showToast('Cash-in recorded', 'success');
+        loadManagementData();
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function addCashExpense() {
+    const amt = parseInt(document.getElementById('expAmount').value);
+    const category = document.getElementById('expCategory').value;
+    const note = (document.getElementById('expNote').value || '').trim();
+    if (isNaN(amt) || amt <= 0) return showToast('Enter a valid amount', 'error');
+    const { collection, addDoc, serverTimestamp } = window.firebaseModules;
+    try {
+        await addDoc(collection(window.db, 'cashEntries'), {
+            type: 'out', amount: amt, category, note, date: todayStr(),
+            staffName: getActiveStaff(), createdAt: serverTimestamp()
+        });
+        document.getElementById('expAmount').value = '';
+        document.getElementById('expNote').value = '';
+        showToast('Expense recorded', 'success');
+        loadManagementData();
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function deleteCashEntry(id) {
+    if (!confirm('Delete this cash entry?')) return;
+    const { doc, deleteDoc } = window.firebaseModules;
+    try {
+        await deleteDoc(doc(window.db, 'cashEntries', id));
+        showToast('Entry deleted', 'success');
+        loadManagementData();
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+async function reconcileCashBox() {
+    const counted = parseInt(document.getElementById('mgmtCounted').value);
+    if (isNaN(counted) || counted < 0) return showToast('Enter the counted cash amount', 'error');
+    if (!CASH_TODAY) { await loadManagementData(); }
+    const expected = CASH_TODAY.expected;
+    const diff = counted - expected;
+
+    const box = document.getElementById('mgmtMatchResult');
+    box.style.display = 'block';
+    if (diff === 0) {
+        box.style.background = 'rgba(0,229,160,0.18)'; box.style.color = 'var(--success)';
+        box.innerHTML = `✅ MATCH — Box has exactly ₹${counted} as expected.`;
+    } else if (diff < 0) {
+        box.style.background = 'rgba(255,77,109,0.18)'; box.style.color = '#FF4D6D';
+        box.innerHTML = `⚠️ SHORTAGE of ₹${Math.abs(diff)} — Expected ₹${expected}, counted ₹${counted}.`;
+    } else {
+        box.style.background = 'rgba(255,149,0,0.18)'; box.style.color = '#FF9500';
+        box.innerHTML = `⚠️ EXCESS of ₹${diff} — Expected ₹${expected}, counted ₹${counted}.`;
+    }
+
+    const { collection, addDoc, serverTimestamp } = window.firebaseModules;
+    try {
+        await addDoc(collection(window.db, 'cashChecks'), {
+            counted, expected, diff,
+            opening: CASH_TODAY.opening, cashSales: CASH_TODAY.cashSales,
+            cashInTotal: CASH_TODAY.cashInTotal, expenseTotal: CASH_TODAY.expenseTotal,
+            date: CASH_TODAY.date, staffName: getActiveStaff(), createdAt: serverTimestamp()
+        });
+    } catch (e) { console.error('check save failed', e); }
+}
+
+// Admin cash report for any chosen date
+async function loadCashReport() {
+    const date = document.getElementById('cashReportDate').value;
+    if (!date) return;
+    const { collection, query, where, getDocs } = window.firebaseModules;
+    const sum = document.getElementById('cashReportSummary');
+    sum.innerHTML = '<p class="text-center" style="font-size:0.85rem;">Loading…</p>';
+
+    try {
+        const entriesSnap = await getDocs(query(collection(window.db, 'cashEntries'), where('date', '==', date)));
+        let opening = 0, cashInTotal = 0, expenseTotal = 0;
+        const expenses = [], cashIns = [];
+        entriesSnap.forEach(d => {
+            const e = { id: d.id, ...d.data() };
+            if (e.type === 'opening') opening = e.amount || 0;
+            else if (e.type === 'in') { cashInTotal += (e.amount || 0); cashIns.push(e); }
+            else if (e.type === 'out') { expenseTotal += (e.amount || 0); expenses.push(e); }
+        });
+
+        const cashSales = await computeCashSalesForDate(date);
+        const expected = opening + cashSales + cashInTotal - expenseTotal;
+
+        const checksSnap = await getDocs(query(collection(window.db, 'cashChecks'), where('date', '==', date)));
+        const checks = checksSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt));
+
+        sum.innerHTML = `
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">Opening Balance</span><span>₹${opening}</span></div>
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Cash Sales</span><span style="color:var(--success);">₹${cashSales}</span></div>
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Manual Cash-In</span><span style="color:var(--success);">₹${cashInTotal}</span></div>
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">− Expenses</span><span style="color:#FF6B6B;">₹${expenseTotal}</span></div>
+            <div class="flex justify-between font-bold" style="font-size:1.05rem; border-top:1px solid rgba(255,255,255,0.12); padding-top:8px; margin-top:4px;"><span>Expected in Box</span><span>₹${expected}</span></div>`;
+
+        document.getElementById('cashReportExpenses').innerHTML = expenses.length
+            ? expenses.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt)).map(e => `
+                <div class="flex justify-between" style="padding:7px 10px; border:1px solid rgba(255,255,255,0.1); border-radius:8px; margin-bottom:5px; font-size:0.85rem;">
+                    <span>${escAttr(e.category)}${e.note ? ' · ' + escAttr(e.note) : ''} <span class="text-muted">(${fmtClock(tsMillis(e.createdAt))}${e.staffName ? ' · ' + escAttr(e.staffName) : ''})</span></span>
+                    <strong style="color:#FF6B6B;">₹${e.amount}</strong>
+                </div>`).join('')
+            : '<p class="text-muted" style="font-size:0.85rem;">No expenses.</p>';
+
+        document.getElementById('cashReportCashIns').innerHTML = cashIns.length
+            ? cashIns.sort((a, b) => tsMillis(b.createdAt) - tsMillis(a.createdAt)).map(e => `
+                <div class="flex justify-between" style="padding:7px 10px; border:1px solid rgba(255,255,255,0.1); border-radius:8px; margin-bottom:5px; font-size:0.85rem;">
+                    <span>${e.note ? escAttr(e.note) : 'Cash-In'} <span class="text-muted">(${fmtClock(tsMillis(e.createdAt))}${e.staffName ? ' · ' + escAttr(e.staffName) : ''})</span></span>
+                    <strong style="color:var(--success);">₹${e.amount}</strong>
+                </div>`).join('')
+            : '<p class="text-muted" style="font-size:0.85rem;">No manual cash-ins.</p>';
+
+        document.getElementById('cashReportChecks').innerHTML = checks.length
+            ? checks.map(c => {
+                const color = c.diff === 0 ? 'var(--success)' : (c.diff < 0 ? '#FF4D6D' : '#FF9500');
+                const label = c.diff === 0 ? 'MATCH' : (c.diff < 0 ? `SHORT ₹${Math.abs(c.diff)}` : `EXCESS ₹${c.diff}`);
+                return `
+                <div class="flex justify-between" style="padding:7px 10px; border:1px solid rgba(255,255,255,0.1); border-radius:8px; margin-bottom:5px; font-size:0.85rem;">
+                    <span>Counted ₹${c.counted} / Expected ₹${c.expected} <span class="text-muted">(${fmtClock(tsMillis(c.createdAt))}${c.staffName ? ' · ' + escAttr(c.staffName) : ''})</span></span>
+                    <strong style="color:${color};">${label}</strong>
+                </div>`; }).join('')
+            : '<p class="text-muted" style="font-size:0.85rem;">No reconciliation checks.</p>';
+    } catch (e) {
+        console.error(e);
+        sum.innerHTML = `<p class="text-danger text-center">Error: ${e.message}</p>`;
+    }
+}
+
         window.onload = () => {
            
             const checkFirebase = setInterval(() => {
@@ -1006,6 +1608,8 @@ onMessage(messaging, (payload) => {
         async function checkUserRole(user) {
             // Load Store Settings for everyone (needed for bills)
             loadStoreSettings();
+            // Load staff roster (populates POS staff selector + admin staff list)
+            loadStaffRoster();
 
             if (user.email === 'admin@jt.com' || user.email === 'titir95biplab@gmail.com') {
                 STATE.role = 'admin';
@@ -1136,7 +1740,7 @@ async function restoreCustomerSession(phone) {
             STATE.user = { uid: phone, phone: phone, name: data.name };
             STATE.role = 'customer';
             document.getElementById('custNameDisplay').innerText = data.name;
-            document.getElementById('custPoints').innerText = data.points || 0;
+            document.getElementById('custPoints').innerText = reconcilePointLots(data).available;
             trackUserActivity(phone);
             loadCategories();
             loadMenu();
@@ -1163,7 +1767,7 @@ async function restoreCustomerSession(phone) {
 
         // --- ADMIN SETTINGS & TABS ---
         function switchAdminTab(tab) {
-            ['dashboard', 'menu', 'orders', 'settings', 'notify', 'inventory'].forEach(t => {
+            ['dashboard', 'menu', 'orders', 'settings', 'notify', 'inventory', 'cash'].forEach(t => {
                 const btn = document.getElementById(`btn-adm-${t}`);
                 const view = document.getElementById(`adm-view-${t}`);
                 if(btn) btn.classList.remove('active');
@@ -1194,11 +1798,16 @@ async function restoreCustomerSession(phone) {
     
     if(tab === 'menu') updateCategorySelects();
     if(tab === 'notify') loadAdminNotificationHistory();
-    if(tab === 'settings') loadCoupons(); // Load coupons when settings tab is opened
+    if(tab === 'settings') { loadCoupons(); renderAdminStaffList(); } // Load coupons + staff when settings opened
     if(tab === 'inventory') {
         loadAdminIngredients();
         loadRecipeItemDropdown();
         loadRecipeIngredientDropdown();
+    }
+    if(tab === 'cash') {
+        loadManagementData();
+        const cd = document.getElementById('cashReportDate');
+        if (cd && !cd.value) cd.valueAsDate = new Date();
     }
 }
 
@@ -2024,13 +2633,17 @@ function renderSalesChart(dailyData) {
                     
                     // 2. Adjust Customer Points if order was completed
                     if (orderData.status === 'completed' && orderData.phone) {
-                        const bonus = Math.floor(orderData.total * 0.05);
-                        const custRef = doc(window.db, 'customers', orderData.phone);
-                        const custDoc = await transaction.get(custRef);
-                        
-                        if (custDoc.exists()) {
-                            const currentPoints = custDoc.data().points || 0;
-                            transaction.update(custRef, { points: currentPoints - bonus });
+                        // Reverse the points actually awarded (delivery orders award 0)
+                        const bonus = (orderData.bonusEarned !== undefined)
+                            ? orderData.bonusEarned
+                            : Math.floor((orderData.total || 0) * 0.05);
+                        if (bonus > 0) {
+                            const custRef = doc(window.db, 'customers', orderData.phone);
+                            const custDoc = await transaction.get(custRef);
+                            if (custDoc.exists()) {
+                                const newLots = adjustPointLots(custDoc.data(), -bonus);
+                                transaction.update(custRef, { points: lotsTotal(newLots), pointLots: serializeLots(newLots) });
+                            }
                         }
                     }
                     
@@ -2038,9 +2651,18 @@ function renderSalesChart(dailyData) {
                     transaction.delete(orderRef);
                 });
 
-                // 4. Restore ingredient stock (only for completed orders — cancelled already released)
-                if (orderDataCache && orderDataCache.status === 'completed' && orderDataCache.items) {
-                    await restoreIngredientStock(orderDataCache.items);
+                // 4. Reverse the order's effect on ingredient stock — handles every state:
+                //    • Finalized (paid): ingredients were consumed → put stock back
+                //    • Still blocked (pending): reservation exists → release the block
+                //    • Cancelled / never blocked: nothing to do
+                if (orderDataCache && orderDataCache.items) {
+                    const wasConsumed = orderDataCache.stockFinalized === true ||
+                        (orderDataCache.status === 'completed' && !orderDataCache.stockBlocked);
+                    if (wasConsumed) {
+                        await restoreIngredientStock(orderDataCache.items);   // stock += qty
+                    } else if (orderDataCache.stockBlocked) {
+                        await releaseIngredientStock(orderDataCache.items, orderDataCache.stockModel || 'legacy-block-deducted'); // blockedStock -= qty
+                    }
                 }
                 
                 showToast('Order deleted & points reversed');
@@ -2075,19 +2697,27 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
 
             // 2. Populate Modal Fields
             document.getElementById('viewStoreName').innerText = STATE.storeSettings?.name || 'Juice Therapy';
-            document.getElementById('viewOrderId').innerText = `Order #${data.timestamp ? data.timestamp.toMillis().toString().slice(-4) : '...'}`;
+            document.getElementById('viewOrderId').innerText = `Order #${data.timestamp ? data.timestamp.toMillis().toString().slice(-4) : '...'} · ${orderTypeLabel(data.orderType)}`;
             document.getElementById('viewDate').innerText = data.timestamp ? data.timestamp.toDate().toLocaleString() : '';
             
             document.getElementById('editCustName').value = data.customerName || 'Guest';
             document.getElementById('editCustPhone').value = data.phone || '';
             
             // Populate Items
-            const itemsHtml = data.items.map(i => `
+            const ot = data.orderType || 'dine-in';
+            const itemsHtml = data.items.map(i => {
+                const segs = itemServeSegments(i, ot);
+                const tagHtml = segs.map(s => s.tag === 'DELIVERY'
+                    ? `<span style="font-size:0.65rem; color:var(--primary);">🚚 ${s.qty}</span>`
+                    : (s.tag === 'PARCEL'
+                        ? `<span style="font-size:0.65rem; color:var(--warning);">📦 ${s.qty}</span>`
+                        : `<span style="font-size:0.65rem; color:var(--text-muted);">🍽️ ${s.qty}</span>`)).join(' · ');
+                return `
                 <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:4px;">
-                    <span>${i.qty} x ${i.name}</span>
+                    <span>${i.qty} x ${i.name} &nbsp; ${tagHtml}</span>
                     <span>₹${i.price * i.qty}</span>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
             
             // Add discount info if present
             let discountHtml = '';
@@ -2190,11 +2820,14 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
     const newMode = document.getElementById('editMode').value;
 
     try {
-        const { doc, runTransaction, serverTimestamp } = window.firebaseModules;
+        const { doc, runTransaction, updateDoc } = window.firebaseModules;
         
         // পুরনো ডেটা সেভ রাখার জন্য ভেরিয়েবল
         let oldItems = [];
         let oldStatus = '';
+        let oldStockModel = 'reserved-v2';
+        let oldBlocked = false;
+        let oldFinalized = false;
         
         // 2. Run a Transaction (Ensures points & order update together)
         await runTransaction(window.db, async (transaction) => {
@@ -2210,13 +2843,16 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
             // ইনভেন্টরি অ্যাডজাস্ট করার জন্য পুরনো ডেটা স্টোর করে রাখা
             oldItems = oldOrderData.items || [];
             oldStatus = oldOrderData.status;
+            oldStockModel = oldOrderData.stockModel || 'legacy-block-deducted';
+            oldBlocked = !!oldOrderData.stockBlocked;
+            oldFinalized = !!oldOrderData.stockFinalized;
 
             // B. Calculate Point Adjustments (Only if order is completed)
             let newBonus = 0;
             
             if (isCompleted) {
-                // Calculate what the bonus SHOULD be now (5% of new total)
-                newBonus = Math.floor(newTotal * 0.05);
+                // Delivery orders earn no bonus; dine-in earns 5% of the new total
+                newBonus = (oldOrderData.orderType === 'delivery') ? 0 : Math.floor(newTotal * 0.05);
 
                 // Get the OLD bonus (use recorded 'bonusEarned' or calculate it if missing)
                 const oldBonus = oldOrderData.bonusEarned !== undefined 
@@ -2230,15 +2866,15 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
                 const custRef = doc(window.db, 'customers', custPhone);
                 const custDoc = await transaction.get(custRef);
 
-                if (custDoc.exists()) {
-                    const currentPoints = custDoc.data().points || 0;
-                    const newBalance = currentPoints + pointDifference;
+                if (custDoc.exists() && pointDifference !== 0) {
+                    const newLots = adjustPointLots(custDoc.data(), pointDifference);
+                    const newBalance = lotsTotal(newLots);
                     
                     if (newBalance < 0) {
                         console.warn("Customer points dropped below zero.");
                     }
 
-                    transaction.update(custRef, { points: newBalance });
+                    transaction.update(custRef, { points: newBalance, pointLots: serializeLots(newLots) });
                 }
             }
 
@@ -2259,18 +2895,30 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
         });
         
         // --- INVENTORY FIX FOR ADMIN EDIT START ---
-        if (oldStatus === 'completed') {
-            // ১. পুরনো আইটেমের স্টক ইনভেন্টরিতে ফেরত দেওয়া (Restore)
+        // Decide based on the order's ACTUAL stock state, not just its status
+        const wasConsumed = oldFinalized || (oldStatus === 'completed' && !oldBlocked);
+        let newStockBlocked = false;
+        let newFinalized = false;
+
+        if (wasConsumed) {
+            // Old items were consumed: put their stock back, then directly consume the new items
             await restoreIngredientStock(oldItems);
-            // ২. নতুন আইটেমের স্টক সরাসরি মাইনাস করা (Block + Deduct = Direct Minus)
-            await blockIngredientStock(newItems);
-            await deductBlockedStock(newItems);
-        } else if (oldStatus === 'pending' || oldStatus === 'requested') {
-            // ১. পুরনো ব্লক হওয়া স্টক রিলিজ করা
-            await releaseIngredientStock(oldItems);
-            // ২. নতুন স্টক ব্লক করা
-            await blockIngredientStock(newItems);
+            newStockBlocked = await blockIngredientStock(newItems);
+            if (newStockBlocked) await deductBlockedStock(newItems, 'reserved-v2');
+            newFinalized = newStockBlocked; // consumed state maintained
+        } else if (oldBlocked) {
+            // Old items were only reserved: release the reservation, block the new items
+            await releaseIngredientStock(oldItems, oldStockModel);
+            newStockBlocked = await blockIngredientStock(newItems);
+        } else {
+            // Nothing was ever blocked (e.g. no recipes at order time): just try blocking new items
+            newStockBlocked = await blockIngredientStock(newItems);
         }
+        await updateDoc(doc(window.db, 'orders', CURRENT_VIEW_ORDER_ID), {
+            stockBlocked: wasConsumed ? false : newStockBlocked,
+            stockModel: newStockBlocked ? 'reserved-v2' : null,
+            stockFinalized: newFinalized
+        });
         // --- INVENTORY FIX FOR ADMIN EDIT END ---
         
         // 3. Success UI Updates
@@ -2599,7 +3247,7 @@ function filterMenu(text) {
             const targetCart = STATE.role === 'customer' ? STATE.custCart : STATE.cart;
             const existing = targetCart.find(c => c.id === itemId);
             if(existing) existing.qty++;
-            else targetCart.push({ ...item, qty: 1 });
+            else targetCart.push({ ...item, qty: 1, parcelQty: 0 });
             renderActiveCart();
         }
 
@@ -2611,6 +3259,9 @@ function filterMenu(text) {
             if(item.qty <= 0) {
                 if(STATE.role === 'customer') STATE.custCart = STATE.custCart.filter(c => c.id !== itemId);
                 else STATE.cart = STATE.cart.filter(c => c.id !== itemId);
+            } else if(item.parcelQty && item.parcelQty > item.qty) {
+                // Keep parcel split valid when total quantity drops
+                item.parcelQty = item.qty;
             }
             renderActiveCart();
         }
@@ -2618,6 +3269,8 @@ function filterMenu(text) {
         function clearCart() {
             STATE.cart = [];
             STATE.editingOrderId = null;
+            STATE.orderType = 'dine-in';
+            updateOrderTypeButtons();
             document.getElementById('posPhone').value = '';
             document.getElementById('btnPlaceOrder').classList.remove('hidden');
             document.getElementById('btnUpdateOrder').classList.add('hidden');
@@ -2651,7 +3304,24 @@ function filterMenu(text) {
             let total = 0;
             container.innerHTML = cartArray.map(item => {
                 total += item.price * item.qty;
+
+                // Per-item Dine-in / Parcel split (POS cart, dine-in orders only)
+                const isOutletCart = container.id === 'cartItemsList';
+                const showParcel = isOutletCart && STATE.role !== 'customer' && STATE.orderType === 'dine-in';
+                const parcelQty = Math.min(item.parcelQty || 0, item.qty);
+                const dineQty = item.qty - parcelQty;
+                const parcelControl = showParcel ? `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin:4px 0 8px; padding:4px 8px; background:rgba(255,107,53,0.08); border:1px solid rgba(255,107,53,0.18); border-radius:6px; font-size:0.7rem;">
+                        <span class="text-muted">🍽️ Dine ${dineQty} &nbsp;|&nbsp; 📦 Parcel ${parcelQty}</span>
+                        <div class="qty-controls" style="gap:4px;">
+                            <div class="qty-btn" style="width:22px; height:22px;" onclick="setItemParcel('${item.id}', -1)" title="Fewer parcel">-</div>
+                            <span style="padding:0 4px;">📦 ${parcelQty}</span>
+                            <div class="qty-btn" style="width:22px; height:22px;" onclick="setItemParcel('${item.id}', 1)" title="More parcel">+</div>
+                        </div>
+                    </div>` : '';
+
                 return `
+                    <div>
                     <div class="cart-item">
                         <div>
                             <div style="font-size: 0.9rem;">${item.name}</div>
@@ -2662,6 +3332,8 @@ function filterMenu(text) {
                             <span style="padding: 0 5px;">${item.qty}</span>
                             <div class="qty-btn" onclick="updateQty('${item.id}', 1)">+</div>
                         </div>
+                    </div>
+                    ${parcelControl}
                     </div>
                 `;
             }).join('');
@@ -2702,9 +3374,12 @@ function filterMenu(text) {
             const btn = document.getElementById('btnPlaceOrder');
             if (btn) { btn.disabled = true; btn.innerText = 'Placing...'; }
             try {
-                await submitOrder(phone, STATE.cart, 'pending');
+                await submitOrder(phone, STATE.cart, 'pending', 'pos', STATE.orderType, getActiveStaff());
                 clearCart();
                 switchOutletTab('current');
+            } catch(e) {
+                console.error(e);
+                showToast('Order failed: ' + (e.message || e), 'error');
             } finally {
                 isSubmitting = false;
                 if (btn) { btn.disabled = false; btn.innerText = '✅ Place Order'; }
@@ -2716,22 +3391,32 @@ function filterMenu(text) {
             if(STATE.custCart.length === 0) return showToast('Cart is empty', 'error');
             isSubmitting = true;
             try {
-                await submitOrder(STATE.user.phone, STATE.custCart, 'requested');
+                await submitOrder(STATE.user.phone, STATE.custCart, 'requested', 'customer');
                 STATE.custCart = [];
                 renderActiveCart();
                 showToast('Order Request Sent');
                 switchCustTab('history');
+            } catch(e) {
+                console.error(e);
+                showToast('Order failed: ' + (e.message || e), 'error');
             } finally {
                 isSubmitting = false;
             }
         }
 
-        async function submitOrder(phone, items, status) {
+        async function submitOrder(phone, items, status, source='pos', orderType='dine-in', staffName='') {
             const { addDoc, collection, serverTimestamp, doc, setDoc, getDoc } = window.firebaseModules;
             
             // IMPORTANT: Deep-copy items immediately so clearing the cart later
             // cannot mutate the array we're about to write to Firestore.
             const itemsSnapshot = JSON.parse(JSON.stringify(items));
+
+            // Normalize parcel split: delivery is fully to-go (no per-item split);
+            // dine-in keeps parcelQty clamped to the item quantity.
+            itemsSnapshot.forEach(it => {
+                if (orderType === 'delivery') it.parcelQty = 0;
+                else it.parcelQty = Math.min(Math.max(it.parcelQty || 0, 0), it.qty || 0);
+            });
             
             // 1. Fetch Customer Details
             const custRef = doc(window.db, 'customers', phone);
@@ -2760,22 +3445,41 @@ function filterMenu(text) {
                     amount: appliedDiscount.amount
                 };
             }
-            
-            // 2. Save Order — stockBlocked flag tracks whether inventory has been blocked
-            await addDoc(collection(window.db, 'orders'), {
-                items: itemsSnapshot, 
-                phone: phone, 
-                customerName: custName,
-                subtotal: total,
-                discount: discountInfo,
-                total: finalTotal,
-                status: status, 
-                timestamp: serverTimestamp(),
-                stockBlocked: true
-            });
 
-            // 3. Block ingredient stock for this order
-            await blockIngredientStock(itemsSnapshot);
+            // 2. Block ingredient stock (reserved-v2: reserves into blockedStock only)
+            let stockBlocked = false;
+            try {
+                stockBlocked = await blockIngredientStock(itemsSnapshot);
+            } catch(e) {
+                console.error('Stock block failed:', e);
+                throw new Error('Inventory could not be blocked. Check recipe and stock setup.');
+            }
+
+            // 3. Save Order — stockBlocked/stockModel/stockFinalized drive the stock lifecycle
+            try {
+                await addDoc(collection(window.db, 'orders'), {
+                    items: itemsSnapshot, 
+                    phone: phone, 
+                    customerName: custName,
+                    subtotal: total,
+                    discount: discountInfo,
+                    total: finalTotal,
+                    status: status, 
+                    timestamp: serverTimestamp(),
+                    stockBlocked: stockBlocked,
+                    stockModel: stockBlocked ? 'reserved-v2' : null,
+                    stockFinalized: false,
+                    orderSource: source,    // 'pos' | 'customer'
+                    orderType: orderType,   // 'dine-in' | 'delivery'
+                    staffName: staffName    // operational staff who took the order
+                });
+            } catch(e) {
+                if (stockBlocked) {
+                    await releaseIngredientStock(itemsSnapshot, 'reserved-v2')
+                        .catch(releaseErr => console.error('Rollback stock release failed:', releaseErr));
+                }
+                throw e;
+            }
         }
 
         function loadOrders() {
@@ -2947,6 +3651,7 @@ const customerDisplay = o.customerName
                             <div style="margin-bottom:5px;">${customerDisplay}</div>
                             <span class="order-status status-pending" style="font-size:0.65rem;">PENDING</span>
                             <span class="text-muted" style="font-size:0.75rem; margin-left:5px;">📅 ${timeStr}</span>
+                            <span style="font-size:0.65rem; margin-left:5px; padding:1px 6px; border-radius:4px; background:rgba(255,107,53,0.15); color:var(--primary); font-weight:600;">${orderTypeLabel(o.orderType)}</span>
                         </div>
                         <div style="text-align:right;">
                             <strong style="font-size:1.2rem; display:block;">₹${o.total}</strong>
@@ -2955,7 +3660,7 @@ const customerDisplay = o.customerName
                     </div>
                     
                     <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:8px; margin-top:5px;">
-                        ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
+                        ${o.items.map(i => { const p = (o.orderType !== 'delivery') ? (i.parcelQty||0) : 0; return `${i.qty}x ${i.name}${o.orderType==='delivery' ? ' 🚚' : (p>0 ? ` 📦${p}` : '')}`; }).join(', ')}
                     </div>
                     
                     <div class="flex gap-2" style="margin-top:12px;">
@@ -3038,6 +3743,7 @@ function printKOT(orderId) {
                             <div style="margin-bottom:5px;">${customerDisplay}</div>
                             <span class="order-status status-completed" style="font-size:0.65rem;">COMPLETED</span>
                             <span class="text-muted" style="font-size:0.75rem; margin-left:5px;">📅 ${timeStr}</span>
+                            <span style="font-size:0.65rem; margin-left:5px; padding:1px 6px; border-radius:4px; background:rgba(255,107,53,0.15); color:var(--primary); font-weight:600;">${orderTypeLabel(o.orderType)}</span>
                         </div>
                         <div style="text-align:right;">
                             <strong style="font-size:1.2rem; display:block;">₹${o.total}</strong>
@@ -3064,6 +3770,10 @@ function printKOT(orderId) {
         💬 SMS
     </button>
 </div>
+<div class="flex gap-2" style="margin-top:6px; align-items:center; flex-wrap:wrap;">
+    <span id="billsent-${o.id}-whatsapp" style="background:#25D366; color:#000; padding:2px 7px; border-radius:3px; font-size:0.62rem; font-weight:bold; ${o.billSentWA ? '' : 'display:none;'}">✅ WA Sent</span>
+    <span id="billsent-${o.id}-sms" style="background:var(--primary); color:#000; padding:2px 7px; border-radius:3px; font-size:0.62rem; font-weight:bold; ${o.billSentSMS ? '' : 'display:none;'}">✅ SMS Sent</span>
+</div>
                 </div>
             `}).join('');
         }
@@ -3077,6 +3787,7 @@ function printKOT(orderId) {
                     // Load data into global state so sendBill() can read it
                     PAYMENT_DATA = { 
                         ...data, 
+                        orderId: orderId,
                         serial: data.timestamp ? data.timestamp.toMillis().toString().slice(-4) : '0000', 
                         bonusEarned: data.bonusEarned || 0, 
                         finalPaid: data.finalPaid || data.total, 
@@ -3096,7 +3807,7 @@ function printKOT(orderId) {
                 try {
                     const snap = await getDoc(doc(window.db, 'orders', id));
                     if (snap.exists() && snap.data().stockBlocked) {
-                        await releaseIngredientStock(snap.data().items);
+                        await releaseIngredientStock(snap.data().items, snap.data().stockModel || 'legacy-block-deducted');
                     }
                 } catch(e) { console.error('Stock release error:', e); }
             }
@@ -3111,8 +3822,10 @@ function printKOT(orderId) {
             getDoc(doc(window.db, 'orders', orderId)).then(snap => {
                 if(snap.exists()) {
                     const data = snap.data();
-                    STATE.cart = data.items;
+                    STATE.cart = (data.items || []).map(it => ({ ...it, parcelQty: it.parcelQty || 0 }));
                     STATE.editingOrderId = orderId;
+                    STATE.orderType = data.orderType || 'dine-in';
+                    updateOrderTypeButtons();
                     
                     // Load discount if exists
                     if(data.discount && data.discount.code) {
@@ -3154,7 +3867,7 @@ async function deletePendingOrder(orderId) {
                 const snap = await getDoc(doc(window.db, 'orders', orderId));
                 // Only release stock if it was actually blocked — prevents phantom releases
                 if (snap.exists() && snap.data().stockBlocked) {
-                    await releaseIngredientStock(snap.data().items);
+                    await releaseIngredientStock(snap.data().items, snap.data().stockModel || 'legacy-block-deducted');
                 }
 
                 await updateDoc(doc(window.db, 'orders', orderId), {
@@ -3183,6 +3896,11 @@ async function deletePendingOrder(orderId) {
             const total = STATE.cart.reduce((s, i) => s + (i.price * i.qty), 0);
             // Deep-copy cart now so clearCart() cannot corrupt data mid-flight
             const itemsSnapshot = JSON.parse(JSON.stringify(STATE.cart));
+            // Normalize parcel split for the current order type
+            itemsSnapshot.forEach(it => {
+                if (STATE.orderType === 'delivery') it.parcelQty = 0;
+                else it.parcelQty = Math.min(Math.max(it.parcelQty || 0, 0), it.qty || 0);
+            });
             
             // Calculate final total with discount
             let finalTotal = total;
@@ -3230,11 +3948,11 @@ async function deletePendingOrder(orderId) {
                 // Only release if stock was actually blocked — prevents phantom releases
                 if (oldOrderSnap.exists() && oldOrderSnap.data().stockBlocked) {
                     const oldItems = oldOrderSnap.data().items || [];
-                    await releaseIngredientStock(oldItems);
+                    await releaseIngredientStock(oldItems, oldOrderSnap.data().stockModel || 'legacy-block-deducted');
                 }
                 
-                // Block stock for updated items
-                await blockIngredientStock(itemsSnapshot);
+                // Block stock for updated items (reserved-v2)
+                const newStockBlocked = await blockIngredientStock(itemsSnapshot);
                 // --- END INVENTORY FIX ---
 
                 // 3. Update the Order
@@ -3245,7 +3963,9 @@ async function deletePendingOrder(orderId) {
                     total: finalTotal,
                     phone: newPhone,
                     customerName: custName,
-                    stockBlocked: true
+                    orderType: STATE.orderType,
+                    stockBlocked: newStockBlocked,
+                    stockModel: newStockBlocked ? 'reserved-v2' : null
                 });
                 
                 showToast('Order & Phone Updated');
@@ -3362,31 +4082,44 @@ async function deletePendingOrder(orderId) {
             const orderSnap = await getDoc(orderRef);
             
             let hasCoupon = false;
+            let isDelivery = false;
             if (orderSnap.exists()) {
                 const orderData = orderSnap.data();
                 hasCoupon = orderData.discount && orderData.discount.code;
                 PAYMENT_DATA.hasCoupon = hasCoupon;
+                PAYMENT_DATA.orderType = orderData.orderType || 'dine-in';
+                isDelivery = PAYMENT_DATA.orderType === 'delivery';
             }
 
-            // Fetch Customer Points
+            // Fetch Customer Points (non-expired balance from the lot ledger)
             const custRef = doc(window.db, 'customers', phone);
             const snap = await getDoc(custRef);
             
             if(snap.exists()) {
-                const pts = snap.data().points || 0;
-                PAYMENT_DATA.maxPoints = pts;
-                document.getElementById('payAvailPoints').innerText = pts + ' pts';
+                const { available } = reconcilePointLots(snap.data());
+                PAYMENT_DATA.maxPoints = available;
+                document.getElementById('payAvailPoints').innerText = available + ' pts';
             } else {
                 document.getElementById('payAvailPoints').innerText = '0 pts';
             }
 
-            // Disable bonus redemption if coupon is applied
+            // Disable bonus redemption if coupon is applied OR this is a delivery order
             const bonusSection = document.getElementById('bonusRedemptionSection');
             const redeemInput = document.getElementById('redeemInput');
             const bonusInfoText = document.getElementById('bonusInfoText');
             const maxButton = bonusSection.querySelector('button');
             
-            if (hasCoupon) {
+            if (isDelivery) {
+                redeemInput.value = '';
+                redeemInput.disabled = true;
+                redeemInput.style.opacity = '0.5';
+                redeemInput.style.cursor = 'not-allowed';
+                maxButton.disabled = true;
+                maxButton.style.opacity = '0.5';
+                maxButton.style.cursor = 'not-allowed';
+                bonusInfoText.innerHTML = '🚚 Delivery order — no points are earned and existing points cannot be redeemed.';
+                bonusInfoText.style.color = 'var(--warning)';
+            } else if (hasCoupon) {
                 redeemInput.disabled = true;
                 redeemInput.style.opacity = '0.5';
                 redeemInput.style.cursor = 'not-allowed';
@@ -3402,7 +4135,7 @@ async function deletePendingOrder(orderId) {
                 maxButton.disabled = false;
                 maxButton.style.opacity = '1';
                 maxButton.style.cursor = 'pointer';
-                bonusInfoText.innerHTML = '1 Point = ₹1 | New bonus will add to balance.';
+                bonusInfoText.innerHTML = '1 Point = ₹1 | New bonus valid for ' + POINT_VALIDITY_DAYS + ' days.';
                 bonusInfoText.style.color = '';
             }
         }
@@ -3432,7 +4165,9 @@ async function deletePendingOrder(orderId) {
         }
 
         async function processPayment() {
-            const redeem = parseInt(document.getElementById('redeemInput').value) || 0;
+            const isDelivery = PAYMENT_DATA.orderType === 'delivery';
+            // Delivery orders never redeem points
+            const redeem = isDelivery ? 0 : (parseInt(document.getElementById('redeemInput').value) || 0);
             const netPayable = PAYMENT_DATA.total - redeem;
             const payMode = document.getElementById('paymentModeInput').value;
             const cashGiven = parseInt(document.getElementById('cashGiven').value) || 0;
@@ -3473,19 +4208,35 @@ async function deletePendingOrder(orderId) {
                     const orderDoc = await transaction.get(orderRef);
                     const custDoc = await transaction.get(custRef);
                     if (!orderDoc.exists()) throw "Order not found!";
-                    
-                    // Save items for bill
-                    PAYMENT_DATA.items = orderDoc.data().items;
-                    PAYMENT_DATA.serial = orderDoc.data().timestamp ? orderDoc.data().timestamp.toMillis().toString().slice(-4) : '0000';
-                    
-                    const currentPoints = custDoc.exists() ? (custDoc.data().points || 0) : 0;
-                    if (redeem > currentPoints) throw "Insufficient points!";
 
-                    const newBonus = Math.floor(netPayable * 0.05);
-                    
+                    const orderData = orderDoc.data();
+
+                    // Save items for bill and stock finalization
+                    PAYMENT_DATA.items = orderData.items;
+                    PAYMENT_DATA.serial = orderData.timestamp ? orderData.timestamp.toMillis().toString().slice(-4) : '0000';
+                    // Deduct only if stock is still reserved AND nobody finalized it already
+                    PAYMENT_DATA.shouldDeduct = !!orderData.stockBlocked && !orderData.stockFinalized;
+                    PAYMENT_DATA.stockModel = orderData.stockModel || 'legacy-block-deducted';
+                    PAYMENT_DATA.alreadyFinalized = !!orderData.stockFinalized;
+
+                    // Reconcile non-expired points from the lot ledger
+                    const custDataForPts = custDoc.exists() ? custDoc.data() : {};
+                    const reconciled = reconcilePointLots(custDataForPts);
+                    if (redeem > reconciled.available) throw "Insufficient points!";
+
+                    // Delivery orders earn NO bonus; dine-in earns 5% valid for POINT_VALIDITY_DAYS
+                    const newBonus = isDelivery ? 0 : Math.floor(netPayable * 0.05);
+
+                    // Consume redeemed points (earliest-expiring first), then add the new bonus lot
+                    let updatedLots = consumePointLots(reconciled.lots, redeem);
+                    if (newBonus > 0) {
+                        updatedLots.push({ amount: newBonus, expiresAt: Date.now() + POINT_VALIDITY_DAYS * 86400000 });
+                    }
+                    const newBalance = lotsTotal(updatedLots);
+
                     // Update Customer
                     if(custDoc.exists()) {
-                        transaction.update(custRef, { points: (currentPoints - redeem) + newBonus });
+                        transaction.update(custRef, { points: newBalance, pointLots: serializeLots(updatedLots) });
                     }
 
                     // Prepare order update data
@@ -3494,7 +4245,8 @@ async function deletePendingOrder(orderId) {
                         redeemed: redeem,
                         finalPaid: netPayable,
                         bonusEarned: newBonus,
-                        paymentMode: payMode
+                        paymentMode: payMode,
+                        billedBy: getActiveStaff()
                     };
 
                     // Add payment details based on mode
@@ -3515,8 +4267,12 @@ async function deletePendingOrder(orderId) {
                         orderUpdate.onlineAmount = partialOnline;
                     }
 
-                    // Update Order
-                    transaction.update(orderRef, { ...orderUpdate, stockBlocked: false });
+                    // Update Order — claim stock finalization so nothing can double-deduct
+                    transaction.update(orderRef, {
+                        ...orderUpdate,
+                        stockBlocked: false,
+                        stockFinalized: PAYMENT_DATA.shouldDeduct ? true : PAYMENT_DATA.alreadyFinalized
+                    });
 
                     // Store Data for Bill
                     PAYMENT_DATA.finalPaid = netPayable;
@@ -3533,14 +4289,34 @@ async function deletePendingOrder(orderId) {
                 document.getElementById('paymentInputSection').classList.add('hidden');
                 document.getElementById('paymentSuccessSection').classList.remove('hidden');
                 document.getElementById('billSerial').innerText = PAYMENT_DATA.serial;
-                showToast(`Paid! Earned ${PAYMENT_DATA.bonusEarned} pts`);
+                showToast(PAYMENT_DATA.bonusEarned > 0 ? `Paid! Earned ${PAYMENT_DATA.bonusEarned} pts` : 'Payment successful!');
 
-                // Deduct blocked stock (moves blocked -> fully consumed)
-                if (PAYMENT_DATA.items) await deductBlockedStock(PAYMENT_DATA.items);
+                // Deduct blocked stock (reserved -> consumed) — skipped if already finalized
+                if (PAYMENT_DATA.items && PAYMENT_DATA.shouldDeduct) {
+                    await deductBlockedStock(PAYMENT_DATA.items, PAYMENT_DATA.stockModel);
+                }
             } catch (e) {
                 console.error(e);
                 showToast('Payment Failed: ' + e, 'error');
             }
+        }
+
+        // --- BILL SENT TRACKER ---
+        // Records on the order document that a bill was sent (WA/SMS) so the
+        // completed-order card can show a persistent "sent" indicator after refresh.
+        async function markBillSent(orderId, type) {
+            if (!orderId) return;
+            // Instant UI feedback if the badge is on screen
+            const badge = document.getElementById(`billsent-${orderId}-${type}`);
+            if (badge) badge.style.display = '';
+            try {
+                const { doc, updateDoc, serverTimestamp } = window.firebaseModules;
+                const key = type === 'whatsapp' ? 'billSentWA' : 'billSentSMS';
+                await updateDoc(doc(window.db, 'orders', orderId), {
+                    [key]: true,
+                    billSentAt: serverTimestamp()
+                });
+            } catch (e) { console.error('markBillSent failed:', e); }
         }
 
         function sendBill(type) {
@@ -3587,6 +4363,8 @@ async function deletePendingOrder(orderId) {
                 const shortText = `Bill for ${s.name}: ₹${d.finalPaid} paid. Points earned: ${d.bonusEarned}. Thanks!`;
                 window.open(`sms:${d.phone}?body=${encodeURIComponent(shortText)}`, '_blank');
             }
+            // Record that the bill was sent (persistent indicator on completed cards)
+            markBillSent(d.orderId, type);
         }
 
         // --- CUSTOMER PANEL ---
@@ -4035,6 +4813,55 @@ window.addEventListener('appinstalled', () => {
 });
 
 // ==========================================
+// iOS / iPadOS INSTALL GUIDE
+// (Safari never fires beforeinstallprompt, so we show a manual Add-to-Home-Screen guide)
+// ==========================================
+function isIOS() {
+    const ua = window.navigator.userAgent || '';
+    return /iPad|iPhone|iPod/.test(ua) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS reports as Mac
+}
+function isInStandaloneMode() {
+    return window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true;
+}
+function showIOSInstallModal() {
+    document.getElementById('iosInstallModal').classList.remove('hidden');
+}
+function hideIOSInstallModal() {
+    document.getElementById('iosInstallModal').classList.add('hidden');
+}
+function hideAllInstallUI() {
+    ['pwaInstallBtn', 'iosInstallBtn'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+}
+
+// Show the iOS install button (and auto-open the guide once per session) on iOS Safari only
+window.addEventListener('load', () => {
+    if (isInStandaloneMode()) { hideAllInstallUI(); return; } // already installed
+    if (isIOS()) {
+        const iosBtn = document.getElementById('iosInstallBtn');
+        if (iosBtn) {
+            iosBtn.classList.remove('hidden');
+            const shown = sessionStorage.getItem('iosModalShown');
+            if (!shown) {
+                sessionStorage.setItem('iosModalShown', '1');
+                setTimeout(() => showIOSInstallModal(), 2000);
+            }
+        }
+    }
+});
+// Tap the dimmed backdrop to dismiss the guide
+(function () {
+    const m = document.getElementById('iosInstallModal');
+    if (m) m.addEventListener('click', function (e) { if (e.target === this) hideIOSInstallModal(); });
+})();
+// Hide the iOS button too once the app is installed
+window.addEventListener('appinstalled', () => { hideAllInstallUI(); });
+
+// ==========================================
 // PUSH NOTIFICATION LOGIC
 // ==========================================
 // REPLACE YOUR OLD FUNCTION WITH THIS NEW ONE
@@ -4257,71 +5084,160 @@ async function resendCampaign(docId) {
 // ==================== INVENTORY MANAGEMENT ====================
 
 // Helper: deduct/block/release ingredient stock
-async function adjustIngredientStock(items, action) {
-    // action: 'block' (order placed), 'release' (cancelled), 'deduct' (payment done), 'restore' (completed order deleted)
-    // Uses Firestore increment() for ATOMIC updates — eliminates read-modify-write race conditions
-    const { collection, getDocs, doc, updateDoc, increment } = window.firebaseModules;
-
-    // Load recipes for all unique menu items
-    const itemIds = [...new Set(items.map(i => i.id))];
+// Resolve the ingredient usage map (ingId -> total qty) for a set of order items,
+// reading each item's recipe from the menu/{id}/recipe subcollection.
+async function buildUsageMap(items) {
+    const { collection, getDocs } = window.firebaseModules;
+    const itemIds = [...new Set((items || []).map(i => i.id || i.itemId).filter(Boolean))];
     const allRecipes = {};
-    for (const itemId of itemIds) {
-        const recipeSnap = await getDocs(collection(window.db, `menu/${itemId}/recipe`));
-        allRecipes[itemId] = [];
-        recipeSnap.forEach(d => {
-            allRecipes[itemId].push({ ingId: d.id, qty: d.data().qty });
-        });
-    }
+    await Promise.all(itemIds.map(async (itemId) => {
+        try {
+            const recipeSnap = await getDocs(collection(window.db, `menu/${itemId}/recipe`));
+            allRecipes[itemId] = recipeSnap.docs.map(d => ({ ingId: d.id, qty: Number(d.data().qty) || 0 }));
+        } catch (e) {
+            console.error(`Recipe fetch failed for menu/${itemId}:`, e.message);
+            allRecipes[itemId] = [];
+        }
+    }));
 
-    // Build usage map: ingId -> total qty for this order
     const usageMap = {};
-    for (const orderItem of items) {
-        const recipe = allRecipes[orderItem.id] || [];
+    const itemsWithoutRecipe = [];
+    for (const orderItem of (items || [])) {
+        const id = orderItem.id || orderItem.itemId;
+        const recipe = allRecipes[id] || [];
+        if (recipe.length === 0) { itemsWithoutRecipe.push(orderItem.name || id || '(unknown)'); continue; }
+        const orderQty = Number(orderItem.qty) || 0;
         for (const ri of recipe) {
-            if (!ri.ingId || !ri.qty) continue;
-            usageMap[ri.ingId] = (usageMap[ri.ingId] || 0) + (ri.qty * orderItem.qty);
+            if (!ri.ingId || ri.qty <= 0 || orderQty <= 0) continue;
+            usageMap[ri.ingId] = (usageMap[ri.ingId] || 0) + (ri.qty * orderQty);
+        }
+    }
+    return { usageMap, itemsWithoutRecipe };
+}
+
+// Per-action stock deltas. reserved-v2: block reserves into blockedStock ONLY (stock untouched);
+// deduct moves the reservation to a real stock reduction. legacy: old behavior where block also
+// reduced stock (so deduct only clears the blocked counter). The per-order stockModel decides which.
+function buildStockDelta(action, qty, isLegacy) {
+    if (action === 'block')   return isLegacy ? { stock: -qty, blockedStock: qty } : { blockedStock: qty };
+    if (action === 'release') return isLegacy ? { stock: qty, blockedStock: -qty } : { blockedStock: -qty };
+    if (action === 'deduct')  return isLegacy ? { blockedStock: -qty } : { stock: -qty, blockedStock: -qty };
+    if (action === 'restore') return { stock: qty };
+    return {};
+}
+
+async function adjustIngredientStock(items, action, stockModel = 'reserved-v2') {
+    // action: 'block' | 'release' | 'deduct' | 'restore'
+    // Uses Firestore increment() for ATOMIC updates — eliminates read-modify-write race conditions.
+    const { doc, updateDoc, increment } = window.firebaseModules;
+
+    const { usageMap, itemsWithoutRecipe } = await buildUsageMap(items);
+
+    // Diagnostics: never fail silently when a recipe is missing
+    if (itemsWithoutRecipe.length > 0) {
+        console.warn(`⚠️ No recipe found for: ${itemsWithoutRecipe.join(', ')}. Set it in Admin → Inventory → Item Ingredients.`);
+        if (action === 'block' && typeof showToast === 'function') {
+            showToast(`⚠️ No recipe set for: ${itemsWithoutRecipe.slice(0,2).join(', ')}${itemsWithoutRecipe.length>2?'…':''} — stock not blocked`, 'warning');
         }
     }
 
-    if (Object.keys(usageMap).length === 0) return; // No recipes configured, skip
+    if (Object.keys(usageMap).length === 0) {
+        console.warn(`ℹ️ Stock '${action}' skipped — no recipe steps resolved.`);
+        return false;
+    }
 
-    // Apply atomic increments — no read needed, no race condition possible
-    const updatePromises = Object.entries(usageMap).map(([ingId, qty]) => {
-        const ingRef = doc(window.db, 'ingredients', ingId);
-        let update = {};
+    const isLegacy = stockModel !== 'reserved-v2';
+    const entries = Object.entries(usageMap);
 
-        if (action === 'block') {
-            // Deduct from available stock, add to blocked counter
-            update = { stock: increment(-qty), blockedStock: increment(qty) };
-        } else if (action === 'release') {
-            // Return to available stock, subtract from blocked counter
-            update = { stock: increment(qty), blockedStock: increment(-qty) };
-        } else if (action === 'deduct') {
-            // Stock was already reduced at block-time; just clear the blocked counter
-            update = { blockedStock: increment(-qty) };
-        } else if (action === 'restore') {
-            // Completed order was deleted: put consumed stock back
-            update = { stock: increment(qty) };
-        }
+    // Apply all updates; track which succeed so we can roll back on partial failure
+    const results = await Promise.allSettled(entries.map(([ingId, qty]) => {
+        const deltas = buildStockDelta(action, qty, isLegacy);
+        const update = {};
+        for (const [field, d] of Object.entries(deltas)) update[field] = increment(d);
+        return updateDoc(doc(window.db, 'ingredients', ingId), update);
+    }));
 
-        return updateDoc(ingRef, update).catch(e => console.error(`Stock update failed for ${ingId}:`, e));
+    const failed = [], succeeded = [];
+    results.forEach((r, i) => {
+        if (r.status === 'rejected') failed.push({ ingId: entries[i][0], qty: entries[i][1], reason: r.reason?.message || r.reason });
+        else succeeded.push({ ingId: entries[i][0], qty: entries[i][1] });
     });
 
-    await Promise.all(updatePromises);
+    if (failed.length > 0) {
+        console.error(`❌ Stock '${action}' failed for: ` + failed.map(f => `${f.ingId} (${f.reason})`).join('; '));
+        // Roll back the increments that DID succeed, so counters stay consistent
+        if (succeeded.length > 0) {
+            await Promise.allSettled(succeeded.map(({ ingId, qty }) => {
+                const deltas = buildStockDelta(action, qty, isLegacy);
+                const inverse = {};
+                for (const [field, d] of Object.entries(deltas)) inverse[field] = increment(-d);
+                return updateDoc(doc(window.db, 'ingredients', ingId), inverse);
+            }));
+            console.warn('↩️ Rolled back partial stock updates to keep counters consistent.');
+        }
+        if (typeof showToast === 'function') showToast(`⚠️ Stock ${action} failed — check recipe links.`, 'error');
+        return false;
+    }
+    return true;
 }
 
-// Standalone wrapper functions
+// Standalone wrapper functions — return a boolean (true = stock changed successfully)
 async function blockIngredientStock(items) {
-    try { await adjustIngredientStock(items, 'block'); } catch(e) { console.error('Stock block error:', e); }
+    return adjustIngredientStock(items, 'block', 'reserved-v2');
 }
-async function releaseIngredientStock(items) {
-    try { await adjustIngredientStock(items, 'release'); } catch(e) { console.error('Stock release error:', e); }
+async function releaseIngredientStock(items, stockModel = 'reserved-v2') {
+    return adjustIngredientStock(items, 'release', stockModel);
 }
 async function restoreIngredientStock(items) {
-    try { await adjustIngredientStock(items, 'restore'); } catch(e) { console.error('Stock restore error:', e); }
+    return adjustIngredientStock(items, 'restore', 'reserved-v2');
 }
-async function deductBlockedStock(items) {
-    try { await adjustIngredientStock(items, 'deduct'); } catch(e) { console.error('Stock deduct error:', e); }
+async function deductBlockedStock(items, stockModel = 'reserved-v2') {
+    return adjustIngredientStock(items, 'deduct', stockModel);
+}
+
+// ---- Admin tool: recompute blockedStock from open orders (heals drift) ----
+// Sets ABSOLUTE blockedStock per ingredient = sum of reservations in orders that are still
+// blocked (stockBlocked == true). Any orphaned blocks from deleted/old orders are wiped.
+async function recalcBlockedStock() {
+    if (!confirm('Recalculate blocked quantities from open orders?\n\nThis recomputes "Blocked" for EVERY ingredient based on orders currently reserving stock, clearing any leftover phantom blocks from old bugs or deleted orders.')) return;
+
+    const { collection, getDocs, query, where, doc, updateDoc } = window.firebaseModules;
+    showToast('🔧 Recalculating blocked stock…');
+
+    try {
+        const ordersSnap = await getDocs(query(collection(window.db, 'orders'), where('stockBlocked', '==', true)));
+
+        // Sum required blocked qty per ingredient (recipes read from subcollection)
+        const blockedMap = {};
+        for (const oDoc of ordersSnap.docs) {
+            const order = oDoc.data();
+            const { usageMap } = await buildUsageMap(order.items || []);
+            for (const [ingId, qty] of Object.entries(usageMap)) {
+                blockedMap[ingId] = (blockedMap[ingId] || 0) + qty;
+            }
+        }
+
+        // Write absolute blockedStock to EVERY ingredient (0 where no open reservation)
+        const ingSnap = await getDocs(collection(window.db, 'ingredients'));
+        let fixedCount = 0;
+        for (const iDoc of ingSnap.docs) {
+            const correct = blockedMap[iDoc.id] || 0;
+            const current = Number(iDoc.data().blockedStock) || 0;
+            if (current !== correct) {
+                await updateDoc(doc(window.db, 'ingredients', iDoc.id), { blockedStock: correct });
+                console.log(`🔧 ${iDoc.data().name}: blockedStock ${current} → ${correct}`);
+                fixedCount++;
+            }
+        }
+
+        showToast(fixedCount > 0
+            ? `✅ Fixed blocked quantity on ${fixedCount} ingredient${fixedCount !== 1 ? 's' : ''} (from ${ordersSnap.size} open order${ordersSnap.size !== 1 ? 's' : ''})`
+            : '✅ All blocked quantities already correct', 'success');
+        loadAdminIngredients();
+    } catch (e) {
+        showToast('Recalc error: ' + e.message, 'error');
+        console.error('Recalc failed:', e);
+    }
 }
 
 
