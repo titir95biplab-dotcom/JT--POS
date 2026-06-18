@@ -1340,12 +1340,12 @@ async function sendDeliveryQR(phone, amount, name) {
     try {
         showToast('Preparing QR image...', 'info');
 
-        // ইমেজ ইউআরএল থেকে ডেটা নিয়ে ফাইল অবজেক্ট তৈরি করা
+        // ইমেজ ইউআরএল থেকে ডেটা নিয়ে ফাইল অবজেক্ট তৈরি করা
         const response = await fetch(qrUrl);
         const blob = await response.blob();
         const file = new File([blob], 'payment_qr.jpg', { type: blob.type });
 
-        // মোবাইলের নেটিভ শেয়ারিং সিস্টেম ব্যবহার করা
+        // মোবাইলের নেটিভ শেয়ারিং সিস্টেম ব্যবহার করা
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
                 files: [file],
@@ -1354,7 +1354,7 @@ async function sendDeliveryQR(phone, amount, name) {
             });
             showToast('Share window opened!');
         } else {
-            // যদি কোনো কারণে ব্রাউজার শেয়ারিং সাপোর্ট না করে, তবে ব্যাকআপ হিসেবে হোয়াটসঅ্যাপ চ্যাট ওপেন হবে (শুধু টেক্সট)
+            // যদি কোনো কারণে ব্রাউজার শেয়ারিং সাপোর্ট না করে, তবে ব্যাকআপ হিসেবে হোয়াটসঅ্যাপ চ্যাট ওপেন হবে (শুধু টেক্সট)
             const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`;[cite: 1]
             window.open(url, '_blank');[cite: 1]
         }
