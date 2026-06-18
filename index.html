@@ -1329,37 +1329,39 @@ async function sendDeliveryToOutletWhatsApp(items, total, phone, name) {
 }
 
 // Outlet staff: send the payment QR to a customer's WhatsApp (for prepaid delivery)
+// হোয়াটসঅ্যাপে টেক্সট ও ছবি একসাথে পাঠানোর নতুন ফাংশন
 async function sendDeliveryQR(phone, amount, name) {
-    const storeName = (STATE.storeSettings && STATE.storeSettings.name) || 'Juice Therapy';[cite: 1]
-    const qrUrl = getPaymentQrUrl();[cite: 1]
-    const cleanPhone = phone.toString().replace(/\D/g, '');[cite: 1]
+    const storeName = (STATE.storeSettings && STATE.storeSettings.name) || 'Juice Therapy'; //[cite: 1]
+    const qrUrl = getPaymentQrUrl(); // আপনার সেটিংসে থাকা কিউআর লিঙ্কটি নেবে[cite: 1]
+    const cleanPhone = phone.toString().replace(/\D/g, ''); //[cite: 1]
 
-    // কাস্টমারের জন্য মেসেজের টেক্সট যা ছবির ক্যাপশন হিসেবে যাবে
-    let msg = `Hello ${name || ''}\nPlease pay ₹${amount} for your ${storeName} delivery order.\n\nAfter paying, send the payment screenshot here to confirm. ✅`;[cite: 1]
+    // কাস্টমারের জন্য মেসেজের টেক্সট
+    let msg = `Hello ${name || ''}\nPlease pay ₹${amount} for your ${storeName} delivery order.\n\nAfter paying, send the payment screenshot here to confirm. ✅`;
 
     try {
-        showToast('Preparing QR image...', 'info');
+        showToast('Preparing QR image for sharing...', 'info');
 
-        // ইমেজ ইউআরএল থেকে ডেটা নিয়ে ফাইল অবজেক্ট তৈরি করা
+        // ১. কিউআর ইমেজের ইউআরএল থেকে ডেটা নিয়ে ফাইল তৈরি করা
         const response = await fetch(qrUrl);
         const blob = await response.blob();
         const file = new File([blob], 'payment_qr.jpg', { type: blob.type });
 
-        // মোবাইলের নেটিভ শেয়ারিং সিস্টেম ব্যবহার করা
+        // ২. ব্রাউজারটি ফাইল শেয়ারিং সাপোর্ট করে কিনা তা চেক করা (যেমন: মোবাইল ক্রোম/সাফারি)
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
-                files: [file],
-                title: 'Payment QR',
-                text: msg
+                files: [file],       // কিউআর ইমেজের ফাইল
+                title: 'Payment QR', // শেয়ার টাইটেল
+                text: msg            // ছবির ক্যাপশন হিসেবে টেক্সট মেসেজটি যাবে
             });
             showToast('Share window opened!');
         } else {
-            // যদি কোনো কারণে ব্রাউজার শেয়ারিং সাপোর্ট না করে, তবে ব্যাকআপ হিসেবে হোয়াটসঅ্যাপ চ্যাট ওপেন হবে (শুধু টেক্সট)
-            const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`;[cite: 1]
-            window.open(url, '_blank');[cite: 1]
+            // ব্রাউজার যদি সরাসরি ফাইল শেয়ার সাপোর্ট না করে (যেমন ডেক্সটপ কম্পিউটার), তবে পুরনো পদ্ধতিতে টেক্সট যাবে
+            alert("আপনার ডিভাইসটি সরাসরি ব্রাউজার থেকে ছবি শেয়ার সাপোর্ট করছে না। আমরা টেক্সট লিঙ্কটি ওপেন করছি, ছবি আলাদা দিতে হবে।");
+            const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`; //[cite: 1]
+            window.open(url, '_blank'); //[cite: 1]
         }
     } catch (error) {
-        console.error('Sharing error:', error);
+        console.error('Sharing failed:', error);
         showToast('Could not share image: ' + error.message, 'error');
     }
 }
