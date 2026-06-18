@@ -370,7 +370,7 @@ async function trackUserActivity(phone) {
         </header>
         <div class="app-layout">
             <div class="tabs">
-                <button class="btn btn-secondary tab-btn active" onclick="switchAdminTab('dashboard')" id="btn-adm-dash">📊 Analytics</button>
+                <button class="btn btn-secondary tab-btn active" onclick="switchAdminTab('dashboard')" id="btn-adm-dashboard">📊 Analytics</button>
                 <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('menu')" id="btn-adm-menu">🍔 Menu</button>
                 <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('orders')" id="btn-adm-orders">📜 Orders</button>
                 <button class="btn btn-secondary tab-btn" onclick="switchAdminTab('settings')" id="btn-adm-settings">⚙️ Settings</button>
@@ -582,7 +582,10 @@ async function trackUserActivity(phone) {
                     <div id="adminCategoryList" class="flex gap-2" style="flex-wrap: wrap; margin-top: 10px;"></div>
                 </div>
 
-                <h4>Menu Items</h4>
+                <div class="flex justify-between items-center" style="margin-top:10px; margin-bottom:10px; gap:10px; flex-wrap:wrap;">
+                    <h4 style="margin:0;">Menu Items</h4>
+                    <input type="text" id="adminMenuSearch" class="input" placeholder="🔍 Search items..." style="margin:0; max-width:220px; padding:8px; font-size:0.85rem;" onkeyup="renderAdminMenu()">
+                </div>
                 <div id="adminMenuGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 10px;"></div>
             </div>
 
@@ -717,7 +720,10 @@ async function trackUserActivity(phone) {
         <h2>Outlet POS</h2>
     </div>
     
-    <div class="flex gap-2">
+    <div class="flex gap-2 items-center">
+        <select id="posStaffSelect" class="input" style="margin:0; padding:6px 8px; font-size:0.85rem; min-width:120px;" onchange="setActiveStaff(this.value)">
+            <option value="">— Staff —</option>
+        </select>
         <button id="btnConnectPrinter" class="btn btn-warning btn-sm" onclick="connectPrinter()">🖨️ Connect</button>
         <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
     </div>
@@ -757,11 +763,6 @@ async function trackUserActivity(phone) {
                     <div class="flex gap-2" style="margin-top: 8px;">
                         <button id="btnTypeDineIn" class="btn btn-sm w-full btn-primary" onclick="setOrderType('dine-in')">🍽️ Dine-in</button>
                         <button id="btnTypeDelivery" class="btn btn-sm w-full btn-secondary" onclick="setOrderType('delivery')">🚚 Delivery</button>
-                    </div>
-                    <div style="margin-top: 8px;">
-                        <select id="posStaffSelect" class="input" style="margin:0; padding:8px; font-size:0.85rem;" onchange="setActiveStaff(this.value)">
-                            <option value="">— Staff —</option>
-                        </select>
                     </div>
                     <div class="cart-items" id="cartItemsList"></div>
                     <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
@@ -2315,6 +2316,13 @@ function filterAdminMenu(catName) {
         items = items.filter(i => i.category === STATE.adminActiveCategory);
     }
 
+    // Name search filter
+    const searchEl = document.getElementById('adminMenuSearch');
+    const term = searchEl ? searchEl.value.trim().toLowerCase() : '';
+    if (term) {
+        items = items.filter(i => (i.name || '').toLowerCase().includes(term));
+    }
+
     // 2. Empty State
     if (items.length === 0) {
         grid.innerHTML = `
@@ -2671,7 +2679,7 @@ function renderSalesChart(dailyData) {
                 }
                 
                 showToast('Order deleted & points reversed');
-                loadAdminOrders(); 
+                searchHistory(); // refresh the current date-filtered list (deleted order drops off)
             } catch (e) {
                 console.error(e);
                 showToast('Error: ' + e.message, 'error');
