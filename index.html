@@ -1331,9 +1331,9 @@ async function sendDeliveryToOutletWhatsApp(items, total, phone, name) {
 // Outlet staff: send the payment QR to a customer's WhatsApp (for prepaid delivery)
 // হোয়াটসঅ্যাপে টেক্সট ও ছবি একসাথে পাঠানোর নতুন ফাংশন
 async function sendDeliveryQR(phone, amount, name) {
-    const storeName = (STATE.storeSettings && STATE.storeSettings.name) || 'Juice Therapy'; //[cite: 1]
-    const qrUrl = getPaymentQrUrl(); // আপনার সেটিংসে থাকা কিউআর লিঙ্কটি নেবে[cite: 1]
-    const cleanPhone = phone.toString().replace(/\D/g, ''); //[cite: 1]
+    const storeName = (STATE.storeSettings && STATE.storeSettings.name) || 'Juice Therapy'; 
+    const qrUrl = getPaymentQrUrl(); // আপনার সেটিংসে থাকা কিউআর লিঙ্কটি নেবে
+    const cleanPhone = phone.toString().replace(/\D/g, ''); 
 
     // কাস্টমারের জন্য মেসেজের টেক্সট
     let msg = `Hello ${name || ''}\nPlease pay ₹${amount} for your ${storeName} delivery order.\n\nAfter paying, send the payment screenshot here to confirm. ✅`;
@@ -1357,8 +1357,8 @@ async function sendDeliveryQR(phone, amount, name) {
         } else {
             // ব্রাউজার যদি সরাসরি ফাইল শেয়ার সাপোর্ট না করে (যেমন ডেক্সটপ কম্পিউটার), তবে পুরনো পদ্ধতিতে টেক্সট যাবে
             alert("আপনার ডিভাইসটি সরাসরি ব্রাউজার থেকে ছবি শেয়ার সাপোর্ট করছে না। আমরা টেক্সট লিঙ্কটি ওপেন করছি, ছবি আলাদা দিতে হবে।");
-            const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`; //[cite: 1]
-            window.open(url, '_blank'); //[cite: 1]
+            const url = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank'); 
         }
     } catch (error) {
         console.error('Sharing failed:', error);
