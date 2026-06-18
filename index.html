@@ -403,76 +403,7 @@ async function trackUserActivity(phone) {
 </div>
 <!-- ADMIN INVENTORY VIEW -->
 <div id="adm-view-cash" class="hidden">
-    <div class="flex justify-between items-center" style="margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-        <h3 style="margin:0;">💰 Cash Management</h3>
-        <div class="flex items-center gap-2">
-            <span id="mgmtStaffLabel" class="text-muted" style="font-size:0.8rem;"></span>
-            <button class="btn btn-secondary btn-sm" onclick="loadManagementData()">🔄 Refresh</button>
-        </div>
-    </div>
-    <div id="mgmtDateLabel" class="text-muted" style="font-size:0.8rem; margin-bottom:12px;"></div>
-
-    <!-- ── CASH BOX CALCULATOR ── -->
-    <div class="card" style="margin-bottom:16px;">
-        <h4 style="margin-bottom:12px;">🧮 Cash Box Calculator</h4>
-
-        <label class="text-muted" style="font-size:0.8rem;">Opening Balance (start of day)</label>
-        <div class="flex gap-2" style="margin-bottom:10px;">
-            <input type="number" id="mgmtOpening" class="input" placeholder="₹0" style="margin:0; text-align:right;">
-            <button class="btn btn-primary btn-sm" onclick="setOpeningBalance()" style="white-space:nowrap;">Set Opening</button>
-        </div>
-
-        <div style="border:1px solid rgba(255,107,53,0.2); border-radius:10px; padding:12px; margin-bottom:12px; background:rgba(255,107,53,0.05);">
-            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">Opening Balance</span><span id="calcOpening">₹0</span></div>
-            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Cash Sales (auto)</span><span id="calcCashSales" style="color:var(--success);">₹0</span></div>
-            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Manual Cash-In</span><span id="calcCashIn" style="color:var(--success);">₹0</span></div>
-            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">− Expenses (auto)</span><span id="calcExpenses" style="color:#FF6B6B;">₹0</span></div>
-            <div class="flex justify-between font-bold" style="font-size:1.05rem; border-top:1px solid rgba(255,255,255,0.12); padding-top:8px; margin-top:4px;"><span>Expected in Box</span><span id="calcExpected">₹0</span></div>
-        </div>
-
-        <label class="text-muted" style="font-size:0.8rem;">Actual Counted Cash (count the box now)</label>
-        <div class="flex gap-2" style="margin-bottom:10px;">
-            <input type="number" id="mgmtCounted" class="input" placeholder="₹0" style="margin:0; text-align:right;">
-            <button class="btn btn-success btn-sm" onclick="reconcileCashBox()" style="white-space:nowrap;">✓ Check Match</button>
-        </div>
-        <div id="mgmtMatchResult" style="display:none; padding:10px; border-radius:8px; font-weight:700; text-align:center; margin-bottom:6px;"></div>
-
-        <div style="border-top:1px dashed rgba(255,255,255,0.12); padding-top:12px; margin-top:6px;">
-            <label class="text-muted" style="font-size:0.8rem;">➕ Manual Cash-In (special reason)</label>
-            <div class="flex gap-2" style="margin-top:6px;">
-                <input type="number" id="mgmtCashInAmt" class="input" placeholder="₹" style="margin:0; text-align:right; max-width:110px;">
-                <input type="text" id="mgmtCashInReason" class="input" placeholder="Reason" style="margin:0; flex:1;">
-                <button class="btn btn-secondary btn-sm" onclick="addManualCashIn()" style="white-space:nowrap;">Add</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ── CASH EXPENSE TRACKER ── -->
-    <div class="card" style="margin-bottom:16px;">
-        <h4 style="margin-bottom:12px;">🧾 Cash Expense Tracker</h4>
-        <label class="text-muted" style="font-size:0.8rem;">Amount</label>
-        <input type="number" id="expAmount" class="input" placeholder="₹0" style="text-align:right;">
-        <label class="text-muted" style="font-size:0.8rem;">Category</label>
-        <select id="expCategory" class="input">
-            <option value="Local Market">Local Market</option>
-            <option value="Chicken">Chicken</option>
-            <option value="Vegetable">Vegetable</option>
-            <option value="Flipkart">Flipkart</option>
-            <option value="Amazon">Amazon</option>
-            <option value="Blinkit">Blinkit</option>
-            <option value="JioMart">JioMart</option>
-            <option value="Other">Other</option>
-        </select>
-        <label class="text-muted" style="font-size:0.8rem;">Note (optional)</label>
-        <input type="text" id="expNote" class="input" placeholder="e.g. 2kg chicken">
-        <button class="btn btn-danger w-full" onclick="addCashExpense()" style="margin-top:6px;">− Record Cash Out</button>
-
-        <div class="flex justify-between items-center" style="margin-top:16px; margin-bottom:8px;">
-            <h4 style="margin:0;">Today's Expenses</h4>
-            <strong id="expTodayTotal" style="color:#FF6B6B;">₹0</strong>
-        </div>
-        <div id="expTodayList"></div>
-    </div>
+    <p class="text-muted" style="font-size:0.85rem; margin-bottom:14px;">📋 Daily cash report by date. The live cash box (opening balance, cash-in, expenses, reconcile) is in the <strong>Outlet POS → 💰 Cash</strong> tab.</p>
 
     <!-- ── CASH BOX REPORT (any date) ── -->
     <div class="card">
@@ -804,6 +735,7 @@ async function trackUserActivity(phone) {
     <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('current')" id="tab-current" title="Current">⏳</button>
     <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('completed')" id="tab-completed" title="Completed">✅</button>
     <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('stock')" id="tab-stock" title="Stock">📦</button>
+    <button class="btn btn-secondary tab-btn" onclick="switchOutletTab('management')" id="tab-management" title="Cash Management">💰</button>
 </div>
 
             <div id="view-pos" class="pos-container">
@@ -880,6 +812,79 @@ async function trackUserActivity(phone) {
                     <p class="text-muted" style="font-size:0.8rem; margin-bottom:15px;">Calculated stock may differ from actual. You can manually edit.</p>
                     <div id="outletStockList"></div>
                 </div>
+            </div>
+            <div id="view-management" class="hidden">
+    <div class="flex justify-between items-center" style="margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+        <h3 style="margin:0;">💰 Cash Management</h3>
+        <div class="flex items-center gap-2">
+            <span id="mgmtStaffLabel" class="text-muted" style="font-size:0.8rem;"></span>
+            <button class="btn btn-secondary btn-sm" onclick="loadManagementData()">🔄 Refresh</button>
+        </div>
+    </div>
+    <div id="mgmtDateLabel" class="text-muted" style="font-size:0.8rem; margin-bottom:12px;"></div>
+
+    <!-- ── CASH BOX CALCULATOR ── -->
+    <div class="card" style="margin-bottom:16px;">
+        <h4 style="margin-bottom:12px;">🧮 Cash Box Calculator</h4>
+
+        <label class="text-muted" style="font-size:0.8rem;">Opening Balance (start of day)</label>
+        <div class="flex gap-2" style="margin-bottom:10px;">
+            <input type="number" id="mgmtOpening" class="input" placeholder="₹0" style="margin:0; text-align:right;">
+            <button class="btn btn-primary btn-sm" onclick="setOpeningBalance()" style="white-space:nowrap;">Set Opening</button>
+        </div>
+
+        <div style="border:1px solid rgba(255,107,53,0.2); border-radius:10px; padding:12px; margin-bottom:12px; background:rgba(255,107,53,0.05);">
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">Opening Balance</span><span id="calcOpening">₹0</span></div>
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Cash Sales (auto)</span><span id="calcCashSales" style="color:var(--success);">₹0</span></div>
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Manual Cash-In</span><span id="calcCashIn" style="color:var(--success);">₹0</span></div>
+            <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">− Expenses (auto)</span><span id="calcExpenses" style="color:#FF6B6B;">₹0</span></div>
+            <div class="flex justify-between font-bold" style="font-size:1.05rem; border-top:1px solid rgba(255,255,255,0.12); padding-top:8px; margin-top:4px;"><span>Expected in Box</span><span id="calcExpected">₹0</span></div>
+        </div>
+
+        <label class="text-muted" style="font-size:0.8rem;">Actual Counted Cash (count the box now)</label>
+        <div class="flex gap-2" style="margin-bottom:10px;">
+            <input type="number" id="mgmtCounted" class="input" placeholder="₹0" style="margin:0; text-align:right;">
+            <button class="btn btn-success btn-sm" onclick="reconcileCashBox()" style="white-space:nowrap;">✓ Check Match</button>
+        </div>
+        <div id="mgmtMatchResult" style="display:none; padding:10px; border-radius:8px; font-weight:700; text-align:center; margin-bottom:6px;"></div>
+
+        <div style="border-top:1px dashed rgba(255,255,255,0.12); padding-top:12px; margin-top:6px;">
+            <label class="text-muted" style="font-size:0.8rem;">➕ Manual Cash-In (special reason)</label>
+            <div class="flex gap-2" style="margin-top:6px;">
+                <input type="number" id="mgmtCashInAmt" class="input" placeholder="₹" style="margin:0; text-align:right; max-width:110px;">
+                <input type="text" id="mgmtCashInReason" class="input" placeholder="Reason" style="margin:0; flex:1;">
+                <button class="btn btn-secondary btn-sm" onclick="addManualCashIn()" style="white-space:nowrap;">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── CASH EXPENSE TRACKER ── -->
+    <div class="card" style="margin-bottom:16px;">
+        <h4 style="margin-bottom:12px;">🧾 Cash Expense Tracker</h4>
+        <label class="text-muted" style="font-size:0.8rem;">Amount</label>
+        <input type="number" id="expAmount" class="input" placeholder="₹0" style="text-align:right;">
+        <label class="text-muted" style="font-size:0.8rem;">Category</label>
+        <select id="expCategory" class="input">
+            <option value="Local Market">Local Market</option>
+            <option value="Chicken">Chicken</option>
+            <option value="Vegetable">Vegetable</option>
+            <option value="Flipkart">Flipkart</option>
+            <option value="Amazon">Amazon</option>
+            <option value="Blinkit">Blinkit</option>
+            <option value="JioMart">JioMart</option>
+            <option value="Other">Other</option>
+        </select>
+        <label class="text-muted" style="font-size:0.8rem;">Note (optional)</label>
+        <input type="text" id="expNote" class="input" placeholder="e.g. 2kg chicken">
+        <button class="btn btn-danger w-full" onclick="addCashExpense()" style="margin-top:6px;">− Record Cash Out</button>
+
+        <div class="flex justify-between items-center" style="margin-top:16px; margin-bottom:8px;">
+            <h4 style="margin:0;">Today's Expenses</h4>
+            <strong id="expTodayTotal" style="color:#FF6B6B;">₹0</strong>
+        </div>
+        <div id="expTodayList"></div>
+    </div>
+
             </div>
         </div>
     </div>
@@ -1805,9 +1810,9 @@ async function restoreCustomerSession(phone) {
         loadRecipeIngredientDropdown();
     }
     if(tab === 'cash') {
-        loadManagementData();
         const cd = document.getElementById('cashReportDate');
         if (cd && !cd.value) cd.valueAsDate = new Date();
+        loadCashReport();
     }
 }
 
@@ -3153,9 +3158,10 @@ function removeEditCoupon() {
         function switchOutletTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(`tab-${tab}`).classList.add('active');
-            ['view-pos', 'view-incoming', 'view-current', 'view-completed', 'view-stock'].forEach(v => document.getElementById(v).classList.add('hidden'));
+            ['view-pos', 'view-incoming', 'view-current', 'view-completed', 'view-stock', 'view-management'].forEach(v => document.getElementById(v).classList.add('hidden'));
             document.getElementById(`view-${tab}`).classList.remove('hidden');
             if(tab === 'stock') loadStockView();
+            if(tab === 'management') loadManagementData();
         }
 
 function filterMenu(text) {
