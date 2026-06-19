@@ -1328,6 +1328,19 @@ async function sendDeliveryToOutletWhatsApp(items, total, phone, name) {
     if (!win) window.location.href = url; // popup blocked → navigate directly
 }
 
+// Customer can re-share an existing delivery order's details + location to the outlet
+// (used when the auto-redirect was cancelled/blocked at order time).
+async function resendDeliveryDetails(orderId) {
+    const { doc, getDoc } = window.firebaseModules;
+    try {
+        const snap = await getDoc(doc(window.db, 'orders', orderId));
+        if (!snap.exists()) return showToast('Order not found', 'error');
+        const o = snap.data();
+        showToast('Opening WhatsApp with your details & location…');
+        await sendDeliveryToOutletWhatsApp(o.items || [], o.total || 0, o.phone, o.customerName || '');
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
 // Outlet staff: send the payment QR to a customer's WhatsApp (for prepaid delivery)
 // হোয়াটসঅ্যাপে টেক্সট ও ছবি একসাথে পাঠানোর নতুন ফাংশন
 async function sendDeliveryQR(phone, amount, name) {
@@ -2725,7 +2738,7 @@ function renderSalesChart(dailyData) {
         }
         
         async function adminDeleteOrder(id) {
-            if(!confirm('Delete this record? Warning: 5% Bonus points awarded will be deducted from the customer.')) return;
+            if(!confirm('Delete this record?\n\nThe 5% bonus awarded will be removed, and any points the customer redeemed on this order will be refunded back to them.')) return;
             
             const { doc, runTransaction, getDoc } = window.firebaseModules;
             
@@ -2746,15 +2759,23 @@ function renderSalesChart(dailyData) {
                     
                     // 2. Adjust Customer Points if order was completed
                     if (orderData.status === 'completed' && orderData.phone) {
-                        // Reverse the points actually awarded (delivery orders award 0)
+                        // Reverse the bonus actually awarded (delivery orders award 0)
                         const bonus = (orderData.bonusEarned !== undefined)
                             ? orderData.bonusEarned
                             : Math.floor((orderData.total || 0) * 0.05);
-                        if (bonus > 0) {
+                        // Refund any points the customer spent (redeemed) on this order
+                        const redeemed = orderData.redeemed || 0;
+                        if (bonus > 0 || redeemed > 0) {
                             const custRef = doc(window.db, 'customers', orderData.phone);
                             const custDoc = await transaction.get(custRef);
                             if (custDoc.exists()) {
-                                const newLots = adjustPointLots(custDoc.data(), -bonus);
+                                const { lots } = reconcilePointLots(custDoc.data());
+                                // Remove the awarded bonus, then give back the redeemed points
+                                // as a fresh lot with the standard validity.
+                                let newLots = consumePointLots(lots, bonus);
+                                if (redeemed > 0) {
+                                    newLots = [...newLots, { amount: redeemed, expiresAt: Date.now() + POINT_VALIDITY_DAYS * 86400000 }];
+                                }
                                 transaction.update(custRef, { points: lotsTotal(newLots), pointLots: serializeLots(newLots) });
                             }
                         }
@@ -3571,7 +3592,7 @@ function filterMenu(text) {
             if (STATE.custCart.length === 0) return showToast('Cart is empty', 'error');
             if (isSubmitting) return showToast('Please wait…', 'error');
             isSubmitting = true;
-            const { doc, getDoc, updateDoc } = window.firebaseModules;
+            const { doc, runTransaction } = window.firebaseModules;
             const orderType = STATE.custOrderType || 'dine-in';
             const itemsSnapshot = JSON.parse(JSON.stringify(STATE.custCart));
             itemsSnapshot.forEach(it => {
@@ -3579,27 +3600,32 @@ function filterMenu(text) {
                 else it.parcelQty = Math.min(Math.max(it.parcelQty || 0, 0), it.qty || 0);
             });
             const total = itemsSnapshot.reduce((s, i) => s + (i.price * i.qty), 0);
+            let oldItems = [], oldModel = 'reserved-v2', wasBlocked = false;
             try {
                 const orderRef = doc(window.db, 'orders', STATE.custEditingOrderId);
-                const snap = await getDoc(orderRef);
-                if (!snap.exists()) throw new Error('Order not found');
-                const data = snap.data();
-                if (data.status !== 'requested') throw new Error('Order already accepted — cannot edit.');
-
-                // Release the old reservation, then block the updated items (reserved-v2)
-                if (data.stockBlocked) {
-                    await releaseIngredientStock(data.items || [], data.stockModel || 'reserved-v2');
-                }
-                const newBlocked = await blockIngredientStock(itemsSnapshot);
-
-                await updateDoc(orderRef, {
-                    items: itemsSnapshot,
-                    subtotal: total,
-                    total: total,
-                    orderType: orderType,
-                    stockBlocked: newBlocked,
-                    stockModel: newBlocked ? 'reserved-v2' : null
+                // Atomically verify the order is still 'requested' and swap the items.
+                // If staff accepts mid-edit, the transaction throws BEFORE any stock is touched.
+                await runTransaction(window.db, async (t) => {
+                    const snap = await t.get(orderRef);
+                    if (!snap.exists()) throw new Error('Order not found');
+                    const data = snap.data();
+                    if (data.status !== 'requested') throw new Error('Order already accepted — cannot edit.');
+                    oldItems = data.items || [];
+                    oldModel = data.stockModel || 'reserved-v2';
+                    wasBlocked = !!data.stockBlocked;
+                    t.update(orderRef, {
+                        items: itemsSnapshot,
+                        subtotal: total,
+                        total: total,
+                        orderType: orderType,
+                        stockBlocked: true,
+                        stockModel: 'reserved-v2'
+                    });
                 });
+
+                // Order swap committed safely — now reconcile the reservation
+                if (wasBlocked) await releaseIngredientStock(oldItems, oldModel);
+                await blockIngredientStock(itemsSnapshot);
 
                 STATE.custEditingOrderId = null;
                 STATE.custCart = [];
@@ -3810,18 +3836,18 @@ const customerDisplay = o.customerName
                 const isDelivery = o.orderType === 'delivery';
                 const safeName = (o.customerName || '').replace(/'/g, "\\'");
                 const typeBadge = `<span style="font-size:0.65rem; margin-left:6px; padding:1px 6px; border-radius:4px; background:rgba(255,107,53,0.18); color:var(--primary); font-weight:700;">${orderTypeLabel(o.orderType)}</span>`;
-                const buttonRow = isDelivery ? `
+                // "Accept (Paid)" opens the payment modal so the order is COMPLETED directly
+                // (skips pending → can't be lost/deleted as an unpaid pending order).
+                // The other accept just moves it to pending (pay later / cash on delivery / takeaway).
+                const pendingLabel = isDelivery ? '💵 Accept (COD)' : '🍽️ Accept (Pay later)';
+                const buttonRow = `
                     <div class="flex gap-2" style="margin-top:10px;">
                         <button class="btn btn-sm w-full" style="background:#25D366; color:#000; border:none;" onclick="sendDeliveryQR('${o.phone}', ${o.total}, '${safeName}')">📤 Send QR</button>
-                        <button class="btn btn-success btn-sm w-full" onclick="updateOrderStatus('${o.id}', 'pending')">✅ Accept (Paid)</button>
+                        <button class="btn btn-success btn-sm w-full" onclick="openPaymentModal('${o.id}', ${o.total}, '${o.phone}')">✅ Accept (Paid)</button>
                     </div>
                     <div class="flex gap-2" style="margin-top:6px;">
-                        <button class="btn btn-secondary btn-sm w-full" onclick="updateOrderStatus('${o.id}', 'pending')">💵 Accept (COD)</button>
+                        <button class="btn btn-secondary btn-sm w-full" onclick="updateOrderStatus('${o.id}', 'pending')">${pendingLabel}</button>
                         <button class="btn btn-danger btn-sm w-full" onclick="updateOrderStatus('${o.id}', 'cancelled')">Reject</button>
-                    </div>` : `
-                    <div class="flex gap-2" style="margin-top:10px;">
-                        <button class="btn btn-success w-full" onclick="updateOrderStatus('${o.id}', 'pending')">Accept</button>
-                        <button class="btn btn-danger w-full" onclick="updateOrderStatus('${o.id}', 'cancelled')">Reject</button>
                     </div>`;
 
                 return `
@@ -4707,7 +4733,11 @@ function filterCustomerMenu(text) {
                                 ${o.items.map(i => { const p=(o.orderType!=='delivery')?(i.parcelQty||0):0; return `${i.qty} x ${i.name}${o.orderType==='delivery'?' 🚚':(p>0?` 📦${p}`:'')}`; }).join(', ')}
                             </div>
                             <div style="margin-top:6px; font-size:0.72rem; color:var(--primary); font-weight:600;">${orderTypeLabel(o.orderType)}</div>
-                            ${o.status === 'requested' ? `<button class="btn btn-warning btn-sm w-full" style="margin-top:8px;" onclick="editCustomerOrder('${id}')">✏️ Edit Order</button>` : ''}
+                            ${(o.status === 'requested' || (o.orderType === 'delivery' && o.status === 'pending')) ? `
+                            <div class="flex gap-2" style="margin-top:8px;">
+                                ${o.status === 'requested' ? `<button class="btn btn-warning btn-sm w-full" onclick="editCustomerOrder('${id}')">✏️ Edit Order</button>` : ''}
+                                ${(o.orderType === 'delivery' && (o.status === 'requested' || o.status === 'pending')) ? `<button class="btn btn-sm w-full" style="background:#25D366; color:#000; border:none;" onclick="resendDeliveryDetails('${id}')">📍 Send Location & Details</button>` : ''}
+                            </div>` : ''}
                         </div>
                     `;
                 }).join('');
