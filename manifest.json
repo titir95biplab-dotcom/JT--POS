@@ -1,11 +1,11 @@
 {
-  "name": "Juice Therapy POS",
-  "short_name": "Juice Therapy",
-  "description": "Smart POS System for Juice Therapy",
+  "name": "Juice Therapy Birati POS",
+  "short_name": "JT Birati",
+  "description": "Smart POS System for Juice Therapy Birati",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0A0E27",
+  "background_color": "#121212",
   "theme_color": "#FF6B35",
   "orientation": "portrait-primary",
   "icons": [

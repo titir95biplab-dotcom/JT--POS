@@ -2,9 +2,9 @@
 importScripts('https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging-compat.js');
 
-// 1. Initialize Firebase (Paste your SAME config here)
+// 1. Initialize Firebase — Juice Therapy Birati project
 firebase.initializeApp({
-    apiKey: "AIzaSyCbHeWurSgxdE1cYFvTGsoyzpK7PQ_1Z0o", 
+    apiKey: "AIzaSyCbHeWurSgxdE1cYFvTGsoyzpK7PQ_1Z0o",
     authDomain: "jt-s-pos.firebaseapp.com",
     projectId: "jt-s-pos",
     storageBucket: "jt-s-pos.firebasestorage.app",
@@ -21,16 +21,16 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title;
   const notificationOptions = {
     body: payload.notification.body,
-    icon: '/logo.png', // Ensure this path is correct
-    image: payload.notification.image || null // Supports Images!
+    icon: '/logo.png',
+    image: payload.notification.image || null
   };
-
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 
-// --- STANDARD PWA CACHING (Keep your existing logic) ---
-const CACHE_NAME = 'jt-pos-v52';
+// ── PWA CACHING ──────────────────────────────────────────
+// Bump CACHE_NAME on every deploy so installed devices pick up the new build.
+const CACHE_NAME = 'jt-birati-pos-v53';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -63,16 +63,3 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request).then((response) => response || fetch(event.request))
   );
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
