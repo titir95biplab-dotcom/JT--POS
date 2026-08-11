@@ -30,7 +30,7 @@ messaging.onBackgroundMessage((payload) => {
 
 // ── PWA CACHING ──────────────────────────────────────────
 // Bump CACHE_NAME on every deploy so installed devices pick up the new build.
-const CACHE_NAME = 'jt-birati-pos-v55';
+const CACHE_NAME = 'jt-birati-pos-v57';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

@@ -875,6 +875,39 @@ async function trackUserActivity(phone) {
         <input type="time" id="storeCloseTime" class="input">
     </div>
 
+    <div style="border:1px solid var(--border, rgba(255,255,255,0.12)); border-radius:10px; padding:12px; margin-top:4px;">
+        <div style="font-weight:700; font-size:0.9rem; margin-bottom:4px;">📍 Outlet Location Gate</div>
+        <p class="text-muted" style="font-size:0.78rem; margin-bottom:10px;">
+            The Outlet POS only opens when staff are within this radius of the shop. Admin is
+            never checked. Stand at the counter and tap <b>Use my current location</b> — that
+            is far more reliable than typing coordinates from a map.
+        </p>
+        <div class="flex gap-2" style="flex-wrap:wrap;">
+            <div style="flex:1; min-width:120px;">
+                <label class="text-muted" style="font-size:0.75rem;">Latitude</label>
+                <input type="number" step="any" id="storeOutletLat" class="input" placeholder="e.g. 22.66258" style="margin:0;">
+            </div>
+            <div style="flex:1; min-width:120px;">
+                <label class="text-muted" style="font-size:0.75rem;">Longitude</label>
+                <input type="number" step="any" id="storeOutletLng" class="input" placeholder="e.g. 88.43201" style="margin:0;">
+            </div>
+            <div style="flex:1; min-width:90px; max-width:120px;">
+                <label class="text-muted" style="font-size:0.75rem;">Radius (m)</label>
+                <input type="number" id="storeGeofenceM" class="input" placeholder="150" style="margin:0;">
+            </div>
+        </div>
+        <div class="flex gap-2" style="margin-top:10px; flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="captureOutletLocation()" style="flex:1; min-width:180px;">📍 Use my current location</button>
+            <button class="btn btn-secondary btn-sm" onclick="testOutletDistance()" style="flex:1; min-width:150px;">📏 Test my distance</button>
+        </div>
+        <div id="geofenceTestResult" class="text-muted" style="font-size:0.78rem; margin-top:8px; line-height:1.5;"></div>
+        <p class="text-muted" style="font-size:0.72rem; margin-top:8px;">
+            Leave the radius at 150 m unless staff get blocked while genuinely at the shop —
+            indoors a phone can read 50–100 m off, so raise it before you suspect anything else.
+            Remember to tap Save Settings.
+        </p>
+    </div>
+
     <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
         <span>Outlet Status:</span>
         <label class="flex items-center gap-2" style="cursor:pointer;">
@@ -2854,7 +2887,7 @@ onMessage(messaging, (payload) => {
         // Adding a new admin: put the e-mail here, or give the account a
         // staff/{uid} doc with role 'admin'. Remember firestore.rules has its own
         // admin check that may need the same address.
-        const ADMIN_EMAILS = ['admin@jt.com', 'titir95biplab@gmail.com'];
+        const ADMIN_EMAILS = ['bbawaliphy@gmail.com'];
         function isAdminEmail(email) {
             return ADMIN_EMAILS.indexOf(String(email || '').trim().toLowerCase()) !== -1;
         }
@@ -2904,11 +2937,17 @@ onMessage(messaging, (payload) => {
         // The Outlet POS opens only when the device is physically at the shop.
         // NOTE: browser geolocation needs HTTPS (a secure context) — it will not
         // work when the app is opened from a downloaded file (file:///).
+        // Fallback only — Admin → Settings → Outlet Location Gate overrides all three,
+        // so the shop's real position can be corrected without a redeploy.
+        //
         // Source: JT_SQUAD app, Firestore settings/global -> outletLat / outletLng
         // (Settings screen, "Outlet Location (Lat, Lng)"). ~2.4 km east of Nimta.
+        // The radius matches JT_SQUAD's own 200 m (APP_CONFIG.radius): staff check in
+        // against these same coordinates there, so 200 m is the figure known to work
+        // for this outlet. 150 m was tighter than anything that had been proven.
         const OUTLET_SHOP_LAT  = 22.66258;   // Birati Outlet
         const OUTLET_SHOP_LNG  = 88.43201;
-        const OUTLET_GEOFENCE_M = 150;                 // allowed distance in metres
+        const OUTLET_GEOFENCE_M = 200;                 // allowed distance in metres
         let _pendingOutletLoad = null;
 
         function _distMeters(la1, lo1, la2, lo2) {
@@ -2923,11 +2962,69 @@ onMessage(messaging, (payload) => {
                 navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
             });
         }
+        function _numOrNull(id) {
+            const el = document.getElementById(id);
+            if (!el || String(el.value).trim() === '') return null;
+            const n = Number(el.value);
+            return isNaN(n) ? null : n;
+        }
+
+        // Where the shop is. Admin → Settings wins, so the coordinates can be corrected
+        // from the shop itself without a redeploy; the constants above are only the
+        // fallback for a store document that has never had them set.
+        function outletGeofence() {
+            const s = STATE.storeSettings || {};
+            const num = (v, fb) => (typeof v === 'number' && !isNaN(v)) ? v : fb;
+            return {
+                lat: num(s.outletLat, OUTLET_SHOP_LAT),
+                lng: num(s.outletLng, OUTLET_SHOP_LNG),
+                radius: Math.max(30, num(s.geofenceM, OUTLET_GEOFENCE_M))
+            };
+        }
+
+        // Admin: capture the shop's coordinates by standing at the counter.
+        async function captureOutletLocation() {
+            const box = document.getElementById('geofenceTestResult');
+            box.innerHTML = '📍 Reading your location…';
+            try {
+                const pos = await _getPos();
+                document.getElementById('storeOutletLat').value = pos.coords.latitude;
+                document.getElementById('storeOutletLng').value = pos.coords.longitude;
+                if (!document.getElementById('storeGeofenceM').value) document.getElementById('storeGeofenceM').value = 150;
+                box.innerHTML = `✅ Captured <b>${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}</b> (GPS accuracy ±${Math.round(pos.coords.accuracy)} m).<br>Now tap <b>Save Settings</b>.`;
+            } catch (e) {
+                box.innerHTML = '⚠️ Could not read your location. Allow location access for this site and try again.'
+                    + (window.isSecureContext ? '' : '<br>The app must be opened over https, not from a downloaded file.');
+            }
+        }
+
+        // Admin: how far am I from the saved shop location right now?
+        async function testOutletDistance() {
+            const box = document.getElementById('geofenceTestResult');
+            box.innerHTML = '📏 Measuring…';
+            const lat = _numOrNull('storeOutletLat'), lng = _numOrNull('storeOutletLng');
+            const g = (lat !== null && lng !== null)
+                ? { lat, lng, radius: _numOrNull('storeGeofenceM') || OUTLET_GEOFENCE_M }
+                : outletGeofence();
+            try {
+                const pos = await _getPos();
+                const d = _distMeters(pos.coords.latitude, pos.coords.longitude, g.lat, g.lng);
+                const ok = d <= g.radius;
+                box.innerHTML = `You are <b>${Math.round(d)} m</b> from the saved location (radius ${g.radius} m, GPS accuracy ±${Math.round(pos.coords.accuracy)} m).<br>`
+                    + (ok ? '<span style="color:var(--success);">✅ Staff would be let in from here.</span>'
+                          : '<span style="color:var(--danger);">⛔ Staff would be blocked from here.</span> Either capture the location again from the counter, or raise the radius.');
+            } catch (e) {
+                box.innerHTML = '⚠️ Could not read your location. Allow location access and try again.';
+            }
+        }
+
         async function outletLocationCheck() {
             try {
                 const pos = await _getPos();
-                const d = _distMeters(pos.coords.latitude, pos.coords.longitude, OUTLET_SHOP_LAT, OUTLET_SHOP_LNG);
-                return { ok: d <= OUTLET_GEOFENCE_M, dist: d };
+                const g = outletGeofence();
+                const d = _distMeters(pos.coords.latitude, pos.coords.longitude, g.lat, g.lng);
+                return { ok: d <= g.radius, dist: d, radius: g.radius, accuracy: pos.coords.accuracy,
+                         myLat: pos.coords.latitude, myLng: pos.coords.longitude };
             } catch (e) { return { ok: false, dist: null, err: e }; }
         }
         function showOutletLock(html, showRetry) {
@@ -2965,6 +3062,19 @@ onMessage(messaging, (payload) => {
             hideOutletLock();
             try { window.firebaseModules.signOut(window.auth); } catch (e) {}
         }
+        // Coordinates of whoever is currently looking at the lock screen, so they can
+        // be read out or copied to the admin.
+        let _lastKnownPos = null;
+        function copyMyLocation() {
+            if (!_lastKnownPos) return;
+            const txt = `${_lastKnownPos.lat.toFixed(6)}, ${_lastKnownPos.lng.toFixed(6)}`;
+            const done = () => showToast('Location copied — send it to the admin', 'success');
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(txt).then(done).catch(() => prompt('Copy these coordinates:', txt));
+            } else {
+                prompt('Copy these coordinates:', txt);
+            }
+        }
         // Gate the outlet panel behind being at the shop, then run its loaders.
         async function gateOutletPanel(loadFn) {
             if (loadFn) _pendingOutletLoad = loadFn;
@@ -2976,10 +3086,21 @@ onMessage(messaging, (payload) => {
                 if (_pendingOutletLoad) _pendingOutletLoad();
             } else {
                 let msg;
+                if (r.myLat != null) _lastKnownPos = { lat: r.myLat, lng: r.myLng };
+                const whereAmI = (r.myLat == null) ? '' : `
+                    <div style="margin-top:16px;padding:10px 12px;border:1px dashed var(--primary);border-radius:8px;text-align:left;">
+                        <div style="font-size:0.72rem;opacity:0.7;margin-bottom:4px;">📍 Your position right now</div>
+                        <div style="font-family:monospace;font-size:0.9rem;font-weight:700;">${r.myLat.toFixed(6)}, ${r.myLng.toFixed(6)}</div>
+                        <div style="font-size:0.72rem;opacity:0.7;margin-top:6px;line-height:1.45;">
+                            If you ARE at the shop, send these two numbers to the admin — they go in
+                            Admin &rarr; Settings &rarr; Outlet Location Gate, and the POS opens for everyone here.
+                        </div>
+                        <button onclick="copyMyLocation()" style="margin-top:8px;background:transparent;border:1px solid var(--primary);color:var(--primary);padding:6px 12px;border-radius:6px;font-size:0.78rem;cursor:pointer;">📋 Copy coordinates</button>
+                    </div>`;
                 if (r.dist != null) {
-                    msg = `⛔ You are <b>${Math.round(r.dist)} m</b> from the shop.<br>The Outlet POS opens only at the shop.`;
+                    msg = `⛔ You are <b>${Math.round(r.dist)} m</b> from the shop.<br>The Outlet POS opens within ${r.radius} m.${r.accuracy ? `<br><small>GPS accuracy here is ±${Math.round(r.accuracy)} m.</small>` : ``}` + whereAmI;
                 } else {
-                    msg = '⚠️ Could not get your location. Allow location access and retry.';
+                    msg = '⚠️ Could not get your location. Allow location access and retry.' + whereAmI;
                     if (!window.isSecureContext) msg += '<br><small>⚠️ Open the app over https (not a downloaded file).</small>';
                 }
                 showOutletLock(msg, true);
@@ -3257,6 +3378,9 @@ document.getElementById('storeUpi').value = s.upi || '';
                 document.getElementById('storeCloseTime').value = s.closeTime || '';
                 document.getElementById('storeFooter').value = s.footer || '';
                 document.getElementById('storeLink').value = s.link || '';
+                document.getElementById('storeOutletLat').value = (typeof s.outletLat === 'number') ? s.outletLat : '';
+                document.getElementById('storeOutletLng').value = (typeof s.outletLng === 'number') ? s.outletLng : '';
+                document.getElementById('storeGeofenceM').value = (typeof s.geofenceM === 'number') ? s.geofenceM : '';
                 if(document.getElementById('storeQrUrl')) document.getElementById('storeQrUrl').value = s.qrUrl || '';
                 
                 // Toggle Switch Logic
@@ -3315,7 +3439,11 @@ document.getElementById('storeUpi').value = s.upi || '';
         isOpen: isOpen,
         footer: document.getElementById('storeFooter').value,
         link: document.getElementById('storeLink').value,
-        qrUrl: document.getElementById('storeQrUrl').value
+        qrUrl: document.getElementById('storeQrUrl').value,
+        // Blank fields are stored as null so outletGeofence() falls back to the constants
+        outletLat: _numOrNull('storeOutletLat'),
+        outletLng: _numOrNull('storeOutletLng'),
+        geofenceM: _numOrNull('storeGeofenceM')
     };
     
     try {
