@@ -2198,6 +2198,19 @@ onMessage(messaging, (payload) => {
             // Load operational staff roster (powers POS staff selector + admin staff list)
             loadStaffRoster();
 
+            // Admin accounts are identified by e-mail on this project — the jt-s-pos
+            // Firestore has no staff/{uid} doc for them (Birati's firestore.rules make
+            // the same assumption). Checked first so the admin is never sent down the
+            // staff branch, which is gated by the outlet location check.
+            if (user.email === 'admin@jt.com' || user.email === 'titir95biplab@gmail.com') {
+                STATE.role = 'admin';
+                showPanel('adminPanel');
+                loadCategories();
+                loadMenu();
+                loadAnalytics();
+                return;
+            }
+
             const { doc, getDoc } = window.firebaseModules;
             try {
                 const userDoc = await getDoc(doc(window.db, 'staff', user.uid)); 
