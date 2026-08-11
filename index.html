@@ -96,7 +96,7 @@ async function trackUserActivity(phone) {
         /* Discount Styles */
         .discount-applied {
             border: 2px solid var(--success) !important;
-            background: rgba(76,$1175,$280, 0.14) !important;
+            background: rgba(76,175,80, 0.14) !important;
         }
         .discount-badge {
             position: absolute;
@@ -108,7 +108,7 @@ async function trackUserActivity(phone) {
             border-radius: 12px;
             font-size: 0.7rem;
             font-weight: bold;
-            box-shadow: 0 2px 8px rgba(76,$1175,$280, 0.50);
+            box-shadow: 0 2px 8px rgba(76,175,80, 0.50);
         }
         .coupon-input-wrapper {
             position: relative;
@@ -134,14 +134,14 @@ async function trackUserActivity(phone) {
         .btn:active { transform: scale(0.98); }
         .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
         .btn-primary { background: var(--primary); color: #FFFFFF; font-weight: 700; }
-        .btn-secondary { background: rgba(255,255,255,0.05); color: #FFFFFF; border: 1px solid rgba(255,$1107,$253,0.2); }
-        .btn-danger { background: rgba(255,$182,$282, 0.15); color: var(--danger); }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: #FFFFFF; border: 1px solid rgba(255,107,53,0.2); }
+        .btn-danger { background: rgba(255,82,82, 0.15); color: var(--danger); }
         .btn-success { background: var(--success); color: white; }
         .btn-warning { background: var(--warning); color: black; }
         .btn-info { background: var(--info); color: white; }
         
         .input {
-            width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,$1107,$253,0.15);
+            width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,107,53,0.15);
             border-radius: 8px; color: white; font-size: 1rem; margin-bottom: 10px;
         }
         .input:focus { outline: none; border-color: var(--primary); }
@@ -166,7 +166,7 @@ async function trackUserActivity(phone) {
         .pos-container { display: grid; grid-template-columns: 1fr 350px; gap: 20px; height: calc(100vh - 140px); }
         .pos-left { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
         
-        .menu-area { display: grid; grid-template-columns: 110px 1fr; gap: 15px; flex: 1; overflow: hidden; border: 1px solid rgba(255,$1107,$253,0.15); border-radius: 12px; padding: 10px; background: rgba(255,$1107,$253,0.04); }
+        .menu-area { display: grid; grid-template-columns: 110px 1fr; gap: 15px; flex: 1; overflow: hidden; border: 1px solid rgba(255,107,53,0.15); border-radius: 12px; padding: 10px; background: rgba(255,107,53,0.04); }
         
         .cat-sidebar { overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 8px; }
         .cat-btn { 
@@ -193,7 +193,7 @@ async function trackUserActivity(phone) {
         }
         
         .menu-item:active { transform: scale(0.96); }
-        .menu-item:hover { border-color: var(--primary); background: rgba(255,255,255,0.08); box-shadow: 0 0 0 1px var(--primary), 0 0 16px rgba(255,$1107,$253,0.30); }
+        .menu-item:hover { border-color: var(--primary); background: rgba(255,255,255,0.08); box-shadow: 0 0 0 1px var(--primary), 0 0 16px rgba(255,107,53,0.30); }
         .menu-item:hover .item-name-clamp { color: #FFFFFF; }
         .menu-item:hover .item-price-tag { color: #FFC107; } /* switch to gold on hover so it pops against dark bg */
 
@@ -224,7 +224,7 @@ async function trackUserActivity(phone) {
         .cart-panel { background: var(--surface); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; height: 100%; }
         .cart-items { flex: 1; overflow-y: auto; margin: 10px 0; }
         .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .qty-controls { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,$1107,$253,0.3); border-radius: 4px; padding: 2px; }
+        .qty-controls { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,107,53,0.3); border-radius: 4px; padding: 2px; }
         .qty-btn { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; color: #FF6B35; }
 
         /* Tabs */
@@ -233,7 +233,7 @@ async function trackUserActivity(phone) {
         .tab-btn.active { background: var(--primary); color: #FFFFFF; font-weight: 700; }
 
         /* Order Cards */
-        .order-card { padding: 15px; background: rgba(255,$1107,$253,0.06); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; border-radius: 8px; }
+        .order-card { padding: 15px; background: rgba(255,107,53,0.06); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 10px; border-radius: 8px; }
         .order-status { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: bold; }
         .status-requested { background: var(--info); color: white; }
         @keyframes alarmPulse { 0%,100% { transform:translateX(-50%) scale(1); } 50% { transform:translateX(-50%) scale(1.08); } }
@@ -242,15 +242,15 @@ async function trackUserActivity(phone) {
         .status-cancelled { background: var(--danger); color: white; }
 
         /* Admin Dashboard Cards */
-        .stat-card { background: var(--surface); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,$1107,$253,0.15); }
+        .stat-card { background: var(--surface); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,107,53,0.15); }
         .stat-value { font-size: 2rem; font-weight: bold; color: var(--primary); margin: 10px 0; }
         .stat-label { font-size: 0.9rem; color: var(--text-muted); }
 
         /* Install Button */
-        #installBtn { position: fixed; bottom: 20px; right: 20px; z-index: 100; box-shadow: 0 4px 12px rgba(0,$10,$20,0.80); display: none; }
+        #installBtn { position: fixed; bottom: 20px; right: 20px; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.80); display: none; }
 
         /* Notification */
-        #notification { position: fixed; top: 20px; right: 20px; background: #1E1E2E; padding: 15px 25px; border-radius: 8px; z-index: 1000; transform: translateX(150%); transition: 0.3s; box-shadow: 0 4px 12px rgba(0,$10,$20,0.65); }
+        #notification { position: fixed; top: 20px; right: 20px; background: #1E1E2E; padding: 15px 25px; border-radius: 8px; z-index: 1000; transform: translateX(150%); transition: 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.65); }
 
         /* Mobile Responsive */
         @media (max-width: 768px) {
@@ -307,33 +307,33 @@ async function trackUserActivity(phone) {
     <div id="notification"></div>
 
     <!-- Android / Desktop Install Button -->
-    <button id="pwaInstallBtn" class="btn btn-primary hidden" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; box-shadow: 0 4px 20px rgba(255,$1107,$253,0.45);">
+    <button id="pwaInstallBtn" class="btn btn-primary hidden" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; box-shadow: 0 4px 20px rgba(255,107,53,0.45);">
         📲 Install App
     </button>
 
     <!-- iOS / iPad Manual Install Guide Button -->
-    <button id="iosInstallBtn" class="btn btn-primary hidden" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; box-shadow: 0 4px 20px rgba(255,$1107,$253,0.45);" onclick="showIOSInstallModal()">
+    <button id="iosInstallBtn" class="btn btn-primary hidden" style="position: fixed; bottom: 20px; right: 20px; z-index: 9999; box-shadow: 0 4px 20px rgba(255,107,53,0.45);" onclick="showIOSInstallModal()">
         📲 Install App
     </button>
 
     <!-- iOS Install Instructions Modal -->
     <div id="iosInstallModal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:99999; display:flex; align-items:flex-end; justify-content:center; padding:12px;">
-        <div style="background:#1E1E2E; border-radius:20px 20px 16px 16px; padding:20px; width:100%; max-width:440px; border:1px solid rgba(255,$1107,$253,0.25); margin-bottom:8px; animation: slideUp 0.3s ease;">
+        <div style="background:#1E1E2E; border-radius:20px 20px 16px 16px; padding:20px; width:100%; max-width:440px; border:1px solid rgba(255,107,53,0.25); margin-bottom:8px; animation: slideUp 0.3s ease;">
             <!-- Arrow pointing down to Safari share bar -->
             <div style="text-align:center; margin-bottom:4px;">
                 <div style="display:inline-block; background:var(--primary); color:#FFFFFF; font-size:0.7rem; font-weight:800; padding:3px 12px; border-radius:20px; letter-spacing:1px;">INSTALL THIS APP</div>
             </div>
             <div style="text-align:center; font-size:2.2rem; margin: 8px 0 4px;">📲</div>
             <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
-                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,$1107,$253,0.07); padding:11px 14px; border-radius:12px; border:1px solid rgba(255,$1107,$253,0.12);">
+                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,107,53,0.07); padding:11px 14px; border-radius:12px; border:1px solid rgba(255,107,53,0.12);">
                     <span style="background:var(--primary); color:#FFFFFF; font-weight:800; font-size:0.8rem; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">1</span>
                     <span style="font-size:0.9rem; color:var(--text);">Tap the <strong style="color:var(--primary);">Share &#x2B06;</strong> icon at the bottom of Safari</span>
                 </div>
-                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,$1107,$253,0.07); padding:11px 14px; border-radius:12px; border:1px solid rgba(255,$1107,$253,0.12);">
+                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,107,53,0.07); padding:11px 14px; border-radius:12px; border:1px solid rgba(255,107,53,0.12);">
                     <span style="background:var(--primary); color:#FFFFFF; font-weight:800; font-size:0.8rem; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">2</span>
                     <span style="font-size:0.9rem; color:var(--text);">Tap <strong style="color:var(--primary);">"Add to Home Screen"</strong></span>
                 </div>
-                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,$1107,$253,0.07); padding:11px 14px; border-radius:12px; border:1px solid rgba(255,$1107,$253,0.12);">
+                <div style="display:flex; align-items:center; gap:12px; background:rgba(255,107,53,0.07); padding:11px 14px; border-radius:12px; border:1px solid rgba(255,107,53,0.12);">
                     <span style="background:var(--primary); color:#FFFFFF; font-weight:800; font-size:0.8rem; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0;">3</span>
                     <span style="font-size:0.9rem; color:var(--text);">Tap <strong style="color:var(--primary);">"Add"</strong> &#8212; Done!</span>
                 </div>
@@ -441,7 +441,7 @@ async function trackUserActivity(phone) {
             </div>
         </div>
 
-        <div id="cashReportSummary" style="border:1px solid rgba(255,$1107,$253,0.18); border-radius:10px; padding:12px; margin-bottom:14px; background:rgba(255,$1107,$253,0.04);">
+        <div id="cashReportSummary" style="border:1px solid rgba(255,107,53,0.18); border-radius:10px; padding:12px; margin-bottom:14px; background:rgba(255,107,53,0.04);">
             <p class="text-muted text-center" style="font-size:0.85rem;">Select a date and tap Load.</p>
         </div>
 
@@ -647,7 +647,7 @@ async function trackUserActivity(phone) {
             <div id="recipeIngredientsList" style="margin-bottom:15px;"></div>
 
             <!-- Add new recipe step -->
-            <div style="background:rgba(255,$1107,$253,0.05); border:1px solid rgba(255,$1107,$253,0.15); border-radius:10px; padding:14px; margin-top:8px;">
+            <div style="background:rgba(255,107,53,0.05); border:1px solid rgba(255,107,53,0.15); border-radius:10px; padding:14px; margin-top:8px;">
                 <div style="font-size:0.82rem; font-weight:700; color:var(--primary); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">➕ Add Prep Step</div>
                 <div class="flex gap-2" style="flex-wrap:wrap; margin-bottom:8px;">
                     <div style="flex:2; min-width:160px;">
@@ -774,7 +774,7 @@ async function trackUserActivity(phone) {
         </div>
 
         <div style="margin-top: 20px;">
-            <h4 style="margin-bottom: 10px; border-bottom: 1px solid rgba(255,$1107,$253,0.15); padding-bottom:5px;">Top Selling Items (Selected Date Range)</h4>
+            <h4 style="margin-bottom: 10px; border-bottom: 1px solid rgba(255,107,53,0.15); padding-bottom:5px;">Top Selling Items (Selected Date Range)</h4>
             <div id="topItemsList" style="max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px;">
                 <p class="text-muted">Loading data...</p>
             </div>
@@ -795,7 +795,7 @@ async function trackUserActivity(phone) {
         <div style="overflow-x: auto;">
             <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
                 <thead>
-                    <tr style="border-bottom: 2px solid rgba(255,$1107,$253,0.15);">
+                    <tr style="border-bottom: 2px solid rgba(255,107,53,0.15);">
                         <th style="padding: 10px;">Item Name</th>
                         <th style="padding: 10px; text-align: center;">Qty Sold</th>
                         <th style="padding: 10px; text-align: right;">Revenue Generated</th>
@@ -905,6 +905,29 @@ async function trackUserActivity(phone) {
             Leave the radius at 150 m unless staff get blocked while genuinely at the shop —
             indoors a phone can read 50–100 m off, so raise it before you suspect anything else.
             Remember to tap Save Settings.
+        </p>
+    </div>
+
+    <div style="border:1px solid var(--border, rgba(255,255,255,0.12)); border-radius:10px; padding:12px; margin-top:4px;">
+        <div style="font-weight:700; font-size:0.9rem; margin-bottom:4px;">🚚 Delivery Charge</div>
+        <p class="text-muted" style="font-size:0.78rem; margin-bottom:10px;">
+            A delivery order below the minimum order value is charged automatically. It shows
+            in the cart before the order is placed, on the bill, and in every report.
+        </p>
+        <div class="flex gap-2" style="flex-wrap:wrap;">
+            <div style="flex:1; min-width:130px;">
+                <label class="text-muted" style="font-size:0.75rem;">Delivery charge (₹)</label>
+                <input type="number" id="storeDeliveryCharge" class="input" placeholder="e.g. 30" style="margin:0;" min="0">
+            </div>
+            <div style="flex:1; min-width:130px;">
+                <label class="text-muted" style="font-size:0.75rem;">Minimum order value (₹)</label>
+                <input type="number" id="storeMinOrderValue" class="input" placeholder="e.g. 300" style="margin:0;" min="0">
+            </div>
+        </div>
+        <p class="text-muted" style="font-size:0.72rem; margin-top:8px; line-height:1.5;">
+            Order ≥ minimum → delivery free. Below it → the charge is added.<br>
+            Leave the charge blank or 0 to switch the feature off. Set the minimum to 0 to
+            charge every delivery order regardless of size. Dine-in is never charged.
         </p>
     </div>
 
@@ -1039,16 +1062,16 @@ async function trackUserActivity(phone) {
                         </div>
                     </div>
                     <div class="cart-items" id="cartItemsList"></div>
-                    <div style="border-top: 1px solid rgba(255,$1107,$253,0.15); padding-top: 10px;">
+                    <div style="border-top: 1px solid rgba(255,107,53,0.15); padding-top: 10px;">
                         <!-- Discount Coupon Section -->
-                        <div class="card" style="background: rgba(76,$1175,$280, 0.10); border: 1px dashed rgba(76,$1175,$280, 0.35); margin-bottom:10px;">
+                        <div class="card" style="background: rgba(76,175,80, 0.10); border: 1px dashed rgba(76,175,80, 0.35); margin-bottom:10px;">
                             <label class="text-muted" style="font-size:0.75rem; margin-bottom:6px; display:block;">🎫 Coupon Code</label>
                             <div class="flex gap-2" style="margin-bottom:5px;">
                                 <input type="text" id="posCouponCode" class="input" placeholder="Enter code" style="margin:0; text-transform:uppercase; flex:1; padding:8px; font-size:0.85rem;">
                                 <button class="btn btn-success btn-sm" onclick="applyPosCoupon()" style="padding:8px 12px; font-size:0.85rem;">Apply</button>
                             </div>
                             <div id="posCouponStatus" class="coupon-status hidden"></div>
-                            <div id="posAppliedDiscount" class="hidden" style="margin-top:8px; padding:8px; background:rgba(76,$1175,$280,0.14); border-radius:6px; font-size:0.8rem;">
+                            <div id="posAppliedDiscount" class="hidden" style="margin-top:8px; padding:8px; background:rgba(76,175,80,0.14); border-radius:6px; font-size:0.8rem;">
                                 <div class="flex justify-between items-center">
                                     <div style="color:var(--success); font-weight:600;">✓ <span id="posDiscountCodeLabel"></span></div>
                                     <button class="btn btn-sm btn-danger" onclick="removePosCoupon()" style="padding:4px 8px; font-size:0.75rem;">Remove</button>
@@ -1111,7 +1134,7 @@ async function trackUserActivity(phone) {
                     </div>
 
                     <!-- Live breakdown -->
-                    <div style="border:1px solid rgba(255,$1107,$253,0.18); border-radius:10px; padding:12px; margin-bottom:12px; background:rgba(255,$1107,$253,0.04);">
+                    <div style="border:1px solid rgba(255,107,53,0.18); border-radius:10px; padding:12px; margin-bottom:12px; background:rgba(255,107,53,0.04);">
                         <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">Opening Balance</span><span id="calcOpening">₹0</span></div>
                         <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Cash Sales (auto)</span><span id="calcCashSales" style="color:var(--success);">₹0</span></div>
                         <div class="flex justify-between" style="font-size:0.9rem; margin-bottom:6px;"><span class="text-muted">+ Manual Cash-In</span><span id="calcCashIn" style="color:var(--success);">₹0</span></div>
@@ -1232,7 +1255,7 @@ async function trackUserActivity(phone) {
                             <button id="custTypeDelivery" class="btn btn-sm w-full btn-secondary" onclick="setCustOrderType('delivery')">🚚 Delivery</button>
                         </div>
                         <div class="cart-items" id="custCartItems"></div>
-                        <div style="border-top: 1px solid rgba(255,$1107,$253,0.15); padding-top: 10px;">
+                        <div style="border-top: 1px solid rgba(255,107,53,0.15); padding-top: 10px;">
                             <div class="flex justify-between font-bold" style="font-size: 1.2rem; margin-bottom: 10px;">
                                 <span>Total</span>
                                 <span id="custCartTotal">₹0</span>
@@ -1254,7 +1277,7 @@ async function trackUserActivity(phone) {
         <div class="card" style="width: 90%; max-width: 400px;">
             
             <div id="paymentInputSection">
-                <h3 style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,$1107,$253,0.15); padding-bottom: 10px;">Final Billing</h3>
+                <h3 style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,107,53,0.15); padding-bottom: 10px;">Final Billing</h3>
                 
                 <div class="flex justify-between" style="margin-bottom: 10px;">
                     <span class="text-muted">Customer:</span>
@@ -1278,7 +1301,7 @@ async function trackUserActivity(phone) {
                     <div id="bonusInfoText" class="text-muted" style="font-size: 0.8rem; margin-top: 5px;">1 Point = ₹1 | New bonus will add to balance.</div>
                 </div>
 
-                <div style="margin-bottom: 15px; padding-top: 10px; border-top: 1px solid rgba(255,$1107,$253,0.15);">
+                <div style="margin-bottom: 15px; padding-top: 10px; border-top: 1px solid rgba(255,107,53,0.15);">
                     <label class="text-muted" style="font-size: 0.9rem; display: block; margin-bottom: 8px;">Payment Mode</label>
                     <div class="flex gap-2" style="margin-bottom: 10px;">
                         <button id="btnModeCash" class="btn btn-sm btn-primary w-full" onclick="setPaymentMode('Cash')">💵 Cash</button>
@@ -1297,23 +1320,23 @@ async function trackUserActivity(phone) {
                             <label class="text-muted" style="font-size: 0.8rem; display: block; margin-bottom: 5px;">📱 Online Amount</label>
                             <input type="number" id="partialOnlineAmount" class="input" placeholder="₹0" style="margin:0; text-align: right;" oninput="calculatePartialPayment()">
                         </div>
-                        <div class="text-muted" style="font-size: 0.75rem; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,$1107,$253,0.22);">
+                        <div class="text-muted" style="font-size: 0.75rem; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,107,53,0.22);">
                             <span>Total Entered: </span><span id="partialTotal" style="font-weight: bold; color: var(--primary);">₹0</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex justify-between" style="margin-bottom: 20px; font-size: 1.3rem; font-weight: bold; border-top: 1px solid rgba(255,$1107,$253,0.15); padding-top: 15px;">
+                <div class="flex justify-between" style="margin-bottom: 20px; font-size: 1.3rem; font-weight: bold; border-top: 1px solid rgba(255,107,53,0.15); padding-top: 15px;">
                     <span>Net Payable:</span>
                     <span id="payNetTotal" style="color: var(--success);">₹0</span>
                 </div>
 
-                <div id="cashCalcSection" style="margin-bottom: 20px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,$1107,$253, 0.15);">
+                <div id="cashCalcSection" style="margin-bottom: 20px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,107,53, 0.15);">
                     <div class="flex justify-between items-center" style="margin-bottom: 8px;">
                         <span class="text-muted">💵 Customer Gave:</span>
                         <input type="number" id="cashGiven" class="input" placeholder="₹" style="width: 120px; margin:0; text-align: right; font-size: 1.1rem; font-weight: bold;" oninput="calculateChange()">
                     </div>
-                    <div class="flex justify-between items-center" style="font-size: 1.1rem; font-weight: bold; border-top: 1px dashed rgba(255,$1107,$253,0.22); padding-top: 8px;">
+                    <div class="flex justify-between items-center" style="font-size: 1.1rem; font-weight: bold; border-top: 1px dashed rgba(255,107,53,0.22); padding-top: 8px;">
                         <span>🔄 Return Change:</span>
                         <span id="cashReturn" style="color: var(--warning);">₹0</span>
                     </div>
@@ -1406,6 +1429,7 @@ async function trackUserActivity(phone) {
         };
 let TEMP_EDIT_ITEMS = [];
 let TEMP_EDIT_DISCOUNT = null; // Store discount info during editing
+let TEMP_EDIT_ORDERTYPE = 'dine-in'; // order type of the order open in the edit modal
 let SALES_CHART_INSTANCE = null;
 let isSubmitting = false; // Guard against duplicate order submissions
 
@@ -1926,10 +1950,10 @@ async function reconcileCashBox() {
     const box = document.getElementById('mgmtMatchResult');
     box.style.display = 'block';
     if (diff === 0) {
-        box.style.background = 'rgba(76,$1175,$280,0.18)'; box.style.color = 'var(--success)';
+        box.style.background = 'rgba(76,175,80,0.18)'; box.style.color = 'var(--success)';
         box.innerHTML = `✅ MATCH — Box has exactly ₹${counted} as expected.`;
     } else if (diff < 0) {
-        box.style.background = 'rgba(255,$182,$282,0.18)'; box.style.color = '#FF5252';
+        box.style.background = 'rgba(255,82,82,0.18)'; box.style.color = '#FF5252';
         box.innerHTML = `⚠️ SHORTAGE of ₹${Math.abs(diff)} — Expected ₹${expected}, counted ₹${counted}.`;
     } else {
         box.style.background = 'rgba(255,149,0,0.18)'; box.style.color = '#FF9500';
@@ -2762,7 +2786,7 @@ async function loadCashHistory() {
             </div>
             <div style="overflow-x:auto;">
             <table style="width:100%; border-collapse:collapse; font-size:0.82rem; min-width:640px;">
-                <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid rgba(255,$1107,$253,0.25);">
+                <thead><tr style="text-align:left; color:var(--text-muted); border-bottom:1px solid rgba(255,107,53,0.25);">
                     <th style="padding:7px 6px;">Date</th><th>Opening</th><th>Cash Sales</th><th>Cash In</th>
                     <th>Expenses</th><th>Expected</th><th>Counted</th><th>Difference</th>
                 </tr></thead>
@@ -3381,6 +3405,8 @@ document.getElementById('storeUpi').value = s.upi || '';
                 document.getElementById('storeOutletLat').value = (typeof s.outletLat === 'number') ? s.outletLat : '';
                 document.getElementById('storeOutletLng').value = (typeof s.outletLng === 'number') ? s.outletLng : '';
                 document.getElementById('storeGeofenceM').value = (typeof s.geofenceM === 'number') ? s.geofenceM : '';
+                document.getElementById('storeDeliveryCharge').value = (typeof s.deliveryCharge === 'number') ? s.deliveryCharge : '';
+                document.getElementById('storeMinOrderValue').value = (typeof s.minOrderValue === 'number') ? s.minOrderValue : '';
                 if(document.getElementById('storeQrUrl')) document.getElementById('storeQrUrl').value = s.qrUrl || '';
                 
                 // Toggle Switch Logic
@@ -3443,7 +3469,9 @@ document.getElementById('storeUpi').value = s.upi || '';
         // Blank fields are stored as null so outletGeofence() falls back to the constants
         outletLat: _numOrNull('storeOutletLat'),
         outletLng: _numOrNull('storeOutletLng'),
-        geofenceM: _numOrNull('storeGeofenceM')
+        geofenceM: _numOrNull('storeGeofenceM'),
+        deliveryCharge: _numOrNull('storeDeliveryCharge'),
+        minOrderValue: _numOrNull('storeMinOrderValue')
     };
     
     try {
@@ -4061,7 +4089,7 @@ function renderSalesChart(dailyData) {
                 label: 'Daily Sales (₹)',
                 data: dataPoints,
                 borderColor: '#FF6B35', // Your Primary Brand Color
-                backgroundColor: 'rgba(255,$1107,$253, 0.12)',
+                backgroundColor: 'rgba(255,107,53, 0.12)',
                 borderWidth: 2,
                 tension: 0.3, // Curve smoothing
                 fill: true,
@@ -4218,6 +4246,7 @@ TEMP_EDIT_ITEMS = JSON.parse(JSON.stringify(data.items)); // Deep copy to avoid 
 
 // Store discount info for editing
 TEMP_EDIT_DISCOUNT = data.discount ? JSON.parse(JSON.stringify(data.discount)) : null;
+TEMP_EDIT_ORDERTYPE = data.orderType || 'dine-in';
 
 // 2. Populate the "Add Item" dropdown
 const itemSelect = document.getElementById('adminAddItemSelect');
@@ -4247,12 +4276,19 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
             
             // Add discount info if present
             let discountHtml = '';
+            if(Number(data.deliveryCharge) > 0) {
+                discountHtml += `
+                    <div class="flex justify-between" style="font-size:0.85rem; margin-top:8px; padding:8px; border-radius:6px; background:rgba(255,149,0,0.10); border:1px solid rgba(255,149,0,0.30);">
+                        <span style="color:#FF9500; font-weight:600;">🚚 Delivery Charge</span>
+                        <span style="color:#FF9500; font-weight:700;">+₹${data.deliveryCharge}</span>
+                    </div>`;
+            }
             if(data.discount && data.discount.amount > 0) {
                 const discountText = data.discount.type === 'percentage' 
                     ? `${data.discount.value}% OFF` 
                     : `₹${data.discount.value} OFF`;
                 discountHtml = `
-                    <div style="background:rgba(76,$1175,$280,0.14); padding:8px; border-radius:6px; margin-top:8px; border:1px solid rgba(76,$1175,$280,0.35);">
+                    <div style="background:rgba(76,175,80,0.14); padding:8px; border-radius:6px; margin-top:8px; border:1px solid rgba(76,175,80,0.35);">
                         <div style="font-size:0.85rem; color:var(--success); font-weight:600;">
                             🎫 Coupon Applied: ${data.discount.code}
                         </div>
@@ -4274,9 +4310,9 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
             if(kotStatus === 'preparing') {
                 kotHtml = `<div style="background:rgba(255,149,0,0.15); border:1px solid rgba(255,149,0,0.4); padding:8px; border-radius:6px; margin-top:8px; font-size:0.85rem; color:#FF9500; font-weight:600;">🔥 Kitchen Status: PREPARING</div>`;
             } else if(kotStatus === 'completed') {
-                kotHtml = `<div style="background:rgba(76,$1175,$280,0.12); border:1px solid rgba(76,$1175,$280,0.4); padding:8px; border-radius:6px; margin-top:8px; font-size:0.85rem; color:var(--success); font-weight:600;">✅ Kitchen Status: READY</div>`;
+                kotHtml = `<div style="background:rgba(76,175,80,0.12); border:1px solid rgba(76,175,80,0.4); padding:8px; border-radius:6px; margin-top:8px; font-size:0.85rem; color:var(--success); font-weight:600;">✅ Kitchen Status: READY</div>`;
             } else if(data.status === 'pending' || data.status === 'requested') {
-                kotHtml = `<div style="background:rgba(160,$1160,$2160,0.1); border:1px solid rgba(160,$1160,$2160,0.3); padding:8px; border-radius:6px; margin-top:8px; font-size:0.85rem; color:var(--text-muted);">⏳ Kitchen Status: QUEUED</div>`;
+                kotHtml = `<div style="background:rgba(160,160,160,0.1); border:1px solid rgba(160,160,160,0.3); padding:8px; border-radius:6px; margin-top:8px; font-size:0.85rem; color:var(--text-muted);">⏳ Kitchen Status: QUEUED</div>`;
             }
 
             // Kitchen prep-time breakdown (timestamps written by the KOT app)
@@ -4507,7 +4543,8 @@ itemSelect.innerHTML = `<option value="">+ Add Menu Item</option>` +
                 finalPaid: newTotal,
                 total: newTotal,
                 subtotal: subtotal,
-                discount: TEMP_EDIT_DISCOUNT, 
+                discount: TEMP_EDIT_DISCOUNT,
+                deliveryCharge: deliveryChargeFor(subtotal, TEMP_EDIT_ORDERTYPE),
                 paymentMode: newMode,
                 items: newItems,
                 bonusEarned: newBonus,
@@ -4658,7 +4695,11 @@ function recalcEditTotal() {
         }
         finalTotal = subtotal - TEMP_EDIT_DISCOUNT.amount;
     }
-    
+
+    // Editing items can push the order over or under the free-delivery threshold,
+    // so the charge is re-decided here rather than carried over.
+    finalTotal += deliveryChargeFor(subtotal, TEMP_EDIT_ORDERTYPE);
+
     document.getElementById('editTotal').value = finalTotal;
 }
 
@@ -4959,6 +5000,35 @@ function filterMenu(text) {
             }
         }
 
+        // ── DELIVERY CHARGE ───────────────────────────────────────────────
+        // A delivery order under the minimum order value picks up a delivery
+        // charge. Both figures live in Admin → Settings (Firestore settings/store).
+        //
+        //     minOrderValue = 0  → every delivery order is charged
+        //     deliveryCharge = 0 → the feature is off
+        //
+        // Returns { charge, minValue, free, shortBy } so the carts can also show
+        // "add ₹x more for free delivery".
+        function deliveryInfoFor(itemsSubtotal, orderType) {
+            const s = STATE.storeSettings || {};
+            const charge   = Math.max(0, Number(s.deliveryCharge) || 0);
+            const minValue = Math.max(0, Number(s.minOrderValue) || 0);
+            const sub = Number(itemsSubtotal) || 0;
+            if (orderType !== 'delivery' || charge <= 0) {
+                return { charge: 0, minValue, free: false, shortBy: 0, configured: charge > 0 };
+            }
+            const free = (minValue > 0 && sub >= minValue);
+            return {
+                charge: free ? 0 : charge,
+                minValue,
+                free,
+                shortBy: (minValue > 0 && !free) ? (minValue - sub) : 0,
+                configured: true
+            };
+        }
+        function deliveryChargeFor(itemsSubtotal, orderType) {
+            return deliveryInfoFor(itemsSubtotal, orderType).charge;
+        }
         function renderCartGeneric(container, totalEl, cartArray) {
             if(cartArray.length === 0) {
                 container.innerHTML = '<div class="text-center text-muted" style="margin-top:20px;">Cart is empty</div>';
@@ -4992,7 +5062,7 @@ function filterMenu(text) {
                 const parcelQty = Math.min(item.parcelQty || 0, item.qty);
                 const dineQty = item.qty - parcelQty;
                 const parcelControl = showParcel ? `
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin:4px 0 8px; padding:4px 8px; background:rgba(255,$1107,$253,0.06); border:1px solid rgba(255,$1107,$253,0.12); border-radius:6px; font-size:0.7rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin:4px 0 8px; padding:4px 8px; background:rgba(255,107,53,0.06); border:1px solid rgba(255,107,53,0.12); border-radius:6px; font-size:0.7rem;">
                         <span class="text-muted">🍽️ Dine ${dineQty} &nbsp;|&nbsp; 📦 Parcel ${parcelQty}</span>
                         <div class="qty-controls" style="gap:4px;">
                             <div class="qty-btn" style="width:22px; height:22px;" onclick="setItemParcel('${item.id}', -1)" title="Fewer parcel">-</div>
@@ -5021,6 +5091,7 @@ function filterMenu(text) {
             
             // Apply discount if available (only for outlet cart, not customer cart)
             let finalTotal = total;
+            let strikeLine = '';
             if(appliedDiscount && container.id === 'cartItemsList') {
                 // Recalculate discount amount based on current cart total
                 let discountAmount = 0;
@@ -5037,10 +5108,25 @@ function filterMenu(text) {
                 appliedDiscount.amount = discountAmount;
                 
                 finalTotal = total - discountAmount;
-                totalEl.innerHTML = `
-                    <div style="text-decoration:line-through; font-size:0.9rem; color:var(--text-muted);">₹${total}</div>
-                    <div style="color:var(--success);">₹${finalTotal}</div>
-                `;
+                strikeLine = `<div style="text-decoration:line-through; font-size:0.9rem; color:var(--text-muted);">₹${total}</div>`;
+            }
+
+            // Delivery charge, on the cart the customer/staff is looking at right now
+            const cartOrderType = (STATE.role === 'customer') ? STATE.custOrderType : STATE.orderType;
+            const del = deliveryInfoFor(total, cartOrderType);
+            let deliveryLine = '';
+            if (del.charge > 0) {
+                finalTotal += del.charge;
+                deliveryLine = `<div style="font-size:0.75rem; color:var(--warning); font-weight:600;">+ ₹${del.charge} delivery charge</div>`;
+                if (del.shortBy > 0) {
+                    deliveryLine += `<div style="font-size:0.7rem; color:var(--text-muted);">Add ₹${del.shortBy} more for free delivery</div>`;
+                }
+            } else if (del.free) {
+                deliveryLine = `<div style="font-size:0.72rem; color:var(--success); font-weight:600;">✓ Free delivery</div>`;
+            }
+
+            if (strikeLine || deliveryLine) {
+                totalEl.innerHTML = strikeLine + deliveryLine + `<div style="color:var(--success);">₹${finalTotal}</div>`;
             } else {
                 totalEl.innerText = '₹' + total;
             }
@@ -5073,7 +5159,8 @@ function filterMenu(text) {
             isSubmitting = true;
             const orderType = STATE.custOrderType || 'dine-in';
             const itemsForMsg = JSON.parse(JSON.stringify(STATE.custCart));
-            const totalForMsg = itemsForMsg.reduce((s, i) => s + (i.price * i.qty), 0);
+            const itemsSubForMsg = itemsForMsg.reduce((s, i) => s + (i.price * i.qty), 0);
+            const totalForMsg = itemsSubForMsg + deliveryChargeFor(itemsSubForMsg, orderType);
             const custName = (STATE.user && STATE.user.name) || document.getElementById('custNameDisplay')?.innerText || '';
             try {
                 await submitOrder(STATE.user.phone, STATE.custCart, 'requested', 'customer', orderType);
@@ -5156,10 +5243,13 @@ function filterMenu(text) {
                     oldItems = data.items || [];
                     oldModel = data.stockModel || 'reserved-v2';
                     wasBlocked = !!data.stockBlocked;
+                    // Order type can change during the edit, so the charge is re-decided.
+                    const custEditDelivery = deliveryChargeFor(total, orderType);
                     t.update(orderRef, {
                         items: itemsSnapshot,
                         subtotal: total,
-                        total: total,
+                        deliveryCharge: custEditDelivery,
+                        total: total + custEditDelivery,
                         orderType: orderType,
                         stockBlocked: true,
                         stockModel: 'reserved-v2'
@@ -5229,6 +5319,11 @@ function filterMenu(text) {
                     amount: appliedDiscount.amount
                 };
             }
+
+            // Delivery charge is decided from the ITEM subtotal, before any discount,
+            // so a coupon cannot push an order under the free-delivery threshold.
+            const deliveryCharge = deliveryChargeFor(total, orderType);
+            finalTotal += deliveryCharge;
             
             // 2. Save Order — stockBlocked flag tracks whether inventory has been blocked
             let stockBlocked = false;
@@ -5246,6 +5341,7 @@ function filterMenu(text) {
                 customerName: custName,
                 subtotal: total,
                 discount: discountInfo,
+                deliveryCharge: deliveryCharge,
                 total: finalTotal,
                 status: status, 
                 timestamp: serverTimestamp(),
@@ -5518,7 +5614,7 @@ const customerDisplay = o.customerName
 
                 const isDelivery = o.orderType === 'delivery';
                 const safeName = (o.customerName || '').replace(/'/g, "\\'");
-                const typeBadge = `<span style="font-size:0.65rem; margin-left:6px; padding:1px 6px; border-radius:4px; background:rgba(255,$1107,$253,0.18); color:var(--primary); font-weight:700;">${orderTypeLabel(o.orderType)}</span>`;
+                const typeBadge = `<span style="font-size:0.65rem; margin-left:6px; padding:1px 6px; border-radius:4px; background:rgba(255,107,53,0.18); color:var(--primary); font-weight:700;">${orderTypeLabel(o.orderType)}</span>`;
                 // "Accept (Paid)" opens the payment modal so the order is COMPLETED directly
                 // (skips pending → can't be lost/deleted as an unpaid pending order).
                 const pendingLabel = isDelivery ? '💵 Accept (COD)' : '🍽️ Accept (Pay later)';
@@ -5545,7 +5641,7 @@ const customerDisplay = o.customerName
                     
                     <div style="margin-bottom:8px;">${customerDisplay}</div>
                     
-                    <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,$1107,$253,0.15); padding-top:8px;">
+                    <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,107,53,0.15); padding-top:8px;">
                         ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
                     </div>
                     
@@ -5590,18 +5686,18 @@ const customerDisplay = o.customerName
                     kotBadgeColor = '#4CAF50';
                     kotBadgeHtml = `<span style="background:${kotBadgeColor}; color:#000; padding:2px 8px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">✅ KITCHEN: READY</span>`;
                 } else {
-                    kotBadgeHtml = `<span style="background:rgba(160,$1160,$2160,0.3); color:#aaa; padding:2px 8px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">⏳ KITCHEN: QUEUED</span>`;
+                    kotBadgeHtml = `<span style="background:rgba(160,160,160,0.3); color:#aaa; padding:2px 8px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">⏳ KITCHEN: QUEUED</span>`;
                 }
 
                 // Source badge
                 const sourceBadge = o.orderSource === 'customer' 
-                    ? `<span style="background:rgba(33,$1150,$2243,0.3); color:#2196F3; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">📱 CUSTOMER</span>`
-                    : `<span style="background:rgba(255,$1107,$253,0.15); color:var(--primary); padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">🖥️ POS</span>`;
+                    ? `<span style="background:rgba(33,150,243,0.3); color:#2196F3; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">📱 CUSTOMER</span>`
+                    : `<span style="background:rgba(255,107,53,0.15); color:var(--primary); padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">🖥️ POS</span>`;
 
                 // Order type badge (dine-in / delivery)
                 const typeBadge = o.orderType === 'delivery'
                     ? `<span style="background:rgba(255,149,0,0.18); color:#FF9500; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">🚚 DELIVERY</span>`
-                    : `<span style="background:rgba(76,$1175,$280,0.15); color:var(--success); padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">🍽️ DINE-IN</span>`;
+                    : `<span style="background:rgba(76,175,80,0.15); color:var(--success); padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">🍽️ DINE-IN</span>`;
 
                 // Edit button logic:
                 // - No kotStatus: full edit allowed
@@ -5636,7 +5732,7 @@ const customerDisplay = o.customerName
                         </div>
                     </div>
                     
-                    <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,$1107,$253,0.15); padding-top:8px; margin-top:5px;">
+                    <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,107,53,0.15); padding-top:8px; margin-top:5px;">
                         ${o.items.map(i => `${i.qty}x ${i.name}${(o.orderType !== 'delivery' && i.parcelQty > 0) ? ` (📦${i.parcelQty})` : ''}`).join(', ')}
                     </div>
                     
@@ -5722,7 +5818,7 @@ function printKOT(orderId) {
 
                 const typeBadge = o.orderType === 'delivery'
                     ? `<span style="background:rgba(255,149,0,0.18); color:#FF9500; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">🚚 DELIVERY</span>`
-                    : `<span style="background:rgba(76,$1175,$280,0.15); color:var(--success); padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">🍽️ DINE-IN</span>`;
+                    : `<span style="background:rgba(76,175,80,0.15); color:var(--success); padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:bold; margin-left:5px;">🍽️ DINE-IN</span>`;
 
                 return `
                 <div class="order-card ${hasDiscount ? 'discount-applied' : ''}" onclick="viewOrderDetails('${o.id}')" style="cursor:pointer; position:relative;">
@@ -5740,7 +5836,7 @@ function printKOT(orderId) {
                         </div>
                     </div>
                     
-                    <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,$1107,$253,0.15); padding-top:8px; margin-top:8px;">
+                    <div class="text-muted" style="font-size:0.9rem; border-top:1px solid rgba(255,107,53,0.15); padding-top:8px; margin-top:8px;">
                         ${o.items.map(i => `${i.qty}x ${i.name}`).join(', ')}
                     </div>
 
@@ -5969,10 +6065,14 @@ async function deletePendingOrder(orderId) {
                 // --- END INVENTORY FIX ---
 
                 // 3. Update the Order
+                const posEditDelivery = deliveryChargeFor(total, STATE.orderType);
+                finalTotal += posEditDelivery;
+
                 await updateDoc(orderRef, {
-                    items: itemsSnapshot, 
+                    items: itemsSnapshot,
                     subtotal: total,
                     discount: discountInfo,
+                    deliveryCharge: posEditDelivery,
                     total: finalTotal,
                     phone: newPhone,
                     customerName: custName,
@@ -6723,14 +6823,21 @@ async function printBillDirect(orderId) {
         // TOTALS
         addCmd(0x1B, 0x61, 2); // Right Align
         
-        // Show subtotal if discount applied
-        if(order.discount && order.discount.amount > 0) {
+        // Show the breakdown whenever anything sits between subtotal and total
+        const billDiscount = (order.discount && order.discount.amount > 0) ? order.discount.amount : 0;
+        const billDelivery = Number(order.deliveryCharge) || 0;
+        if(billDiscount > 0 || billDelivery > 0) {
             addText(`Subtotal:  ${order.subtotal}\n`);
-            
-            const discountLabel = order.discount.type === 'percentage' 
-                ? `Discount (${order.discount.code} ${order.discount.value}%): `
-                : `Discount (${order.discount.code}): `;
-            addText(`${discountLabel} -${order.discount.amount}\n`);
+
+            if(billDiscount > 0) {
+                const discountLabel = order.discount.type === 'percentage'
+                    ? `Discount (${order.discount.code} ${order.discount.value}%): `
+                    : `Discount (${order.discount.code}): `;
+                addText(`${discountLabel} -${order.discount.amount}\n`);
+            }
+            if(billDelivery > 0) {
+                addText(`Delivery Charge:  +${billDelivery}\n`);
+            }
             addText(`--------------------------------\n`);
         }
         
@@ -7035,7 +7142,7 @@ function loadCustomerNotifications() {
             if(time > lastCheck) hasNew = true;
 
             return `
-            <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:15px; margin-bottom:15px; border:1px solid rgba(255,$1107,$253,0.15);">
+            <div style="background:rgba(255,255,255,0.05); border-radius:10px; padding:15px; margin-bottom:15px; border:1px solid rgba(255,107,53,0.15);">
                 ${c.image ? `<img src="${c.image}" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-bottom:10px;">` : ''}
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:5px;">
                     <h4 style="color:var(--primary); margin:0;">${c.title}</h4>
@@ -7097,14 +7204,14 @@ function loadAdminNotificationHistory() {
             const count = data.deliveryCount !== undefined ? data.deliveryCount : '...';
 
             return `
-            <div class="card" style="padding:10px; border:1px solid rgba(255,$1107,$253,0.15); margin-bottom:10px;">
+            <div class="card" style="padding:10px; border:1px solid rgba(255,107,53,0.15); margin-bottom:10px;">
                 <div class="flex justify-between">
                     <strong>${data.title}</strong>
                     <span class="text-muted" style="font-size:0.8rem;">${dateStr}</span>
                 </div>
                 <div class="text-muted" style="font-size:0.9rem; margin:5px 0;">${data.message}</div>
                 
-                <div class="flex justify-between items-center" style="margin-top:10px; border-top:1px solid rgba(255,$1107,$253,0.15); padding-top:8px;">
+                <div class="flex justify-between items-center" style="margin-top:10px; border-top:1px solid rgba(255,107,53,0.15); padding-top:8px;">
                     <span style="color:var(--success); font-weight:bold;">
                         📱 Delivered to: ${count} devices
                     </span>
@@ -7465,7 +7572,7 @@ async function loadItemRecipe(itemId) {
     const container = document.getElementById('recipeIngredientsList');
     if (recipe.length === 0) {
         container.innerHTML = `
-            <div style="background:rgba(255,$1107,$253,0.05); border:1px dashed rgba(255,$1107,$253,0.2); border-radius:8px; padding:12px; text-align:center;">
+            <div style="background:rgba(255,107,53,0.05); border:1px dashed rgba(255,107,53,0.2); border-radius:8px; padding:12px; text-align:center;">
                 <div style="font-size:1.5rem; margin-bottom:6px;">📋</div>
                 <div style="color:var(--text-muted); font-size:0.85rem;">No recipe steps yet. Add the first prep step below.</div>
             </div>`;
@@ -7711,7 +7818,7 @@ async function loadActiveUsersReport() {
 <div id="orderDetailsModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 500; display: flex; align-items: center; justify-content: center;">
     <div class="card" style="width: 90%; max-width: 400px; max-height: 90vh; overflow-y: auto;">
         
-        <div class="flex justify-between items-center" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,$1107,$253,0.15); padding-bottom: 10px;">
+        <div class="flex justify-between items-center" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,107,53,0.15); padding-bottom: 10px;">
             <h3>Order Details</h3>
             <button class="btn btn-secondary btn-sm" onclick="closeDetailsModal()">✖</button>
         </div>
@@ -7729,9 +7836,9 @@ async function loadActiveUsersReport() {
                 <input id="editCustPhone" class="input" style="margin-bottom:0;" disabled>
             </div>
 
-            <div id="viewItemsList" style="border-top: 1px dashed rgba(255,$1107,$253,0.22); border-bottom: 1px dashed rgba(255,$1107,$253,0.22); padding: 10px 0; margin-bottom: 10px;"></div>
+            <div id="viewItemsList" style="border-top: 1px dashed rgba(255,107,53,0.22); border-bottom: 1px dashed rgba(255,107,53,0.22); padding: 10px 0; margin-bottom: 10px;"></div>
 
-<div id="editItemsWrapper" class="hidden" style="margin-bottom: 15px; border-top: 1px dashed rgba(255,$1107,$253,0.22); padding-top: 10px;">
+<div id="editItemsWrapper" class="hidden" style="margin-bottom: 15px; border-top: 1px dashed rgba(255,107,53,0.22); padding-top: 10px;">
     <div id="editItemsList" style="display:flex; flex-direction:column; gap:8px;"></div>
     
     <div style="margin-top: 10px; display:flex; gap:5px;">
@@ -7741,9 +7848,9 @@ async function loadActiveUsersReport() {
     </div>
     
     <!-- Coupon Section for Editing -->
-    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,$1107,$253,0.22);">
+    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,107,53,0.22);">
         <label class="text-muted" style="font-size:0.75rem; margin-bottom:6px; display:block;">🎫 Discount Coupon</label>
-        <div id="editAppliedCoupon" class="hidden" style="background:rgba(76,$1175,$280,0.14); padding:8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(76,$1175,$280,0.35);">
+        <div id="editAppliedCoupon" class="hidden" style="background:rgba(76,175,80,0.14); padding:8px; border-radius:6px; margin-bottom:8px; border:1px solid rgba(76,175,80,0.35);">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <span style="font-size:0.85rem; color:var(--success); font-weight:600;" id="editCouponCodeLabel">SAVE50</span>
                 <button class="btn btn-sm btn-danger" onclick="removeEditCoupon()" style="padding:4px 8px; font-size:0.75rem;">Remove</button>
@@ -7787,7 +7894,7 @@ async function loadActiveUsersReport() {
 
 <div id="notificationModal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 600; display: flex; align-items: center; justify-content: center;">
     <div class="card" style="width: 90%; max-width: 400px; max-height: 80vh; display:flex; flex-direction:column;">
-        <div class="flex justify-between items-center" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,$1107,$253,0.15); padding-bottom: 10px;">
+        <div class="flex justify-between items-center" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255,107,53,0.15); padding-bottom: 10px;">
             <h3>📢 Offers & Updates</h3>
             <button class="btn btn-secondary btn-sm" onclick="document.getElementById('notificationModal').classList.add('hidden')">✖</button>
         </div>
